@@ -8,14 +8,17 @@ const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
 
-  // Close search and clear query on route change (prevents “stuck” search bar)
+  // Enable search button ONLY on /collection and /category/* routes
+  const enableSearch = /^\/(collection|category)(\/|$)/.test(location.pathname);
+
+  // Close search + clear query on route change
   useEffect(() => {
     setShowSearch(false);
     setSearch("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
-  // Add subtle shadow after a tiny scroll
+  // Subtle shadow after small scroll
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
     onScroll();
@@ -44,41 +47,31 @@ const Navbar = () => {
         {/* Desktop nav */}
         <nav className="hidden md:block" aria-label="Primary">
           <ul className="flex items-center gap-8 text-sm">
-            <li>
-              <Link to="/" className="hover:underline">
-                Home
-              </Link>
-            </li>
-            <li>
-              <Link to="/about" className="hover:underline">
-                About
-              </Link>
-            </li>
-            <li>
-              <Link to="/contact" className="hover:underline">
-                Contact
-              </Link>
-            </li>
+            <li><Link to="/" className="hover:underline">Home</Link></li>
+            <li><Link to="/about" className="hover:underline">About</Link></li>
+            <li><Link to="/contact" className="hover:underline">Contact</Link></li>
           </ul>
         </nav>
 
-        {/* Search toggle (uses existing context state) */}
-        <button
-          type="button"
-          aria-label="Search"
-          onClick={() => setShowSearch(!showSearch)}
-          className="p-2 rounded hover:bg-gray-100"
-        >
-          {assets.search_icon ? (
-            <img src={assets.search_icon} alt="" className="w-5 h-5" />
-          ) : (
-            <span className="text-xl leading-none">🔍</span>
-          )}
-        </button>
+        {/* Search toggle ONLY on product listing routes */}
+        {enableSearch && (
+          <button
+            type="button"
+            aria-label="Search"
+            onClick={() => setShowSearch(!showSearch)}
+            className="p-2 rounded hover:bg-gray-100"
+          >
+            {assets.search_icon ? (
+              <img src={assets.search_icon} alt="" className="w-5 h-5" />
+            ) : (
+              <span className="text-xl leading-none">🔍</span>
+            )}
+          </button>
+        )}
       </div>
 
-      {/* Revealable search bar */}
-      {showSearch && (
+      {/* Revealable search bar (only on listing routes) */}
+      {enableSearch && showSearch && (
         <div className="border-t bg-white">
           <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
             <input
@@ -89,7 +82,10 @@ const Navbar = () => {
             />
             <button
               type="button"
-              onClick={() => setShowSearch(false)}
+              onClick={() => {
+                setSearch("");
+                setShowSearch(false);
+              }}
               className="h-10 px-3 border rounded"
             >
               Cancel

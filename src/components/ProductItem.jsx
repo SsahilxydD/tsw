@@ -18,7 +18,8 @@ const ProductItem = ({ id, image, name, price }) => {
   return (
     <Link
       to={`/product/${id}`}
-      className="text-gray-700 group block"
+      title={name}
+      className="text-gray-700 group block focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30 rounded-md"
       onMouseEnter={preload}
       onTouchStart={preload}
     >
@@ -26,7 +27,7 @@ const ProductItem = ({ id, image, name, price }) => {
         <SafeImg
           src={cover}
           alt={name}
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 motion-reduce:transform-none"
         />
       </div>
 

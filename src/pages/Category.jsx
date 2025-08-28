@@ -3,8 +3,9 @@ import React, { useContext, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import Title from "../components/Title";
 import ProductItem from "../components/ProductItem";
-import SkeletonCard from "../components/SkeletonCard"; // <-- addon
+import SkeletonCard from "../components/SkeletonCard";
 import { ShopContext } from "../context/ShopContext";
+import useDebouncedValue from "../hooks/useDebouncedValue";
 
 const toDisplay = (s) =>
   (s ?? "")
@@ -16,7 +17,10 @@ const toDisplay = (s) =>
 const Category = () => {
   const { cat } = useParams();
   const catKey = decodeURIComponent(cat || "");
-  const { products } = useContext(ShopContext);
+
+  // bring in global search UI state (from Navbar)
+  const { products, search, showSearch } = useContext(ShopContext);
+  const debouncedSearch = useDebouncedValue(search, 250);
 
   // products for this category (raw scraped key preferred)
   const baseProducts = useMemo(() => {
@@ -51,6 +55,13 @@ const Category = () => {
 
   const applyFilter = () => {
     let copy = baseProducts.slice();
+
+    // search (only when search bar is open and query present)
+    if (showSearch && debouncedSearch) {
+      const q = debouncedSearch.trim().toLowerCase();
+      copy = copy.filter((p) => (p.name || "").toLowerCase().includes(q));
+    }
+
     if (hasSizes && sizeFilters.length > 0) {
       copy = copy.filter(
         (item) =>
@@ -86,7 +97,7 @@ const Category = () => {
   useEffect(() => {
     applyFilter();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [baseProducts, hasSizes, sizeFilters]);
+  }, [baseProducts, hasSizes, sizeFilters, showSearch, debouncedSearch]);
 
   useEffect(() => {
     sortList();
@@ -136,7 +147,6 @@ const Category = () => {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {/* addon: skeletons when list empty */}
             {list.length === 0 ? (
               <>
                 <SkeletonCard />
