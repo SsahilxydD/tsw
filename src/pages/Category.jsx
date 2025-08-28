@@ -1,4 +1,3 @@
-// src/pages/Category.jsx
 import React, { useContext, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import Title from "../components/Title";
@@ -18,11 +17,10 @@ const Category = () => {
   const { cat } = useParams();
   const catKey = decodeURIComponent(cat || "");
 
-  // bring in global search UI state (from Navbar)
-  const { products, search, showSearch } = useContext(ShopContext);
+  const { products, search, showSearch, loadingProducts } = useContext(ShopContext);
   const debouncedSearch = useDebouncedValue(search, 250);
 
-  // products for this category (raw scraped key preferred)
+  // products for this category
   const baseProducts = useMemo(() => {
     if (!Array.isArray(products)) return [];
     return products.filter(
@@ -104,6 +102,9 @@ const Category = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sortType, list.length]);
 
+  const isLoading = Boolean(loadingProducts);
+  const isEmpty = !isLoading && list.length === 0;
+
   return (
     <div className="pt-10 border-t">
       <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row gap-6">
@@ -146,17 +147,15 @@ const Category = () => {
             </select>
           </div>
 
+          {isEmpty && (
+            <p className="text-sm text-gray-500 mb-6">No products match your filters.</p>
+          )}
+
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {list.length === 0 ? (
+            {isLoading ? (
               <>
-                <SkeletonCard />
-                <SkeletonCard />
-                <SkeletonCard />
-                <SkeletonCard />
-                <SkeletonCard />
-                <SkeletonCard />
-                <SkeletonCard />
-                <SkeletonCard />
+                <SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard />
+                <SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard />
               </>
             ) : (
               list.map((item, index) => (

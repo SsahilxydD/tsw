@@ -1,16 +1,13 @@
-// src/pages/Collection.jsx
 import React, { useContext, useEffect, useMemo, useState } from "react";
 import Title from "../components/Title";
 import ProductItem from "../components/ProductItem";
 import SkeletonCard from "../components/SkeletonCard";
 import { ShopContext } from "../context/ShopContext";
-import useDebouncedValue from "../hooks/useDebouncedValue"; // <-- addon
+import useDebouncedValue from "../hooks/useDebouncedValue";
 
 const Collection = () => {
-  const { products, search, showSearch } = useContext(ShopContext);
-
-  // Debounce search for smoother filtering on input
-  const debouncedSearch = useDebouncedValue(search, 250); // <-- addon
+  const { products, search, showSearch, loadingProducts } = useContext(ShopContext);
+  const debouncedSearch = useDebouncedValue(search, 250);
 
   // Gather all available sizes (used only if present)
   const availableSizes = useMemo(() => {
@@ -75,24 +72,26 @@ const Collection = () => {
     setList(fpCopy);
   };
 
-  // Effects
   useEffect(() => {
     applyFilter();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [products, showSearch, debouncedSearch, hasSizes, sizeFilters]); // <-- debouncedSearch
+  }, [products, showSearch, debouncedSearch, hasSizes, sizeFilters]);
 
   useEffect(() => {
     sortList();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sortType, list.length]);
 
-  // Handlers
   const toggleSize = (e) => {
     const v = e.target.value;
     setSizeFilters((prev) =>
       prev.includes(v) ? prev.filter((s) => s !== v) : [...prev, v]
     );
   };
+
+  // States
+  const isLoading = Boolean(loadingProducts);
+  const isEmpty = !isLoading && list.length === 0;
 
   return (
     <div className="pt-10 border-t">
@@ -107,7 +106,7 @@ const Collection = () => {
                 {availableSizes.map((s) => (
                   <label key={s} className="flex items-center gap-2">
                     <input
-                      className="w-4 h-4" // slightly larger tap target
+                      className="w-4 h-4"
                       value={s}
                       onChange={toggleSize}
                       type="checkbox"
@@ -136,8 +135,12 @@ const Collection = () => {
             </select>
           </div>
 
+          {isEmpty && (
+            <p className="text-sm text-gray-500 mb-6">No products match your filters.</p>
+          )}
+
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {list.length === 0 ? (
+            {isLoading ? (
               <>
                 <SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard />
                 <SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard />

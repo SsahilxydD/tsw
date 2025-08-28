@@ -27,6 +27,10 @@ const ProductItem = ({ id, image, name, price }) => {
         <SafeImg
           src={cover}
           alt={name}
+          // responsive hint: 50% width on small, 33% md, 25% lg
+          sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
+          width={1200}
+          height={1200}
           className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 motion-reduce:transform-none"
         />
       </div>
