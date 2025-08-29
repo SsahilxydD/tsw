@@ -36,12 +36,10 @@ const Hero = () => {
       {/* content */}
       <div className="relative z-10 flex flex-col items-center justify-center h-full text-center text-white px-4">
         <div className="flex items-center gap-2">
-          <p className="w-8 md:w-11 h-[2px] bg-white"></p>
-          <p className="font-medium text-sm md:text-base tracking-wider">THE</p>
         </div>
 
         <h1 className="prata-regular text-3xl sm:py-3 lg:text-5xl leading-relaxed">
-          SOLO WARDROBE
+          THE SOLO WARDROBE
         </h1>
 
         <div className="flex items-center gap-2 mt-2">

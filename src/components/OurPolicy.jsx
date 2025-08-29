@@ -1,28 +1,48 @@
-import React from 'react'
-import { assets } from '../assets/assets'
+// src/components/OurPolicy.jsx
+import React from "react";
 
-const OurPolicy = () => {
+const POLICIES = [
+  {
+    icon: "/src/assets/exchange_icon.png",
+    title: "Easy Exchange Policy",
+    subtitle: "We offer hassle free exchange policy",
+  },
+  {
+    icon: "/src/assets/quality_icon.png",
+    title: "7 Days Return Policy",
+    subtitle: "We provide 7 days free return policy",
+  },
+  {
+    icon: "/src/assets/support_img.png",
+    title: "Best customer support",
+    subtitle: "we provide 24/7 customer support",
+  },
+  {
+    // 👇 add your icon file here (placeholder path is safe even if not there yet)
+    icon: "/src/assets/same_day_dispatch.png",
+    title: "Same Day Dispatch",
+    subtitle: "Order by 2 pm, ships today",
+  },
+];
+
+export default function OurPolicy() {
   return (
-    <div className='flex flex-col sm:flex-row justify-around gap-12 sm:gap-2 text-center py-20 text-xs sm:text-sm md:text-base text-gray-700'>
-
-      <div>
-        <img className='w-12 m-auto mb-5' src={assets.exchange_icon} alt="" />
-        <p className='font-semibold'>Easy Exchange Policy</p>
-        <p className='text-gray-400'>We offer hassle free  exchange policy</p>
+    <section className="py-20 text-gray-700">
+      {/* grid keeps spacing perfect at 4 features; typography matches your site */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 sm:gap-2 text-center text-xs sm:text-sm md:text-base">
+        {POLICIES.map(({ icon, title, subtitle }) => (
+          <div key={title}>
+            <img
+              className="w-12 m-auto mb-5"
+              src={icon}
+              alt={title}
+              loading="lazy"
+            />
+            <p className="font-semibold">{title}</p>
+            <p className="text-gray-400">{subtitle}</p>
+          </div>
+        ))}
       </div>
-      <div>
-        <img className='w-12 m-auto mb-5' src={assets.quality_icon} alt="" />
-        <p className='font-semibold'>7 Days Return Policy</p>
-        <p className='text-gray-400'>We provide 7 days free return policy </p>
-      </div>
-      <div>
-        <img className='w-12 m-auto mb-5' src={assets.support_img} alt="" />
-        <p className='font-semibold'>Best customer support</p>
-        <p className='text-gray-400'>we provide 24/7 customer support</p>
-      </div>
-
-    </div>
-  )
+    </section>
+  );
 }
-
-export default OurPolicy

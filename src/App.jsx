@@ -5,6 +5,7 @@ import Footer from './components/Footer'
 import ScrollToTop from './components/ScrollToTop'
 import SkipLink from './components/SkipLink'
 import PageLoader from './components/PageLoader'
+import WhatsAppCTA from "./components/WhatsAppCTA";
 
 // Lazy pages (code-splitting)
 const Home = lazy(() => import('./pages/Home'))
