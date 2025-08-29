@@ -1,14 +1,16 @@
+// src/components/WhatsAppCTA.jsx
 import React, { useCallback } from "react";
 
 /**
  * Floating WhatsApp CTA
  *
  * Props:
- *  - phone (string, REQUIRED): phone in E.164 or any digits (e.g. "+919876543210")
- *  - message (string, optional): prefilled message
- *  - walinkId (string, optional): wa.link short code (e.g. "abcd12")
- *  - label (string, optional): button label (default: "Chat with us now")
- *  - iconSrc (string, optional): path to an icon (default expects /src/assets/whatsapp.png)
+ *  - phone (string, REQUIRED): phone in E.164 or digits only (e.g. "+919876543210")
+ *  - message (string): prefilled message
+ *  - walinkId (string): wa.link short code (e.g. "abcd12"). If omitted, falls back to wa.me.
+ *  - label (string): visible text when iconOnly=false (default "Chat with us now")
+ *  - iconSrc (string): path to icon file (default "/src/assets/whatsapp.png")
+ *  - iconOnly (boolean): show only the icon in a circular button
  */
 export default function WhatsAppCTA({
   phone,
@@ -16,63 +18,66 @@ export default function WhatsAppCTA({
   walinkId,
   label = "Chat with us now",
   iconSrc = "/src/assets/whatsapp.png",
+  iconOnly = false,
 }) {
-  const normalized = String(phone || "").replace(/\D/g, ""); // digits only
+  const normalized = String(phone || "").replace(/\D/g, "");
   const encodedMsg = encodeURIComponent(message);
 
-  // Primary (wa.link) -> Fallbacks (wa.me, api.whatsapp.com)
-  const primaryHref = walinkId ? `https://wa.link/${walinkId}` : `https://wa.me/${normalized}?text=${encodedMsg}`;
+  const primaryHref = walinkId
+    ? `https://wa.link/${walinkId}`
+    : `https://wa.me/${normalized}?text=${encodedMsg}`;
+
   const fallback1 = `https://wa.me/${normalized}?text=${encodedMsg}`;
   const fallback2 = `https://api.whatsapp.com/send?phone=${normalized}&text=${encodedMsg}`;
 
-  const onClick = useCallback((e) => {
-    // Try primary in a new tab/window; if popups are blocked, do inline redirect fallback
-    try {
-      const win = window.open(primaryHref, "_blank", "noopener,noreferrer");
-      // If popup blocked or failed, do inline fallback after a tick
-      setTimeout(() => {
-        if (!win || win.closed) {
-          // fall back to wa.me first
-          window.location.href = fallback1;
-          // If that still fails (very unlikely), try api endpoint shortly after
-          setTimeout(() => {
-            try {
-              if (document.visibilityState !== "hidden") {
-                window.location.href = fallback2;
-              }
-            } catch {}
-          }, 1200);
-        }
-      }, 300);
-    } catch {
-      // Extremely defensive: final inline redirect
-      window.location.href = fallback1;
-    }
-    e.preventDefault();
-  }, [primaryHref, fallback1, fallback2]);
+  const onClick = useCallback(
+    (e) => {
+      try {
+        const win = window.open(primaryHref, "_blank", "noopener,noreferrer");
+        setTimeout(() => {
+          if (!win || win.closed) {
+            window.location.href = fallback1;
+            setTimeout(() => {
+              try {
+                if (document.visibilityState !== "hidden") {
+                  window.location.href = fallback2;
+                }
+              } catch {}
+            }, 1200);
+          }
+        }, 300);
+      } catch {
+        window.location.href = fallback1;
+      }
+      e.preventDefault();
+    },
+    [primaryHref, fallback1, fallback2]
+  );
 
+  // Position leaves space for sticky ATC on mobile (bottom-20). Lower on desktop.
   return (
     <div
       className="fixed right-4 bottom-20 sm:bottom-6 z-40"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
-      aria-live="polite"
     >
       <button
         onClick={onClick}
-        className="flex items-center gap-2 rounded-full bg-[#25D366] text-white shadow-lg
-                   px-4 py-3 text-sm font-medium active:scale-[0.98] focus:outline-none
-                   focus-visible:ring-2 focus-visible:ring-black/30"
         aria-label="Chat with us on WhatsApp"
+        className={`shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30 active:scale-[0.98]
+          ${iconOnly
+            ? "rounded-full bg-[#25D366] h-12 w-12 flex items-center justify-center"
+            : "flex items-center gap-2 rounded-full bg-[#25D366] text-white px-4 py-3 text-sm font-medium"}
+        `}
+        style={{ color: iconOnly ? "#fff" : undefined }}
       >
-        {/* Icon is optional; if the file isn't there yet it simply won't render */}
         <img
           src={iconSrc}
           alt=""
-          className="h-5 w-5"
+          className={iconOnly ? "h-7 w-7" : "h-5 w-5"}
           loading="lazy"
           onError={(e) => { e.currentTarget.style.display = "none"; }}
         />
-        <span>{label}</span>
+        {!iconOnly && <span className="text-white">{label}</span>}
       </button>
     </div>
   );
