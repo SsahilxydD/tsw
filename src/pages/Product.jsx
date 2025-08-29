@@ -1,222 +1,386 @@
-import React, { useContext, useEffect, useMemo, useState, useCallback } from "react";
-import { useParams } from "react-router-dom";
-import { ShopContext } from "../context/ShopContext";
+// src/pages/Product.jsx
+import React from "react";
+import { useParams, Link } from "react-router-dom";
+import Title from "../components/Title";
 import ProductItem from "../components/ProductItem";
-import { assets } from "../assets/assets";
-import SafeImg from "../components/SafeImg";
-import StickyATC from "../components/StickyATC";
-import useDocumentTitle from "../hooks/useDocumentTitle";
+import { ShopContext } from "../context/ShopContext";
 
-const Product = () => {
+// --- small helpers (no external deps) ---
+const STOPWORDS = new Set([
+  "the","a","an","and","or","for","of","to","with","by","in","on","at","edp","edt","ml",
+  "men","mens","women","womens","unisex","perfume","watch","watches","shirt","tshirt",
+  "t-shirt","tee","size","sizes","new","premium","royal","essence","eau","de","la","le",
+]);
+
+function tokenize(str = "") {
+  return String(str)
+    .toLowerCase()
+    .replace(/[_\-./]+/g, " ")
+    .replace(/[^\p{L}\p{N}\s]/gu, "")
+    .split(/\s+/)
+    .filter(Boolean)
+    .filter((w) => !STOPWORDS.has(w));
+}
+
+/** score candidate by shared keywords; extra weight if same category */
+function relevanceScore(base, candidate) {
+  const baseWords = new Set([
+    ...tokenize(base.name || base.title),
+    ...tokenize(base.brand),
+  ]);
+  let score = 0;
+  for (const w of tokenize(candidate.name || candidate.title)) {
+    if (baseWords.has(w)) score += 1;
+  }
+  if (candidate.brand) {
+    for (const w of tokenize(candidate.brand)) {
+      if (baseWords.has(w)) score += 0.5;
+    }
+  }
+  if (
+    base.category &&
+    candidate.category &&
+    String(base.category).toLowerCase() ===
+      String(candidate.category).toLowerCase()
+  ) {
+    score += 2; // category boost
+  }
+  return score;
+}
+
+/** Fisher–Yates (pure) */
+function shuffle(arr, rng = Math.random) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rng() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// --- NEW: size helpers ---
+const FOOT_SIZES = [
+  "36","37","38","39","40","41","42","43","44","45","46",
+  "M-6","M-7","M-8","M-9","M-10","M-11"
+];
+const APPAREL_SIZES = ["S","M","L","XL"];
+const ONE_SIZE = ["ONESIZE"];
+
+const norm = (s) => String(s || "").toUpperCase();
+
+function inferMasterSizes(p) {
+  const cat = String(p?.category || p?.categoryRaw || "").toLowerCase();
+  const ps = (Array.isArray(p?.sizes) ? p.sizes : []).map(norm);
+
+  const isFoot =
+    ps.some((x) => /^\d+$/.test(x) || x.startsWith("M-")) ||
+    /(shoe|sneaker|footwear)/.test(cat);
+
+  if (isFoot) return FOOT_SIZES;
+
+  const isApp =
+    ps.some((x) => ["XS","S","M","L","XL","XXL"].includes(x)) ||
+    /(topwear|shirt|tshirt|hoodie|jacket|sweat|tee|trouser|pant|jean)/.test(cat);
+
+  if (isApp) return APPAREL_SIZES;
+
+  const isOne =
+    ps.includes("ONESIZE") ||
+    /(sunglass|watch|perfume|fragrance|belt|wallet|bag|cap|accessor)/.test(cat);
+
+  if (isOne) return ONE_SIZE;
+
+  // Fallback: if product declares sizes, show them; otherwise onesize.
+  return ps.length ? [...new Set(ps)] : ONE_SIZE;
+}
+
+export default function Product() {
   const { id } = useParams();
-  const { products, addToCart, currency } = useContext(ShopContext);
+  const { products, currency, addToCart } = React.useContext(ShopContext);
 
-  const product = useMemo(
-    () => (Array.isArray(products) ? products.find((p) => p._id === id) : null),
-    [products, id]
+  // scroll to top on product change (prevents jumping)
+  React.useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, [id]);
+
+  const product = React.useMemo(() => {
+    if (!Array.isArray(products)) return null;
+    // Try both _id and slug (supports scraped catalog)
+    return (
+      products.find((p) => String(p._id) === String(id)) ||
+      products.find((p) => String(p.slug) === String(id)) ||
+      null
+    );
+  }, [products, id]);
+
+  // normalize gallery (supports `image` or `images`)
+  const gallery = React.useMemo(() => {
+    if (!product) return [];
+    if (Array.isArray(product.images) && product.images.length > 0) {
+      return product.images;
+    }
+    if (Array.isArray(product.image)) return product.image;
+    if (product.image) return [product.image];
+    return [];
+  }, [product]);
+
+  const [activeIdx, setActiveIdx] = React.useState(0);
+  React.useEffect(() => setActiveIdx(0), [id]);
+
+  const [selectedSize, setSelectedSize] = React.useState("");
+  React.useEffect(() => setSelectedSize(""), [id]);
+
+  const hasSizes =
+    product && Array.isArray(product.sizes) && product.sizes.length > 0;
+
+  // NEW: build master list + set of available sizes for this product
+  const masterSizes = React.useMemo(() => inferMasterSizes(product), [product]);
+  const availableSet = React.useMemo(
+    () => new Set((product?.sizes || []).map(norm)),
+    [product]
   );
 
-  const images = useMemo(() => {
-    if (!product) return [];
-    if (Array.isArray(product.images) && product.images.length) return product.images;
-    return product?.image ? [product.image] : [];
-  }, [product]);
+  // gating CTAs until size is selected (when sizes exist)
+  const requiresSize = hasSizes && masterSizes.length > 0;
+  const canSubmit = !requiresSize || Boolean(selectedSize);
 
-  const [activeIdx, setActiveIdx] = useState(0);
-  const activeImage = images[activeIdx] || "";
-  const [size, setSize] = useState("");
-  const [zoomOpen, setZoomOpen] = useState(false);
+  const handleAdd = () => {
+    if (!canSubmit) return;
+    const sizeToSend = hasSizes ? selectedSize : "std";
+    addToCart(String(product._id ?? product.slug), sizeToSend);
+  };
 
-  useEffect(() => { if (images.length > 0) setActiveIdx(0); }, [images]);
-  useEffect(() => {
-    if (!product) return;
-    const first = (product.sizes && product.sizes.length) ? product.sizes[0] : "ONESIZE";
-    setSize(first);
-  }, [product]);
+  // ----- Related products -----
+  // Top 4 by relevance; last 2 = random FROM SAME CATEGORY
+  const related = React.useMemo(() => {
+    if (!product || !Array.isArray(products)) return [];
 
-  // Nice title
-  useDocumentTitle(product ? `${product.name} | Solo Wardrobe` : "Solo Wardrobe");
+    const meId = String(product._id ?? product.slug);
+    const meCat = String(product.category ?? product.categoryRaw ?? "").toLowerCase();
 
-  // Keyboard
-  const onKey = useCallback((e) => {
-    if (!images.length) return;
-    if (e.key === "ArrowRight") setActiveIdx((i) => (i + 1) % images.length);
-    else if (e.key === "ArrowLeft") setActiveIdx((i) => (i - 1 + images.length) % images.length);
-    else if (e.key === "Escape") setZoomOpen(false);
-  }, [images.length]);
-  useEffect(() => { window.addEventListener("keydown", onKey); return () => window.removeEventListener("keydown", onKey); }, [onKey]);
+    const candidates = products.filter(
+      (p) => String(p._id ?? p.slug) !== meId
+    );
 
-  const fmt = (n) => `${currency}${Number(n || 0).toLocaleString("en-IN")}`;
-  if (!product) return null;
+    // Relevance for first 4
+    const scored = candidates
+      .map((p) => ({ p, s: relevanceScore(product, p) }))
+      .sort((a, b) => b.s - a.s);
+    const topFour = scored.slice(0, 4).map((x) => x.p);
 
-  const related = useMemo(() => {
-    if (!Array.isArray(products)) return [];
-    return products.filter((p) => p._id !== product._id && p.category === product.category).slice(0, 8);
-  }, [products, product]);
+    // Same-category random for last 2
+    const picked = new Set(topFour.map((x) => String(x._id ?? x.slug)));
+    const sameCatPool = candidates.filter((p) => {
+      const pid = String(p._id ?? p.slug);
+      const cat = String(p.category ?? p.categoryRaw ?? "").toLowerCase();
+      return !picked.has(pid) && cat && cat === meCat;
+    });
+    const randomTwo = shuffle(sameCatPool).slice(0, 2);
 
-  const priceLabel = fmt(product.price);
-  const hasSizes = Array.isArray(product.sizes) && product.sizes.length > 0;
+    return [...topFour, ...randomTwo].slice(0, 6);
+  }, [product, products]);
+
+  if (!product) {
+    return (
+      <div className="px-4 py-12">
+        <Title text1="PRODUCT" text2="NOT FOUND" />
+        <p className="text-gray-500 mt-2">
+          The item you’re looking for doesn’t exist or was removed.
+        </p>
+        <Link
+          to="/"
+          className="inline-block mt-6 px-5 py-3 border rounded hover:bg-gray-50"
+        >
+          Go Home
+        </Link>
+      </div>
+    );
+  }
 
   return (
-    <div className="pt-10 border-t pb-20 sm:pb-0">{/* pb for sticky ATC space on mobile */}
-      <div className="max-w-6xl mx-auto px-4">
-        <div className="flex flex-col lg:flex-row gap-10">
-          {/* GALLERY */}
-          <section className="flex-1" aria-label="Product images">
-            {/* Mobile */}
-            <div className="block sm:hidden">
-              <figure className="relative w-full rounded-md overflow-hidden bg-gray-100 h-80">
-                <SafeImg
-                  src={activeImage}
-                  alt={product.name}
-                  loading="eager"
-                  className="w-full h-full object-cover cursor-zoom-in"
-                  onClick={() => setZoomOpen(true)}
-                />
-              </figure>
-              <div className="mt-3 flex gap-3 overflow-x-auto snap-x">
-                {images.map((src, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setActiveIdx(i)}
-                    className={`relative w-20 h-20 flex-shrink-0 rounded-md overflow-hidden border snap-start focus:outline-none focus:ring-2 focus:ring-black/40 ${activeIdx === i ? "border-black" : "border-gray-200"}`}
-                    aria-label={`Thumbnail ${i + 1}`}
-                    aria-current={activeIdx === i ? "true" : "false"}
-                  >
-                    <SafeImg src={src} alt={`${product.name} – image ${i + 1}`} className="absolute inset-0 w-full h-full object-cover" />
-                  </button>
-                ))}
+    <div className="px-4 sm:px-6 lg:px-8 py-6">
+      {/* NOTE: Breadcrumbs removed as requested */}
+
+      {/* Product section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Gallery */}
+        <div>
+          {/* Main image */}
+          <div className="aspect-square w-full overflow-hidden rounded border">
+            {gallery[activeIdx] ? (
+              <img
+                src={gallery[activeIdx]}
+                alt={product.name || product.title}
+                className="h-full w-full object-contain"
+                loading="eager"
+              />
+            ) : (
+              <div className="h-full w-full grid place-content-center text-sm text-gray-400">
+                No Image
               </div>
+            )}
+          </div>
+
+          {/* Thumbnails */}
+          {gallery.length > 1 && (
+            <div className="mt-3 grid grid-cols-5 sm:grid-cols-6 gap-2">
+              {gallery.map((src, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setActiveIdx(i)}
+                  className={`aspect-square rounded border overflow-hidden ${
+                    i === activeIdx ? "ring-2 ring-black" : ""
+                  }`}
+                >
+                  <img
+                    src={src}
+                    alt={`thumb ${i + 1}`}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
+                </button>
+              ))}
             </div>
+          )}
+        </div>
 
-            {/* Desktop */}
-            <div className="hidden sm:flex gap-4">
-              <div className="flex sm:flex-col gap-3 overflow-x-auto sm:overflow-y-auto sm:max-h-[520px] pr-1">
-                {images.map((src, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setActiveIdx(i)}
-                    className={`relative w-20 h-20 flex-shrink-0 rounded-md overflow-hidden border focus:outline-none focus:ring-2 focus:ring-black/40 ${activeIdx === i ? "border-black" : "border-gray-200"}`}
-                    aria-label={`Thumbnail ${i + 1}`}
-                    aria-current={activeIdx === i ? "true" : "false"}
-                  >
-                    <SafeImg src={src} alt={`${product.name} – image ${i + 1}`} className="absolute inset-0 w-full h-full object-cover" />
-                  </button>
-                ))}
-              </div>
+        {/* Details */}
+        <div>
+          {/* (No Title component here to avoid the decorative line) */}
+          {product.brand ? (
+            <p className="text-xs uppercase tracking-wide text-gray-500">
+              {product.brand}
+            </p>
+          ) : null}
+          <h1 className="mt-1 text-xl sm:text-2xl font-semibold leading-snug">
+            {product.name || product.title || ""}
+          </h1>
 
-              <figure className="relative flex-1 rounded-md overflow-hidden bg-gray-100 h-96 md:h-[520px]">
-                <SafeImg
-                  src={activeImage}
-                  alt={product.name}
-                  loading="eager"
-                  className="absolute inset-0 w-full h-full object-cover cursor-zoom-in"
-                  onClick={() => setZoomOpen(true)}
-                />
-              </figure>
-            </div>
-          </section>
+          {product.mrp && product.price && product.mrp > product.price ? (
+            <p className="mt-2">
+              <span className="text-xl font-semibold">
+                {currency}
+                {Number(product.price).toLocaleString()}
+              </span>{" "}
+              <span className="text-gray-400 line-through ml-2">
+                {currency}
+                {Number(product.mrp).toLocaleString()}
+              </span>{" "}
+              <span className="ml-2 text-green-600 text-sm">
+                Save {Math.round(((product.mrp - product.price) / product.mrp) * 100)}%
+              </span>
+            </p>
+          ) : (
+            <p className="mt-2 text-xl font-semibold">
+              {currency}
+              {Number(product.price).toLocaleString()}
+            </p>
+          )}
 
-          {/* DETAILS */}
-          <aside className="flex-1 lg:sticky lg:top-24 self-start">
-            <h1 className="text-2xl sm:text-3xl font-semibold leading-snug">{product.name}</h1>
-
-            <div className="flex items-center gap-3 mt-3">
-              <p className="text-2xl font-bold">{priceLabel}</p>
-              {product.mrp > product.price && <p className="text-gray-500 line-through">{fmt(product.mrp)}</p>}
-            </div>
-
-            <div className="flex items-center gap-1 mt-3" aria-label="Rating 5 out of 5">
-              <img src={assets.star_icon} alt="" className="w-4 h-4" />
-              <img src={assets.star_icon} alt="" className="w-4 h-4" />
-              <img src={assets.star_icon} alt="" className="w-4 h-4" />
-              <img src={assets.star_icon} alt="" className="w-4 h-4" />
-              <img src={assets.star_icon} alt="" className="w-4 h-4" />
-              <span className="text-sm text-gray-600 ml-2">200</span>
-            </div>
-
-            <div className="mt-6">
-              <p className="text-sm text-gray-700 mb-2">Select Size</p>
+          {/* Sizes (now always show full list; strike-out unavailable) */}
+          {masterSizes.length > 0 && (
+            <div className="mt-5">
+              <p className="text-sm font-medium mb-2">Select Size</p>
               <div className="flex flex-wrap gap-2">
-                {(hasSizes ? product.sizes : ["ONESIZE"]).map((s) => {
-                  const selected = size === s;
+                {masterSizes.map((sz) => {
+                  const SZ = norm(sz);
+                  const available = availableSet.size === 0 ? true : availableSet.has(SZ);
+                  const active = selectedSize === SZ;
                   return (
                     <button
-                      key={s}
-                      onClick={() => setSize(s)}
-                      className={`px-3 py-1 rounded border transition focus:outline-none focus:ring-2 ${
-                        selected ? "border-black bg-black text-white focus:ring-black/40"
-                                : "border-gray-300 bg-white hover:border-black focus:ring-black/20"
-                      }`}
-                      aria-pressed={selected}
+                      key={SZ}
+                      type="button"
+                      onClick={() => available && setSelectedSize(SZ)}
+                      disabled={!available}
+                      className={`px-3 py-2 text-sm border rounded
+                        ${active ? "bg-black text-white border-black" : "hover:bg-gray-50"}
+                        ${!available ? "line-through opacity-40 cursor-not-allowed bg-gray-100 hover:bg-gray-100" : ""}`}
                     >
-                      {s}
+                      {SZ}
                     </button>
                   );
                 })}
               </div>
+              {requiresSize && !selectedSize && (
+                <p className="text-xs text-amber-600 mt-2">
+                  Please select a size before ordering.
+                </p>
+              )}
             </div>
+          )}
 
+          {/* CTA (disabled until size selected when required) */}
+          <div className="mt-6 flex flex-wrap items-center gap-3">
             <button
-              onClick={() => addToCart(product._id, size)}
-              className="mt-6 w-full sm:w-auto px-6 py-3 bg-black text-white rounded hover:bg-black/90 focus:outline-none focus:ring-2 focus:ring-black/30"
+              onClick={handleAdd}
+              disabled={!canSubmit}
+              className={`px-5 py-3 bg-black text-white text-sm rounded hover:opacity-90
+                ${!canSubmit ? "opacity-50 cursor-not-allowed hover:opacity-50" : ""}`}
             >
-              ADD TO CART
+              Add to cart
             </button>
 
-            {product.description ? (
-              <div className="mt-6 text-sm text-gray-700 leading-7 whitespace-pre-wrap">
-                {product.description}
-              </div>
-            ) : null}
-          </aside>
-        </div>
+            <button
+  type="button"
+  disabled={!canSubmit}
+  onClick={() => {
+    if (!canSubmit) return;
+    const sizePart = selectedSize ? ` (Size: ${selectedSize})` : "";
+    const wa = `https://wa.me/919933778870?text=${encodeURIComponent(
+      `Hi, I'm interested in this product: ${window.location.href}${sizePart}`
+    )}`;
+    window.open(wa, "_blank", "noopener");
+  }}
+  className={`px-4 py-3 border rounded text-sm
+    ${!canSubmit ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50"}`}
+>
+  Order on WhatsApp
+</button>
+          </div>
 
-        {related.length > 0 && (
-          <section className="mt-16" aria-label="Related products">
-            <h2 className="text-xl font-semibold mb-5">Related Products</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
-              {related.map((item) => (
-                <ProductItem key={item._id} id={item._id} image={item.image} name={item.name} price={item.price} />
-              ))}
-            </div>
-          </section>
-        )}
+          {/* Meta */}
+          <div className="mt-6 space-y-1 text-sm text-gray-600">
+            {product.category && (
+              <p>
+                Category:{" "}
+                <span className="capitalize">
+                  {String(product.category).replaceAll("-", " ")}
+                </span>
+              </p>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Sticky ATC (mobile only; hidden on >=sm) */}
-      <div className="sm:hidden">
-        <StickyATC
-          show={true}
-          priceLabel={priceLabel}
-          hasSizes={hasSizes}
-          sizes={hasSizes ? product.sizes : []}
-          size={size}
-          onSize={setSize}
-          onAdd={() => addToCart(product._id, size)}
-        />
-      </div>
-
-      {/* Zoom modal (unchanged) */}
-      {zoomOpen && activeImage && (
-        <div
-          className="fixed inset-0 z-40 bg-black/80 flex items-center justify-center p-4"
-          onClick={() => setZoomOpen(false)}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Zoomed product image"
-        >
-          <SafeImg
-            src={activeImage}
-            alt={product.name}
-            loading="eager"
-            className="max-h-[90vh] max-w-[90vw] object-contain"
-            onClick={(e) => e.stopPropagation()}
-          />
+      {/* Related products */}
+      <div className="mt-12">
+        <div className="flex items-end justify-between mb-4">
+          <Title text1="RELATED" text2="PRODUCTS" />
+          <Link
+            to={product.category ? `/category/${String(product.category).toLowerCase()}` : "/collection"}
+            className="text-xs sm:text-sm text-gray-500 hover:text-gray-700"
+          >
+            View all
+          </Link>
         </div>
-      )}
+
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 gap-y-6">
+          {related.map((item) => (
+            <ProductItem
+              key={String(item._id ?? item.slug)}
+              id={String(item._id ?? item.slug)}
+              image={
+                Array.isArray(item.image)
+                  ? item.image[0]
+                  : (Array.isArray(item.images) ? item.images[0] : item.image)
+              }
+              name={item.name || item.title}
+              price={item.price}
+            />
+          ))}
+        </div>
+      </div>
     </div>
   );
-};
-
-export default Product;
+}

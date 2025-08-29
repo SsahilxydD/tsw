@@ -7,93 +7,15 @@ import SizeChips from "../components/SizeChips";
 import { ShopContext } from "../context/ShopContext";
 import useDebouncedValue from "../hooks/useDebouncedValue";
 
-/* ---------- robust source grouping & interleave ---------- */
-const extractDomain = (v) => {
-  if (!v || typeof v !== "string") return null;
-  try {
-    const u = new URL(v);
-    return (u.hostname || "").replace(/^www\./, "");
-  } catch {
-    const m = v.match(/^(?:https?:\/\/)?([^/]+)/i);
-    return m ? m[1].replace(/^www\./, "") : null;
-  }
-};
-
-const getSourceKey = (p) => {
-  // Common fields
-  const keys = ["source", "origin", "vendor", "site", "shop", "domain", "host", "store"];
-  for (const k of keys) {
-    if (p && p[k]) return String(p[k]);
-  }
-  // Try URL-ish fields
-  const urlKeys = ["url", "productUrl", "productURL", "link", "href", "sourceUrl", "sourceURL"];
-  for (const k of urlKeys) {
-    const host = extractDomain(p?.[k]);
-    if (host) return host;
-  }
-  return null;
-};
-
-/** Interleave by detected source in 111,222,333 blocks.
- *  If we can't detect sources (single group), fall back to synthetic chunk interleave.
- */
-const interleaveBySource = (items, blockSize = 3) => {
-  if (!Array.isArray(items) || items.length === 0) return [];
-
-  // Group by detected key (in first-appearance order)
-  const unknown = Symbol("unknown");
-  const byKey = new Map();
-  items.forEach((it) => {
-    const key = getSourceKey(it) ?? unknown;
-    if (!byKey.has(key)) byKey.set(key, []);
-    byKey.get(key).push(it);
-  });
-
-  // If only one group (all unknown / same), synthesize ~5 groups and interleave
-  if (byKey.size === 1) {
-    const total = items.length;
-    const groupCount = Math.max(2, Math.min(5, Math.ceil(total / 25) || 2));
-    const groups = Array.from({ length: groupCount }, () => []);
-    let gi = 0;
-    for (let i = 0; i < total; i += blockSize) {
-      const chunk = items.slice(i, i + blockSize); // preserve local order
-      groups[gi % groupCount].push(...chunk);
-      gi++;
-    }
-    const out = [];
-    let remaining = total;
-    while (remaining > 0) {
-      for (const g of groups) {
-        if (!g.length) continue;
-        const take = g.splice(0, blockSize);
-        out.push(...take);
-        remaining -= take.length;
-      }
-    }
-    return out;
-  }
-
-  // Normal: multiple real sources
-  const groups = Array.from(byKey.values());
-  const out = [];
-  let remaining = items.length;
-  while (remaining > 0) {
-    for (const g of groups) {
-      if (!g.length) continue;
-      const take = g.splice(0, blockSize);
-      out.push(...take);
-      remaining -= take.length;
-    }
-  }
-  return out;
-};
-/* -------------------------------------------------------- */
+// NEW: session-seeded scramble (adds only “Featured” ordering)
+import { scrambleProducts } from "../utils/scramble";
+import { getSessionSeed } from "../utils/rand";
 
 const Collection = () => {
   const { products, search, showSearch, loadingProducts } = useContext(ShopContext);
   const debouncedSearch = useDebouncedValue(search, 250);
 
-  // Sizes available across all products
+  // sizes available across the whole catalog
   const availableSizes = useMemo(() => {
     const set = new Set();
     if (Array.isArray(products)) {
@@ -109,35 +31,40 @@ const Collection = () => {
   const [list, setList] = useState(Array.isArray(products) ? products : []);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  // Dropdown: "", "price-high-low", "price-low-high"
+  // "" => Featured (scrambled), "price-high-low", "price-low-high"
   const [sortValue, setSortValue] = useState("");
 
-  const toggleSize = (v) => {
-    setSizeFilters((prev) => (prev.includes(v) ? prev.filter((s) => s !== v) : [...prev, v]));
-  };
+  const toggleSize = (val) =>
+    setSizeFilters((prev) => (prev.includes(val) ? prev.filter((s) => s !== val) : [...prev, val]));
 
   const applyFilterAndOrder = () => {
     let copy = Array.isArray(products) ? products.slice() : [];
 
+    // search (only when global search UI is visible)
     if (showSearch && debouncedSearch) {
       const q = debouncedSearch.trim().toLowerCase();
       copy = copy.filter((p) => (p.name || "").toLowerCase().includes(q));
     }
 
+    // size filter
     if (hasSizes && sizeFilters.length > 0) {
       copy = copy.filter(
         (item) => Array.isArray(item.sizes) && item.sizes.some((s) => sizeFilters.includes(s))
       );
     }
 
-    // Default order: interleaved 111,222,333 preserving within-source order
-    copy = interleaveBySource(copy, 3);
-
-    // Optional price sort via dropdown
+    // sorting / featured (scramble by session)
     if (sortValue === "price-high-low") {
       copy.sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
     } else if (sortValue === "price-low-high") {
       copy.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+    } else {
+      const seed = getSessionSeed();
+      copy = scrambleProducts(copy, {
+        seed,
+        blockSize: 1,
+        salt: "collection",
+      });
     }
 
     setList(copy);
@@ -155,7 +82,7 @@ const Collection = () => {
   return (
     <div className="pt-10 border-t">
       <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row gap-6">
-        {/* LEFT: Desktop-only sidebar */}
+        {/* LEFT: Desktop filters */}
         {hasSizes && (
           <aside className="min-w-60 hidden sm:block">
             <p className="my-2 text-xl">FILTERS</p>
@@ -173,7 +100,7 @@ const Collection = () => {
 
         {/* RIGHT */}
         <section className="flex-1">
-          {/* Mobile sticky toolbar */}
+          {/* Mobile toolbar */}
           <div className="sm:hidden sticky top-16 z-10 bg-white/95 backdrop-blur border-b -mx-4 px-4 py-2 mb-4">
             <div className="flex items-center justify-between">
               {hasSizes ? (
@@ -184,14 +111,13 @@ const Collection = () => {
                 <div />
               )}
 
-              {/* Price dropdown only */}
               <select
-                aria-label="Sort products by price"
+                aria-label="Sort products"
                 value={sortValue}
                 onChange={(e) => setSortValue(e.target.value)}
                 className="h-9 px-3 border-2 border-gray-300 rounded text-sm"
               >
-                <option value="" disabled>Sort</option>
+                <option value="">Featured</option>
                 <option value="price-high-low">Price: High → Low</option>
                 <option value="price-low-high">Price: Low → High</option>
               </select>
@@ -202,12 +128,12 @@ const Collection = () => {
           <div className="hidden sm:flex justify-between items-center text-base sm:text-2xl mb-4">
             <Title text1={"ALL"} text2={"PRODUCTS"} />
             <select
-              aria-label="Sort products by price"
+              aria-label="Sort products"
               value={sortValue}
               onChange={(e) => setSortValue(e.target.value)}
               className="h-9 px-3 border-2 border-gray-300 rounded text-sm"
             >
-              <option value="" disabled>Sort</option>
+              <option value="">Featured</option>
               <option value="price-high-low">Price: High → Low</option>
               <option value="price-low-high">Price: Low → High</option>
             </select>
@@ -224,8 +150,8 @@ const Collection = () => {
             ) : (
               list.map((item, index) => (
                 <ProductItem
-                  key={item._id || index}
-                  id={item._id}
+                  key={item._id || item.id || item.slug || index}
+                  id={item._id ?? item.id ?? item.slug}
                   image={item.image}
                   name={item.name}
                   price={item.price}

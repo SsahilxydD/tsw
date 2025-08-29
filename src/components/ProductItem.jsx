@@ -1,3 +1,4 @@
+// src/components/ProductItem.jsx
 import React, { useContext, useRef } from "react";
 import { Link } from "react-router-dom";
 import { ShopContext } from "../context/ShopContext";
@@ -38,9 +39,22 @@ const ProductItem = ({ id, image, name, price }) => {
         />
       </div>
 
-      <p className="mt-3 text-sm leading-5 h-12 overflow-hidden normal-case tracking-normal">
+      {/* Two-line clamp with a tiny cushion to avoid clipping descenders */}
+      <p
+        className="mt-3 text-sm leading-5 overflow-hidden normal-case tracking-normal"
+        style={{
+          display: "-webkit-box",
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: "vertical",
+          overflow: "hidden",
+          lineHeight: "1.25rem",                 // Tailwind leading-5
+          height: "calc(2 * 1.25rem + 4px)",     // small buffer prevents cut-off
+          paddingBottom: "2px",                  // extra safety for descenders
+        }}
+      >
         {name}
       </p>
+
       <p className="text-sm font-semibold">
         {currency}{price}
       </p>
