@@ -23,14 +23,6 @@ const Footer = () => {
               © {year} Solo Wardrobe. All rights reserved.
             </p>
           </div>
-
-          {/* Footer nav */}
-          <nav aria-label="Footer">
-            <ul className="flex items-center gap-6 text-sm text-gray-700">
-              <li><Link to="/about" className="hover:underline">About</Link></li>
-              <li><Link to="/contact" className="hover:underline">Contact</Link></li>
-            </ul>
-          </nav>
         </div>
       </div>
     </footer>
