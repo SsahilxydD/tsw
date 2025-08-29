@@ -19,19 +19,22 @@ const ProductItem = ({ id, image, name, price }) => {
     <Link
       to={`/product/${id}`}
       title={name}
-      className="text-gray-700 group block focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30 rounded-md"
+      aria-label={name}
       onMouseEnter={preload}
       onTouchStart={preload}
+      style={{ WebkitTapHighlightColor: "transparent" }}
+      className="text-gray-700 group block rounded-md focus:outline-none focus-visible:ring-2
+                 focus-visible:ring-black/30 transition-transform active:scale-[0.98]"
     >
-      <div className="relative w-full overflow-hidden rounded-md bg-gray-100 h-48 sm:h-56 md:h-64">
+      <div className="relative w-full overflow-hidden rounded-md bg-gray-100 h-48 sm:h-56 md:h-64 select-none">
         <SafeImg
           src={cover}
           alt={name}
-          // responsive hint: 50% width on small, 33% md, 25% lg
           sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
           width={1200}
           height={1200}
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 motion-reduce:transform-none"
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-300
+                     group-hover:scale-105 motion-reduce:transform-none"
         />
       </div>
 

@@ -1,31 +1,26 @@
 import React from "react";
 
-export default function StickyATC({ show, priceLabel, hasSizes, sizes, size, onSize, onAdd }) {
-  if (!show) return null;
-
+/**
+ * Mobile-only sticky add-to-cart bar.
+ * Props:
+ *  - priceText: string
+ *  - disabled: boolean
+ *  - onClick: () => void
+ */
+export default function StickyATC({ priceText, disabled, onClick }) {
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur border-t">
+    <div className="sm:hidden fixed inset-x-0 bottom-0 z-30 bg-white border-t
+                    pb-[max(env(safe-area-inset-bottom),0px)]">
       <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
-        <p className="font-semibold text-base flex-1">{priceLabel}</p>
-
-        {hasSizes && sizes?.length > 0 && (
-          <select
-            value={size}
-            onChange={(e) => onSize(e.target.value)}
-            className="border rounded px-2 h-9 text-sm"
-            aria-label="Select size"
-          >
-            {sizes.map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
-        )}
-
+        <div className="text-base font-semibold">{priceText}</div>
         <button
-          onClick={onAdd}
-          className="px-4 py-2 bg-black text-white rounded text-sm"
+          disabled={disabled}
+          onClick={onClick}
+          className={`ml-auto px-5 py-3 rounded text-white text-sm
+            ${disabled ? "bg-gray-400" : "bg-black active:scale-[0.98]"}`
+          }
         >
-          Add to cart
+          ADD TO CART
         </button>
       </div>
     </div>

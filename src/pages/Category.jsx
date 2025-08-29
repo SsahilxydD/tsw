@@ -3,6 +3,9 @@ import { useParams } from "react-router-dom";
 import Title from "../components/Title";
 import ProductItem from "../components/ProductItem";
 import SkeletonCard from "../components/SkeletonCard";
+import MobileFilters from "../components/MobileFilters";
+import SizeChips from "../components/SizeChips";
+import SortSelect from "../components/SortSelect";
 import { ShopContext } from "../context/ShopContext";
 import useDebouncedValue from "../hooks/useDebouncedValue";
 
@@ -20,7 +23,6 @@ const Category = () => {
   const { products, search, showSearch, loadingProducts } = useContext(ShopContext);
   const debouncedSearch = useDebouncedValue(search, 250);
 
-  // products for this category
   const baseProducts = useMemo(() => {
     if (!Array.isArray(products)) return [];
     return products.filter(
@@ -30,7 +32,6 @@ const Category = () => {
     );
   }, [products, catKey]);
 
-  // sizes available in this category
   const availableSizes = useMemo(() => {
     const set = new Set();
     for (const p of baseProducts)
@@ -43,18 +44,17 @@ const Category = () => {
   const [sizeFilters, setSizeFilters] = useState([]);
   const [list, setList] = useState(baseProducts);
   const [sortType, setSortType] = useState("alpha-az");
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
-  const toggleSize = (e) => {
-    const v = e.target.value;
+  const toggleSize = (value) => {
     setSizeFilters((prev) =>
-      prev.includes(v) ? prev.filter((s) => s !== v) : [...prev, v]
+      prev.includes(value) ? prev.filter((s) => s !== value) : [...prev, value]
     );
   };
 
   const applyFilter = () => {
     let copy = baseProducts.slice();
 
-    // search (only when search bar is open and query present)
     if (showSearch && debouncedSearch) {
       const q = debouncedSearch.trim().toLowerCase();
       copy = copy.filter((p) => (p.name || "").toLowerCase().includes(q));
@@ -62,9 +62,7 @@ const Category = () => {
 
     if (hasSizes && sizeFilters.length > 0) {
       copy = copy.filter(
-        (item) =>
-          Array.isArray(item.sizes) &&
-          item.sizes.some((s) => sizeFilters.includes(s))
+        (item) => Array.isArray(item.sizes) && item.sizes.some((s) => sizeFilters.includes(s))
       );
     }
     setList(copy);
@@ -80,9 +78,7 @@ const Category = () => {
         fpCopy.sort((a, b) => b.price - a.price);
         break;
       case "alpha-za":
-        fpCopy
-          .sort((a, b) => (a.name || "").localeCompare(b.name || ""))
-          .reverse();
+        fpCopy.sort((a, b) => (a.name || "").localeCompare(b.name || "")).reverse();
         break;
       case "alpha-az":
       default:
@@ -104,52 +100,56 @@ const Category = () => {
 
   const isLoading = Boolean(loadingProducts);
   const isEmpty = !isLoading && list.length === 0;
+  const selectedCount = sizeFilters.length;
 
   return (
     <div className="pt-10 border-t">
       <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row gap-6">
-        {/* LEFT: Filter column (sizes only) */}
+        {/* LEFT: Desktop-only sidebar */}
         {hasSizes && (
-          <div className="min-w-60">
+          <aside className="min-w-60 hidden sm:block">
             <p className="my-2 text-xl">FILTERS</p>
-            <div className="border border-gray-300 pl-5 py-3 mt-4">
+            <div className="border border-gray-300 p-4 mt-4">
               <p className="mb-3 text-sm font-medium">SIZE</p>
-              <div className="flex flex-col gap-2 text-sm font-light text-gray-700">
-                {availableSizes.map((s) => (
-                  <label key={s} className="flex items-center gap-2">
-                    <input
-                      className="w-3"
-                      value={s}
-                      onChange={toggleSize}
-                      type="checkbox"
-                    />
-                    {s}
-                  </label>
-                ))}
-              </div>
+              <SizeChips sizes={availableSizes} selected={sizeFilters} onToggle={toggleSize} columns={3} />
+              {selectedCount > 0 && (
+                <button
+                  className="mt-4 px-3 py-1.5 border rounded text-sm"
+                  onClick={() => setSizeFilters([])}
+                >
+                  Clear ({selectedCount})
+                </button>
+              )}
             </div>
-          </div>
+          </aside>
         )}
 
-        {/* RIGHT: Header row and grid */}
-        <div className="flex-1">
-          <div className="flex justify-between items-center text-base sm:text-2xl mb-4">
-            <Title text1={"CATEGORY"} text2={toDisplay(catKey)} />
-            <select
-              onChange={(e) => setSortType(e.target.value)}
-              className="border-2 border-gray-300 text-sm px-2 h-9"
-              defaultValue="alpha-az"
-            >
-              <option value="alpha-az">Alphabetical: A → Z</option>
-              <option value="alpha-za">Alphabetical: Z → A</option>
-              <option value="price-high-low">Price: High → Low</option>
-              <option value="price-low-high">Price: Low → High</option>
-            </select>
+        {/* RIGHT */}
+        <section className="flex-1">
+          {/* Mobile sticky toolbar */}
+          <div className="sm:hidden sticky top-16 z-10 bg-white/95 backdrop-blur border-b -mx-4 px-4 py-2 mb-4">
+            <div className="flex items-center justify-between">
+              {hasSizes ? (
+                <button
+                  onClick={() => setFiltersOpen(true)}
+                  className="px-3 h-9 border rounded text-sm"
+                >
+                  Filters{selectedCount ? ` (${selectedCount})` : ""}
+                </button>
+              ) : (
+                <div />
+              )}
+              <SortSelect value={sortType} onChange={setSortType} className="w-40" />
+            </div>
           </div>
 
-          {isEmpty && (
-            <p className="text-sm text-gray-500 mb-6">No products match your filters.</p>
-          )}
+          {/* Desktop header */}
+          <div className="hidden sm:flex justify-between items-center text-base sm:text-2xl mb-4">
+            <Title text1={"CATEGORY"} text2={toDisplay(catKey)} />
+            <SortSelect value={sortType} onChange={setSortType} className="w-48" />
+          </div>
+
+          {isEmpty && <p className="text-sm text-gray-500 mb-6">No products match your filters.</p>}
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {isLoading ? (
@@ -169,8 +169,24 @@ const Category = () => {
               ))
             )}
           </div>
-        </div>
+        </section>
       </div>
+
+      {/* Mobile drawer */}
+      {hasSizes && (
+        <MobileFilters
+          open={filtersOpen}
+          onClose={() => setFiltersOpen(false)}
+          sizes={availableSizes}
+          selected={sizeFilters}
+          onToggle={toggleSize}
+          onClear={() => setSizeFilters([])}
+          onApply={() => {
+            applyFilter();
+            setFiltersOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 };
