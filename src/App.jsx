@@ -1,24 +1,22 @@
 // src/App.jsx
 import React from "react";
-import { Routes, Route, useLocation } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import WhatsAppCTA from "./components/WhatsAppCTA";
+import ScrollToTop from "./components/ScrollToTop";
 
 import Home from "./pages/Home";
 import Category from "./pages/Category";
 import Collection from "./pages/Collection";
 import Product from "./pages/Product";
-
-// Scroll to top on route change (uses React Router hook safely)
-function ScrollToTop() {
-  const { pathname } = useLocation();
-  React.useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "auto" });
-  }, [pathname]);
-  return null;
-}
+import About from "./pages/About";
+import Contact from "./pages/Contact";
+import Cart from "./pages/Cart";
+import PlaceOrder from "./pages/PlaceOrder";
+import Orders from "./pages/Orders";
+import Login from "./pages/Login";
 
 export default function App() {
   return (
@@ -27,12 +25,18 @@ export default function App() {
 
       <Navbar />
 
-      <main className="min-h-[60vh]">
+      <main id="main-content" className="min-h-[60vh]">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/collection" element={<Collection />} />
           <Route path="/category/:cat" element={<Category />} />
           <Route path="/product/:id" element={<Product />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/place-order" element={<PlaceOrder />} />
+          <Route path="/orders" element={<Orders />} />
+          <Route path="/login" element={<Login />} />
           {/* Fallback */}
           <Route path="*" element={<Home />} />
         </Routes>

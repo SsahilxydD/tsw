@@ -17,10 +17,10 @@ const SortSelect = ({ value, onChange, className = "w-48" }) => {
         className="w-full appearance-none border-2 border-gray-300 text-sm px-3 h-9 rounded pr-9
                    focus:outline-none focus:ring-2 focus:ring-black/20"
       >
-        <option value="alpha-az">Alphabetical: A → Z</option>
-        <option value="alpha-za">Alphabetical: Z → A</option>
-        <option value="price-high-low">Price: High → Low</option>
-        <option value="price-low-high">Price: Low → High</option>
+        <option value="alpha-az">Alphabetical: A to Z</option>
+        <option value="alpha-za">Alphabetical: Z to A</option>
+        <option value="price-high-low">Price: High to Low</option>
+        <option value="price-low-high">Price: Low to High</option>
       </select>
 
       {/* Chevron */}
@@ -37,3 +37,4 @@ const SortSelect = ({ value, onChange, className = "w-48" }) => {
 };
 
 export default SortSelect;
+

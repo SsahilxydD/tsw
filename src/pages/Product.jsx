@@ -58,7 +58,7 @@ function shuffle(arr, rng = Math.random) {
   return a;
 }
 
-// --- NEW: size helpers ---
+// --- size helpers ---
 const FOOT_SIZES = [
   "36","37","38","39","40","41","42","43","44","45","46",
   "M-6","M-7","M-8","M-9","M-10","M-11"
@@ -97,6 +97,7 @@ function inferMasterSizes(p) {
 export default function Product() {
   const { id } = useParams();
   const { products, currency, addToCart } = React.useContext(ShopContext);
+  const [added, setAdded] = React.useState(false);
 
   // scroll to top on product change (prevents jumping)
   React.useEffect(() => {
@@ -133,14 +134,14 @@ export default function Product() {
   const hasSizes =
     product && Array.isArray(product.sizes) && product.sizes.length > 0;
 
-  // NEW: build master list + set of available sizes for this product
+  // build master list + set of available sizes for this product
   const masterSizes = React.useMemo(() => inferMasterSizes(product), [product]);
   const availableSet = React.useMemo(
     () => new Set((product?.sizes || []).map(norm)),
     [product]
   );
 
-  // gating CTAs until size is selected (when sizes exist)
+  // gate CTAs until size is selected (when sizes exist)
   const requiresSize = hasSizes && masterSizes.length > 0;
   const canSubmit = !requiresSize || Boolean(selectedSize);
 
@@ -148,6 +149,8 @@ export default function Product() {
     if (!canSubmit) return;
     const sizeToSend = hasSizes ? selectedSize : "std";
     addToCart(String(product._id ?? product.slug), sizeToSend);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 700);
   };
 
   // ----- Related products -----
@@ -199,8 +202,6 @@ export default function Product() {
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-6">
-      {/* NOTE: Breadcrumbs removed as requested */}
-
       {/* Product section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Gallery */}
@@ -278,7 +279,7 @@ export default function Product() {
             </p>
           )}
 
-          {/* Sizes (now always show full list; strike-out unavailable) */}
+          {/* Sizes (always show full list; strike-out unavailable) */}
           {masterSizes.length > 0 && (
             <div className="mt-5">
               <p className="text-sm font-medium mb-2">Select Size</p>
@@ -310,33 +311,35 @@ export default function Product() {
             </div>
           )}
 
-          {/* CTA (disabled until size selected when required) */}
+          
+
+          {/* CTA */}
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <button
               onClick={handleAdd}
               disabled={!canSubmit}
-              className={`px-5 py-3 bg-black text-white text-sm rounded hover:opacity-90
-                ${!canSubmit ? "opacity-50 cursor-not-allowed hover:opacity-50" : ""}`}
+              className={`px-5 py-3 bg-black text-white text-sm rounded transition
+                ${!canSubmit ? "opacity-50 cursor-not-allowed" : "hover:opacity-90 active:scale-95"}
+                ${added ? "ring-2 ring-black" : ""}`}
             >
-              Add to cart
+              {added ? "Added" : "Add to cart"}
             </button>
-
             <button
-  type="button"
-  disabled={!canSubmit}
-  onClick={() => {
-    if (!canSubmit) return;
-    const sizePart = selectedSize ? ` (Size: ${selectedSize})` : "";
-    const wa = `https://wa.me/919933778870?text=${encodeURIComponent(
-      `Hi, I'm interested in this product: ${window.location.href}${sizePart}`
-    )}`;
-    window.open(wa, "_blank", "noopener");
-  }}
-  className={`px-4 py-3 border rounded text-sm
-    ${!canSubmit ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50"}`}
->
-  Order on WhatsApp
-</button>
+              type="button"
+              disabled={!canSubmit}
+              onClick={() => {
+                if (!canSubmit) return;
+                const sizePart = selectedSize ? ` (Size: ${selectedSize})` : "";
+                const wa = `https://wa.me/919933778870?text=${encodeURIComponent(
+                  `Hi, I'm interested in this product: ${window.location.href}${sizePart}`
+                )}`;
+                window.open(wa, "_blank", "noopener");
+              }}
+              className={`px-4 py-3 border rounded text-sm
+                ${!canSubmit ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50"}`}
+            >
+              Buy on WhatsApp
+            </button>
           </div>
 
           {/* Meta */}

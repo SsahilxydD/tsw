@@ -133,7 +133,7 @@ const ShopContextProvider = (props) => {
   }
 
   const value = {
-    currency, delivery_fee,
+    currency: '₹', delivery_fee,
     products, loadingProducts,               // NEW
     navigate,
     search, setSearch,

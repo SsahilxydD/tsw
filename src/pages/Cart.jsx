@@ -3,6 +3,7 @@ import Title from '../components/Title'
 import { ShopContext } from '../context/ShopContext'
 import { assets } from '../assets/assets';
 import CartTotal from '../components/CartTotal';
+import QuantityStepper from '../components/QuantityStepper';
 
 const Cart = () => {
 
@@ -27,6 +28,38 @@ const Cart = () => {
     setCartData(tempData)
   }, [cartItems])
 
+  const buildWhatsAppMessage = () => {
+    const lines = [];
+    lines.push("Hi! I'd like to order these items:");
+    lines.push("");
+    for (const it of cartData) {
+      const p = products.find((pr) => String(pr._id) === String(it._id) || String(pr.slug) === String(it._id));
+      if (!p) continue;
+      const pid = String(p._id ?? p.slug ?? it._id);
+      const url = `${window.location.origin}/product/${pid}`;
+      const sizeText = it.size && it.size !== 'std' ? ` (Size: ${it.size})` : '';
+      const qtyText = it.quantity > 1 ? ` x${it.quantity}` : '';
+      lines.push(`• ${p.name || p.title}${sizeText}${qtyText} – ${url}`);
+    }
+    const total = cartData.reduce((sum, it) => {
+      const p = products.find((pr) => String(pr._id) === String(it._id) || String(pr.slug) === String(it._id));
+      return sum + (p ? (Number(p.price) || 0) * (Number(it.quantity) || 0) : 0);
+    }, 0);
+    if (total > 0) {
+      lines.push("");
+      lines.push(`Estimated total: ${currency}${total.toLocaleString()}`);
+    }
+    lines.push("");
+    lines.push("Please confirm availability and payment options. Thanks!");
+    return lines.join("\n");
+  };
+
+  const openWhatsApp = () => {
+    const msg = buildWhatsAppMessage();
+    const href = `https://wa.me/919933778870?text=${encodeURIComponent(msg)}`;
+    window.open(href, '_blank', 'noopener');
+  };
+
   return (
     <div className='border-t pt-14'>
 
@@ -34,28 +67,40 @@ const Cart = () => {
         <Title text1={'YOUR'} text2={'CART'} />
       </div>
 
-      <div>
+      <div className='space-y-4'>
         {cartData.map((item, index) => {
-
           const productData = products.find((product) => product._id === item._id);
+          const cover = Array.isArray(productData?.image)
+            ? (productData.image[0] || '')
+            : (Array.isArray(productData?.images) ? (productData.images[0] || '') : (productData?.image || ''));
 
           return (
-            <div key={index} className='py-4 border-t border-b text-gray-700 grid grid-cols-[4fr_0.5fr_0.5fr] sm:grid-cols-[4fr_2fr_0.5fr] items-center gap-4'>
-              <div className='flex items-start gap-6'>
-                <img className='w-16 sm:w-20' src={productData.image[0]} alt="" />
-                <div>
-                  <p className='text-xs sm:text-lg font-medium'>{productData.name}</p>
-                  <div className='flex items-center gap-5 mt-2'>
-                    <p>{currency}{productData.price}</p>
-                    <p className='px-2 sm:px-3 sm:py-1 border bg-slate-50'>{item.size}</p>
-                  </div>
+            <div key={index} className='rounded-md border bg-white p-4 sm:p-5 text-gray-700 flex items-center gap-4 sm:gap-6 hover:shadow-md transition-all duration-200'>
+              <img className='w-20 h-20 rounded-md object-cover border' src={cover} alt="" />
+              <div className='flex-1 min-w-0'>
+                <p className='text-sm sm:text-base font-medium truncate'>{productData?.name}</p>
+                <div className='mt-2 flex items-center gap-3'>
+                  <span className='text-sm font-semibold'>{currency}{productData?.price}</span>
+                  {item.size && <span className='text-xs px-2 py-1 rounded-full border bg-slate-50'>{item.size}</span>}
                 </div>
               </div>
-              <input onChange={(e) => e.target.value === '' || e.target.value === '0' ? null : updateQuantity(item._id, item.size, Number(e.target.value))} className='border max-w-10 sm:max-w-20 px-1 sm:px-2 py-1' type="number" min={1} defaultValue={item.quantity} />
-              <img onClick={() => updateQuantity(item._id, item.size, 0)} className='w-4 mr-4 sm:w-5 cursor-pointer' src={assets.bin_icon} alt="" />
+              <div className='flex items-center gap-3'>
+                <QuantityStepper
+                  value={item.quantity}
+                  min={1}
+                  onChange={(q) => updateQuantity(item._id, item.size, q)}
+                />
+                <button
+                  type='button'
+                  aria-label='Remove item'
+                  onClick={() => updateQuantity(item._id, item.size, 0)}
+                  className='p-2 rounded hover:bg-gray-100 active:scale-95 transition'
+                >
+                  <img className='w-5 sm:w-5' src={assets.bin_icon} alt='' />
+                </button>
+              </div>
             </div>
           )
-
         })}
       </div>
 
@@ -63,7 +108,9 @@ const Cart = () => {
         <div className='w-full sm:w-[450px]'>
           <CartTotal />
           <div className='w-full text-end'>
-            <button onClick={() => navigate('/place-order')} className='bg-black text-white text-sm my-8 px-8 py-3'>PROCEED TO CHECKOUT</button>
+            <button onClick={openWhatsApp} disabled={cartData.length === 0} className={`text-sm my-8 px-8 py-3 rounded ${cartData.length === 0 ? 'bg-gray-300 text-white cursor-not-allowed' : 'bg-black text-white hover:opacity-90'}`}>
+              BUY ON WHATSAPP
+            </button>
           </div>
         </div>
 

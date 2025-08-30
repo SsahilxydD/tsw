@@ -1,10 +1,10 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { assets } from "../assets/assets";
 import { ShopContext } from "../context/ShopContext";
 
 const Navbar = () => {
-  const { search, setSearch, showSearch, setShowSearch } = useContext(ShopContext);
+  const { search, setSearch, showSearch, setShowSearch, getCartCount } = useContext(ShopContext);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
 
@@ -25,6 +25,20 @@ const Navbar = () => {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  const count = getCartCount();
+  const prevRef = useRef(count);
+  const [bump, setBump] = useState(false);
+  useEffect(() => {
+    const prev = prevRef.current;
+    if (count > prev) {
+      setBump(true);
+      prevRef.current = count;
+      const t = setTimeout(() => setBump(false), 450);
+      return () => clearTimeout(t);
+    }
+    prevRef.current = count;
+  }, [count]);
 
   return (
     <header
@@ -53,21 +67,35 @@ const Navbar = () => {
           </ul>
         </nav>
 
-        {/* Search toggle ONLY on product listing routes */}
-        {enableSearch && (
-          <button
-            type="button"
-            aria-label="Search"
-            onClick={() => setShowSearch(!showSearch)}
-            className="p-2 rounded hover:bg-gray-100"
-          >
-            {assets.search_icon ? (
-              <img src={assets.search_icon} alt="" className="w-5 h-5" />
+        {/* Right controls: search (where relevant) + cart */}
+        <div className="flex items-center gap-2">
+          {enableSearch && (
+            <button
+              type="button"
+              aria-label="Search"
+              onClick={() => setShowSearch(!showSearch)}
+              className="p-2 rounded hover:bg-gray-100"
+            >
+              {assets.search_icon ? (
+                <img src={assets.search_icon} alt="" className="w-5 h-5" />
+              ) : (
+                <span className="text-sm">Search</span>
+              )}
+            </button>
+          )}
+          <Link to="/cart" aria-label="Cart" className="relative p-2 rounded hover:bg-gray-100">
+            {assets.cart_icon ? (
+              <img src={assets.cart_icon} alt="" className="w-5 h-5" />
             ) : (
-              <span className="text-xl leading-none">🔍</span>
+              <span className="text-sm">Cart</span>
             )}
-          </button>
-        )}
+            {count > 0 && (
+              <span className={`absolute -top-1 -right-1 min-w-[18px] h-[18px] text-[10px] leading-[18px] text-white bg-black rounded-full text-center px-[4px] transition-transform ${bump ? 'scale-110' : 'scale-100'}`}>
+                {count}
+              </span>
+            )}
+          </Link>
+        </div>
       </div>
 
       {/* Revealable search bar (only on listing routes) */}
