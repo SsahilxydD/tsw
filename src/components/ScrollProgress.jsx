@@ -7,8 +7,13 @@ export default function ScrollProgress() {
     const updateNow = () => {
       raf = 0;
       const doc = document.documentElement;
-      const h = doc.scrollHeight - doc.clientHeight;
-      const ratio = h > 0 ? Math.min(1, Math.max(0, window.scrollY / h)) : 0;
+      const total = doc.scrollHeight;
+      const view = window.innerHeight || doc.clientHeight;
+      const y = window.scrollY || window.pageYOffset || 0;
+      const h = Math.max(0, total - view);
+      let ratio = h > 0 ? Math.min(1, Math.max(0, y / h)) : 0;
+      // Snap to full on bottom to avoid 1-2px gap due to rounding
+      if (y + view >= total - 1) ratio = 1;
       if (barRef.current) barRef.current.style.transform = `scaleX(${ratio}) translateZ(0)`;
     };
     const schedule = () => {
