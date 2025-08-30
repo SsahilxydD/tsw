@@ -49,7 +49,8 @@ const Categories = () => {
 
       {/* ===== Mobile/Tablet: 3 per row, center the last row ===== */}
       <div className="lg:hidden">
-        <div className="grid grid-cols-3 gap-4">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="grid grid-cols-3 gap-4">
           {showSkeletons ? (
             <>
               <CategorySkeleton />
@@ -77,12 +78,14 @@ const Categories = () => {
               )}
             </>
           )}
+          </div>
         </div>
       </div>
 
       {/* ===== Desktop (lg+): 5 per row, center the last row ===== */}
       <div className="hidden lg:block">
-        <div className="grid grid-cols-5 gap-4">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="grid grid-cols-5 gap-4">
           {showSkeletons ? (
             <>
               <CategorySkeleton />
@@ -112,6 +115,7 @@ const Categories = () => {
               )}
             </>
           )}
+          </div>
         </div>
       </div>
     </section>

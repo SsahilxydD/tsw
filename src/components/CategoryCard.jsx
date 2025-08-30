@@ -1,31 +1,57 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import SafeImg from "./SafeImg";
+// Image-free, elegant category tiles matching site aesthetics
 
 const CategoryCard = ({ name, count, image, i }) => {
   const href = `/category/${encodeURIComponent(name)}`;
-  const display = (name || "").replace(/[_-]+/g, " ").replace(/\b\w/g, m => m.toUpperCase());
+  // Prettify raw category names like "womensperfume" -> "Womens Perfume"
+  const formatCategory = (raw = "") => {
+    let s = String(raw)
+      .replace(/[_-]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+
+    // Split concatenations (e.g., womensperfume -> womens perfume)
+    s = s.replace(/womens?perfume/g, "womens perfume");
+    s = s.replace(/mens?perfume/g, "mens perfume");
+
+    // Prefer possessive forms
+    s = s.replace(/\bwomens\b/g, "women's");
+    s = s.replace(/\bmens\b/g, "men's");
+
+    // Title-case words but keep possessive 's lowercase (women's -> Women's)
+    return s.replace(/\b([a-z])(\w*)/g, (full, a, b, idx, str) => {
+      const prev = idx > 0 ? str[idx - 1] : '';
+      if (prev === "'") return a + b; // don't capitalize standalone s in 's
+      return a.toUpperCase() + b;
+    });
+  };
+  const display = formatCategory(name);
+
+  // Force two-line layout: first word on line 1, remainder on line 2.
+  const words = display.split(/\s+/).filter(Boolean);
+  const firstWord = words[0] || display;
+  const restWords = words.slice(1).join(" ");
+  const titleBoxStyle = { lineHeight: 1.2, height: '2.6em', overflow: 'hidden' }; // fixed height keeps divider/count aligned
 
   return (
     <Link
       to={href}
       aria-label={`${display} (${count} items)`}
-      className={`group block cv-auto rounded-lg overflow-hidden border bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30 hover:shadow-md transition-shadow hover-lift reveal-item ${i!=null ? 'in' : ''}`}
+      className={`group block cv-auto overflow-hidden border bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30 hover:shadow-md transition-shadow hover-lift reveal-item ${i!=null ? 'in' : ''}`}
       style={{ transitionDelay: `${((i ?? 0) % 10) * 70}ms`, WebkitTapHighlightColor: "transparent" }}
     >
-      {/* fixed aspect for zero CLS */}
-      <div className="relative aspect-[4/5] bg-gray-100 overflow-hidden">
-        <SafeImg
-          src={image}
-          alt={display}
-          width={1200}
-          height={1500}
-          sizes="(min-width:1024px) 20vw, (min-width:768px) 25vw, 50vw"
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-        />
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 via-black/20 to-transparent p-3">
-          <p className="text-white text-sm font-medium truncate">{display}</p>
-          <p className="text-white/80 text-xs">{count} items</p>
+      {/* fixed aspect for zero CLS; smaller height and no backdrop */}
+      <div className="relative aspect-[5/4] overflow-hidden bg-white">
+        {/* centered label only */}
+        <div className="absolute inset-0 grid place-content-center text-center px-4">
+          <h3 className="prata-regular text-base sm:text-lg text-gray-800" style={titleBoxStyle}>
+            <span className="block">{firstWord}</span>
+            {restWords && <span className="block">{restWords}</span>}
+          </h3>
+          <div className="mt-2 h-px w-8 bg-gray-300 mx-auto" />
+          <p className="mt-2 text-xs text-gray-500">{count} items</p>
         </div>
       </div>
     </Link>
