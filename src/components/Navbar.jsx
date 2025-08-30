@@ -83,7 +83,7 @@ const Navbar = () => {
               )}
             </button>
           )}
-          <Link to="/cart" aria-label="Cart" className="relative p-2 rounded hover:bg-gray-100">
+          <Link id="cart-anchor" to="/cart" aria-label="Cart" className="relative p-2 rounded hover:bg-gray-100">
             {assets.cart_icon ? (
               <img src={assets.cart_icon} alt="" className="w-5 h-5" />
             ) : (

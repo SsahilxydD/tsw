@@ -150,6 +150,33 @@ export default function Product() {
     const sizeToSend = hasSizes ? selectedSize : "std";
     addToCart(String(product._id ?? product.slug), sizeToSend);
     setAdded(true);
+    try {
+      // Fly-to-cart micro animation
+      const imgEl = document.getElementById("product-main-image");
+      const cartEl = document.getElementById("cart-anchor");
+      if (imgEl && cartEl) {
+        const imgRect = imgEl.getBoundingClientRect();
+        const cartRect = cartEl.getBoundingClientRect();
+        const clone = imgEl.cloneNode(true);
+        clone.style.position = 'fixed';
+        clone.style.left = imgRect.left + 'px';
+        clone.style.top = imgRect.top + 'px';
+        clone.style.width = imgRect.width + 'px';
+        clone.style.height = imgRect.height + 'px';
+        clone.style.opacity = '0.9';
+        clone.style.zIndex = '9999';
+        clone.style.borderRadius = '8px';
+        clone.style.transition = 'transform 600ms cubic-bezier(.22,.8,.24,1), opacity 600ms ease';
+        document.body.appendChild(clone);
+        const dx = cartRect.left + cartRect.width / 2 - (imgRect.left + imgRect.width / 2);
+        const dy = cartRect.top + cartRect.height / 2 - (imgRect.top + imgRect.height / 2);
+        requestAnimationFrame(() => {
+          clone.style.transform = `translate(${dx}px, ${dy}px) scale(.08)`;
+          clone.style.opacity = '0.1';
+        });
+        setTimeout(() => { try { document.body.removeChild(clone); } catch {} }, 650);
+      }
+    } catch {}
     setTimeout(() => setAdded(false), 700);
   };
 
@@ -210,6 +237,7 @@ export default function Product() {
           <div className="aspect-square w-full overflow-hidden rounded border">
             {gallery[activeIdx] ? (
               <img
+                id="product-main-image"
                 src={gallery[activeIdx]}
                 alt={product.name || product.title}
                 className="h-full w-full object-contain"

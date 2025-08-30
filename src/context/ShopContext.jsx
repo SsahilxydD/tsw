@@ -1,6 +1,5 @@
-import { createContext, useEffect, useState } from "react";
+import { createContext, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
 
 export const ShopContext = createContext();
 
@@ -11,9 +10,24 @@ const ShopContextProvider = (props) => {
 
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
-  const [cartItems, setCartItems] = useState({});
+  // Cart persisted locally so refresh doesn't clear it
+  const [cartItems, setCartItems] = useState(() => {
+    try {
+      const raw = localStorage.getItem('cart.v1');
+      return raw ? JSON.parse(raw) : {};
+    } catch { return {}; }
+  });
   const [products, setProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
+  // Minimal in-app notice (replaces toastify)
+  const [notice, setNotice] = useState(null);
+  const noticeTimerRef = useRef(null);
+
+  const notify = (msg) => {
+    try { if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current); } catch {}
+    setNotice({ id: Date.now(), msg: String(msg || '') });
+    noticeTimerRef.current = setTimeout(() => setNotice(null), 2000);
+  };
 
   // Address persisted locally
   const [address, setAddress] = useState(() => {
@@ -93,11 +107,13 @@ const ShopContextProvider = (props) => {
     loadProducts();
   }, []);
 
+  // persist cart whenever it changes
+  useEffect(() => {
+    try { localStorage.setItem('cart.v1', JSON.stringify(cartItems)); } catch {}
+  }, [cartItems]);
+
   const addToCart = async (itemId, size) => {
-    if (!size) {
-      toast.error('Select product size');
-      return;
-    }
+    if (!size) { notify('Select product size'); return; }
     let cartData = structuredClone(cartItems);
     if (cartData[itemId]) {
       if (cartData[itemId][size]) cartData[itemId][size] += 1;
@@ -106,13 +122,21 @@ const ShopContextProvider = (props) => {
       cartData[itemId] = { [size]: 1 };
     }
     setCartItems(cartData);
+    notify('Added to bag');
   }
 
   const updateQuantity = async (itemId, size, quantity) => {
     let cartData = structuredClone(cartItems);
     if (!cartData[itemId]) cartData[itemId] = {};
-    cartData[itemId][size] = quantity;
+    if (quantity <= 0) {
+      delete cartData[itemId][size];
+      // clean empty product entry
+      if (Object.keys(cartData[itemId]).length === 0) delete cartData[itemId];
+    } else {
+      cartData[itemId][size] = quantity;
+    }
     setCartItems(cartData);
+    if (quantity === 0) notify('Removed from bag');
   }
 
   const getCartCount = () => {
@@ -146,6 +170,7 @@ const ShopContextProvider = (props) => {
     currency, delivery_fee,
     products, loadingProducts,
     navigate,
+    notice, notify,
     address, setAddress,
     search, setSearch,
     showSearch, setShowSearch,
@@ -162,4 +187,3 @@ const ShopContextProvider = (props) => {
 }
 
 export default ShopContextProvider;
-

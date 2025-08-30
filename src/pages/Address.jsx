@@ -17,7 +17,7 @@ const EMPTY = {
 };
 
 export default function Address() {
-  const { address, setAddress, navigate } = useContext(ShopContext);
+  const { address, setAddress, navigate, getCartCount } = useContext(ShopContext);
   const [form, setForm] = useState(address || EMPTY);
   const [errors, setErrors] = useState({});
   const refs = useRef({});
@@ -25,6 +25,11 @@ export default function Address() {
   useEffect(() => {
     setForm((prev) => ({ ...prev, ...(address || {}) }));
   }, [address]);
+
+  // Guard: cannot access address step with empty bag
+  useEffect(() => {
+    if (getCartCount && getCartCount() === 0) navigate('/cart');
+  }, [getCartCount, navigate]);
 
   const onChange = (e) => {
     const { name, value } = e.target;

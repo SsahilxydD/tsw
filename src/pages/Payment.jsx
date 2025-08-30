@@ -1,11 +1,11 @@
-import React, { useContext, useMemo } from "react";
+import React, { useContext, useEffect, useMemo } from "react";
 import CartSteps from "../components/CartSteps";
 import { ShopContext } from "../context/ShopContext";
 import CartTotal from "../components/CartTotal";
 import CartStickyBar from "../components/CartStickyBar";
 
 export default function Payment() {
-  const { products, currency, cartItems, address, navigate } = useContext(ShopContext);
+  const { products, currency, cartItems, address, navigate, getCartCount } = useContext(ShopContext);
 
   const cartList = useMemo(() => {
     const out = [];
@@ -17,6 +17,11 @@ export default function Payment() {
     }
     return out;
   }, [cartItems]);
+
+  // Guard: redirect if no items
+  useEffect(() => {
+    if (getCartCount && getCartCount() === 0) navigate('/cart');
+  }, [getCartCount, navigate]);
 
   const composeMessage = () => {
     const lines = [];

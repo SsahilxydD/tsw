@@ -36,6 +36,10 @@ input, select, textarea { font-size: 16px; }
 @keyframes softReveal { from { opacity: 0.1; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes blurPop { 0% { transform: translateZ(0) scale(.98); filter: blur(4px); opacity:.6 } 100% { transform: translateZ(0) scale(1); filter: blur(0); opacity:1 } }
 
+/* Cart item transitions */
+@keyframes cartEnter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes cartLeave { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(6px); } }
+
 .animate-fade-in { animation: fadeIn .35s ease-out both; }
 .animate-slide-up { animation: slideUp .35s ease-out both; }
 .animate-pop { animation: pop .25s ease-out both; }
@@ -43,6 +47,9 @@ input, select, textarea { font-size: 16px; }
 .animate-blur-up { animation: blurUp .44s cubic-bezier(.22,.8,.24,1) both; will-change: transform, filter, opacity; }
 .animate-soft-reveal { animation: softReveal .52s cubic-bezier(.16,1,.3,1) both; will-change: transform, opacity; }
 .reveal-base { opacity: .06; transform: translateY(3px); }
+
+.animate-cart-enter { animation: cartEnter .32s cubic-bezier(.22,.8,.24,1) both; }
+.animate-cart-leave { animation: cartLeave .24s ease-out both; }
 
 /* Transition-based reveal (smoother than keyframes, less pop) */
 .reveal-item { opacity: 0.06; transform: translateY(3px); will-change: opacity, transform; }
@@ -58,9 +65,23 @@ input, select, textarea { font-size: 16px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-fade-in, .animate-slide-up, .animate-pop, .animate-page, .animate-blur-up, .animate-soft-reveal, .animate-blur-pop, .skeleton-shimmer { animation: none !important; }
+  .animate-fade-in, .animate-slide-up, .animate-pop, .animate-page, .animate-blur-up, .animate-soft-reveal, .animate-blur-pop, .animate-cart-enter, .animate-cart-leave, .skeleton-shimmer { animation: none !important; }
   .reveal-item.in { transition: none !important; }
 }
+
+/* ===== Toast (elegant + minimal) ===== */
+.toast-min {
+  background: rgba(17,17,17,0.86) !important;
+  color: #fff !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
+  padding: 8px 12px !important;
+  min-height: auto !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18) !important;
+  backdrop-filter: blur(6px);
+}
+.toast-min-body { margin: 0 !important; font-size: 13px; letter-spacing: .2px; }
+.Toastify__toast-container--bottom-center { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 64px) !important; }
 
 .prata-regular {
   font-family: "Prata", serif;

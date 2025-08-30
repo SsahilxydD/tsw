@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react'
+import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import Title from '../components/Title'
 import { ShopContext } from '../context/ShopContext'
 import { assets } from '../assets/assets';
@@ -14,6 +14,19 @@ const Cart = () => {
   const { products, currency, navigate, cartItems, updateQuantity } = useContext(ShopContext);
 
   const [cartData, setCartData] = useState([]);
+  // Track items that are animating out (delay actual removal)
+  const [leaving, setLeaving] = useState(new Set());
+  const leaveTimersRef = useRef(new Map());
+
+  const keyFor = useMemo(() => (it) => `${it._id}::${it.size || 'std'}` , []);
+
+  // cleanup timers on unmount
+  useEffect(() => () => {
+    try {
+      leaveTimersRef.current.forEach((t) => clearTimeout(t));
+      leaveTimersRef.current.clear();
+    } catch {}
+  }, []);
 
   useEffect(() => {
     const tempData = []
@@ -28,9 +41,30 @@ const Cart = () => {
         }
       }
     }
-    console.log(tempData);
     setCartData(tempData)
   }, [cartItems])
+
+  // Remove stale leaving flags when items are gone or re-added
+  useEffect(() => {
+    setLeaving((prev) => {
+      const next = new Set();
+      const present = new Set(cartData.map(keyFor));
+      for (const k of prev) if (present.has(k)) next.add(k);
+      return next;
+    });
+  }, [cartData, keyFor]);
+
+  const requestRemove = (id, size) => {
+    const k = `${id}::${size || 'std'}`;
+    if (leaving.has(k)) return; // already animating out
+    setLeaving((prev) => new Set(prev).add(k));
+    const t = setTimeout(() => {
+      try { updateQuantity(id, size, 0); } finally {
+        leaveTimersRef.current.delete(k);
+      }
+    }, 240); // match CSS leave duration
+    leaveTimersRef.current.set(k, t);
+  };
 
   // No checkout on My Bag; proceed to Address.
 
@@ -51,15 +85,20 @@ const Cart = () => {
           </div>
         </div>
 
-        <div className='space-y-4'>
+        <div className='space-y-4 max-h-[50vh] overflow-auto pr-1'>
           {cartData.map((item, index) => {
             const productData = products.find((product) => product._id === item._id);
             const cover = Array.isArray(productData?.image)
               ? (productData.image[0] || '')
               : (Array.isArray(productData?.images) ? (productData.images[0] || '') : (productData?.image || ''));
 
+          const k = keyFor(item);
+          const isLeaving = leaving.has(k);
           return (
-            <div key={index} className='rounded-md border bg-white p-4 sm:p-5 text-gray-700 flex items-center gap-4 sm:gap-6 hover:shadow-md transition-all duration-200'>
+            <div
+              key={k}
+              className={`rounded-md border bg-white p-4 sm:p-5 text-gray-700 flex items-center gap-4 sm:gap-6 hover:shadow-md transition-all duration-200 ${isLeaving ? 'animate-cart-leave pointer-events-none' : 'animate-soft-reveal'}`}
+            >
               <img className='w-20 h-20 rounded-md object-cover border' src={cover} alt="" />
               <div className='flex-1 min-w-0'>
                 <p className='text-sm sm:text-base font-medium truncate'>{productData?.name}</p>
@@ -68,7 +107,7 @@ const Cart = () => {
                   {item.size && <span className='text-xs px-2 py-1 rounded-full border bg-slate-50'>{item.size}</span>}
                 </div>
                 <div className='mt-3 hidden sm:flex items-center gap-6 text-xs text-gray-500'>
-                  <button className='underline' onClick={() => updateQuantity(item._id, item.size, 0)}>Remove</button>
+                  <button className='underline' onClick={() => requestRemove(item._id, item.size)}>Remove</button>
                   <button className='underline opacity-50 cursor-not-allowed' title='Coming soon'>Move to wishlist</button>
                 </div>
               </div>
@@ -76,12 +115,12 @@ const Cart = () => {
                 <QuantityStepper
                   value={item.quantity}
                   min={1}
-                  onChange={(q) => updateQuantity(item._id, item.size, q)}
+                  onChange={(q) => q <= 0 ? requestRemove(item._id, item.size) : updateQuantity(item._id, item.size, q)}
                 />
                 <button
                   type='button'
                   aria-label='Remove item'
-                  onClick={() => updateQuantity(item._id, item.size, 0)}
+                  onClick={() => requestRemove(item._id, item.size)}
                   className='p-2 rounded hover:bg-gray-100 active:scale-95 transition sm:hidden'
                 >
                   <img className='w-5 sm:w-5' src={assets.bin_icon} alt='' />
@@ -97,12 +136,6 @@ const Cart = () => {
             <div className='flex gap-2'>
               <input className='flex-1 border rounded px-3 h-10' placeholder='Enter coupon code' />
               <button className='h-10 px-4 rounded bg-black text-white text-sm'>Apply</button>
-            </div>
-          </Accordion>
-          <Accordion title="Gift Voucher">
-            <div className='flex gap-2'>
-              <input className='flex-1 border rounded px-3 h-10' placeholder='Enter voucher code' />
-              <button className='h-10 px-4 rounded bg-black text-white text-sm'>Redeem</button>
             </div>
           </Accordion>
         </div>

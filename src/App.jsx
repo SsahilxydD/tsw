@@ -5,6 +5,8 @@ import { Routes, Route, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import WhatsAppCTA from "./components/WhatsAppCTA";
+import { ToastContainer, Slide } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import ScrollToTop from "./components/ScrollToTop";
 
 import Home from "./pages/Home";
@@ -19,6 +21,7 @@ import Payment from "./pages/Payment";
 import PlaceOrder from "./pages/PlaceOrder";
 import Orders from "./pages/Orders";
 import Login from "./pages/Login";
+import NotFound from "./pages/NotFound";
 
 export default function App() {
   const location = useLocation();
@@ -44,7 +47,7 @@ export default function App() {
           <Route path="/orders" element={<Orders />} />
           <Route path="/login" element={<Login />} />
           {/* Fallback */}
-          <Route path="*" element={<Home />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
         </div>
       </main>
@@ -59,6 +62,24 @@ export default function App() {
         iconSrc="/src/assets/whatsapp.png"          // your icon path
         iconOnly                                    // <- icon-only mode
         // iconSrc="/src/assets/whatsapp.png" // optional custom icon
+      />
+      <ToastContainer
+        position="bottom-center"
+        autoClose={1100}
+        hideProgressBar
+        closeOnClick
+        pauseOnHover={false}
+        pauseOnFocusLoss={false}
+        draggable={false}
+        newestOnTop={false}
+        closeButton={false}
+        icon={false}
+        limit={1}
+        theme="dark"
+        transition={Slide}
+        toastClassName={() => "toast-min"}
+        bodyClassName={() => "toast-min-body"}
+        containerStyle={{ paddingBottom: '72px' }}
       />
     </>
   );
