@@ -9,6 +9,23 @@
   font-family: Outfit;
 }
 
+/* App-like touch behavior: remove tap highlight and prevent odd zoom/jank */
+html, body {
+  -webkit-text-size-adjust: 100%;
+  touch-action: pan-x pan-y; /* allow scrolling, avoid gestures changing zoom */
+}
+
+/* Buttons/links behave like native apps (no double-tap zoom, faster taps) */
+button, [role="button"], a {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+img { -webkit-user-drag: none; }
+
+/* Avoid iOS autofocus zoom by ensuring controls use 16px or larger */
+input, select, textarea { font-size: 16px; }
+
 .prata-regular {
   font-family: "Prata", serif;
   font-weight: 400;

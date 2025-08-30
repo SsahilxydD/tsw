@@ -44,7 +44,6 @@ export default function Payment() {
     if (address) {
       const name = `${address.firstName || ''} ${address.lastName || ''}`.trim();
       lines.push(name);
-      if (address.addressType) lines.push(`Type: ${address.addressType}`);
       lines.push(address.phone ? `Phone: ${address.phone}` : "");
       lines.push(address.email ? `Email: ${address.email}` : "");
       if (address.address1) lines.push(address.address1);

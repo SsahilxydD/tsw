@@ -12,3 +12,17 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </ShopContextProvider>
   </BrowserRouter>
 )
+
+// Prevent double-tap to zoom globally (app-like behavior on iOS Safari)
+// Retains normal scrolling and click behavior.
+(() => {
+  let lastTouch = 0;
+  function onTouchEnd(e) {
+    const now = Date.now();
+    if (now - lastTouch <= 300) {
+      try { e.preventDefault(); } catch {}
+    }
+    lastTouch = now;
+  }
+  window.addEventListener('touchend', onTouchEnd, { passive: false });
+})();

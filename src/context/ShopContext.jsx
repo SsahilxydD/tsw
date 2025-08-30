@@ -13,9 +13,18 @@ const ShopContextProvider = (props) => {
   const [showSearch, setShowSearch] = useState(false);
   const [cartItems, setCartItems] = useState({});
   const [products, setProducts] = useState([]);
-
-  // NEW
   const [loadingProducts, setLoadingProducts] = useState(true);
+
+  // Address persisted locally
+  const [address, setAddress] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('addr.v1') || 'null'); }
+    catch { return null; }
+  });
+  useEffect(() => {
+    try {
+      if (address) localStorage.setItem('addr.v1', JSON.stringify(address));
+    } catch {}
+  }, [address]);
 
   useEffect(() => {
     const clean = (s) => (s ?? "").replace(/_/g, " ").replace(/\s+/g, " ").trim();
@@ -33,7 +42,7 @@ const ShopContextProvider = (props) => {
 
     const loadProducts = async () => {
       try {
-        setLoadingProducts(true); // NEW
+        setLoadingProducts(true);
         const res = await fetch("/data/products.json", { cache: "no-store" });
         if (!res.ok) throw new Error("Failed to load /data/products.json");
         const raw = await res.json();
@@ -48,28 +57,28 @@ const ShopContextProvider = (props) => {
               })
             : [];
 
-        const originalCategory = item.category ?? "";
-        let category = originalCategory;
-        const lc = category.toLowerCase();
-        if (lc.includes("men")) category = "Men";
-        else if (lc.includes("women") || lc.includes("lady")) category = "Women";
-        else if (lc.includes("kid")) category = "Kids";
+          const originalCategory = item.category ?? "";
+          let category = originalCategory;
+          const lc = String(category).toLowerCase();
+          if (lc.includes("men")) category = "Men";
+          else if (lc.includes("women") || lc.includes("lady")) category = "Women";
+          else if (lc.includes("kid")) category = "Kids";
 
-        return {
-          _id: (item.slug ?? item.slug_name ?? item.title)?.toString(),
-          name: formatName(item.title ?? item.slug_name ?? ""),
-          price: Number(item.price ?? 0),
-          mrp: Number(item.mrp ?? 0),
-          image: images[0] ?? "",
-          images,
-          category,
-          categoryRaw: originalCategory,
-          subCategory: item.subCategory ?? "",
-          sizes: Array.isArray(item.sizes) ? item.sizes : [],
-          bestseller: Boolean(item.bestseller ?? false),
-          slug: item.slug ?? "",
-          detail_url_src: item.detail_url_src ?? ""
-        };
+          return {
+            _id: (item.slug ?? item.slug_name ?? item.title)?.toString(),
+            name: formatName(item.title ?? item.slug_name ?? ""),
+            price: Number(item.price ?? 0),
+            mrp: Number(item.mrp ?? 0),
+            image: images[0] ?? "",
+            images,
+            category,
+            categoryRaw: originalCategory,
+            subCategory: item.subCategory ?? "",
+            sizes: Array.isArray(item.sizes) ? item.sizes : [],
+            bestseller: Boolean(item.bestseller ?? false),
+            slug: item.slug ?? "",
+            detail_url_src: item.detail_url_src ?? ""
+          };
         }) : [];
 
         setProducts(mapped);
@@ -77,7 +86,7 @@ const ShopContextProvider = (props) => {
         console.error(err);
         setProducts([]);
       } finally {
-        setLoadingProducts(false); // NEW
+        setLoadingProducts(false);
       }
     };
 
@@ -101,6 +110,7 @@ const ShopContextProvider = (props) => {
 
   const updateQuantity = async (itemId, size, quantity) => {
     let cartData = structuredClone(cartItems);
+    if (!cartData[itemId]) cartData[itemId] = {};
     cartData[itemId][size] = quantity;
     setCartItems(cartData);
   }
@@ -120,11 +130,11 @@ const ShopContextProvider = (props) => {
   const getCartAmount = () => {
     let totalAmount = 0;
     for (const items in cartItems) {
-      const itemInfo = products.find((product) => product._id === items);
+      const itemInfo = products.find((product) => product._id === items || product.slug === items);
       for (const item in cartItems[items]) {
         try {
           if (cartItems[items][item] > 0 && itemInfo) {
-            totalAmount += itemInfo.price * cartItems[items][item];
+            totalAmount += (Number(itemInfo.price) || 0) * cartItems[items][item];
           }
         } catch {}
       }
@@ -134,8 +144,9 @@ const ShopContextProvider = (props) => {
 
   const value = {
     currency, delivery_fee,
-    products, loadingProducts,               // NEW
+    products, loadingProducts,
     navigate,
+    address, setAddress,
     search, setSearch,
     showSearch, setShowSearch,
     addToCart, updateQuantity,
@@ -151,3 +162,4 @@ const ShopContextProvider = (props) => {
 }
 
 export default ShopContextProvider;
+
