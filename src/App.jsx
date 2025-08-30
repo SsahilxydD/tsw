@@ -62,9 +62,7 @@ export default function App() {
         phone="+919933778870"
         //walinkId="https://wa.me/message/NFOO5QIA4N27L1" // optional; remove if you don't use wa.link
         message="Hello!"
-        iconSrc="/src/assets/whatsapp.png"          // your icon path
-        iconOnly                                    // <- icon-only mode
-        // iconSrc="/src/assets/whatsapp.png" // optional custom icon
+        iconOnly
       />
       {/* Lightweight in-app notices (add/remove, validation, etc.) */}
       <Notice />

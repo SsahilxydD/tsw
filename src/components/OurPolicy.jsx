@@ -1,25 +1,26 @@
 // src/components/OurPolicy.jsx
 import React from "react";
+import { assets } from "../assets/assets";
 
 const POLICIES = [
   {
-    icon: "/src/assets/exchange_icon.png",
+    icon: assets.exchange_icon,
     title: "Easy Exchange Policy",
     subtitle: "We offer hassle free exchange policy",
   },
   {
-    icon: "/src/assets/quality_icon.png",
+    icon: assets.quality_icon,
     title: "7 Days Return Policy",
     subtitle: "We provide 7 days free return policy",
   },
   {
-    icon: "/src/assets/support_img.png",
+    icon: assets.support_img,
     title: "Best customer support",
     subtitle: "we provide 24/7 customer support",
   },
   {
     // 👇 add your icon file here (placeholder path is safe even if not there yet)
-    icon: "/src/assets/same_day_dispatch.png",
+    icon: assets.same_day_dispatch || assets.support_img,
     title: "Same Day Dispatch",
     subtitle: "Order by 2 pm, ships today",
   },

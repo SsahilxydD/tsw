@@ -9,15 +9,17 @@ import React, { useCallback, useEffect, useState } from "react";
  *  - message (string): prefilled message
  *  - walinkId (string): wa.link short code (e.g. "abcd12"). If omitted, falls back to wa.me.
  *  - label (string): visible text when iconOnly=false (default "Chat with us now")
- *  - iconSrc (string): path to icon file (default "/src/assets/whatsapp.png")
+ *  - iconSrc (string): path to icon file (defaults to bundled WhatsApp icon)
  *  - iconOnly (boolean): show only the icon in a circular button
  */
+import waIcon from "../assets/whatsapp.png";
+
 export default function WhatsAppCTA({
   phone,
   message = "Hi! I have a question.",
   walinkId,
   label = "Chat with us now",
-  iconSrc = "/src/assets/whatsapp.png",
+  iconSrc = waIcon,
   iconOnly = false,
 }) {
   const [show, setShow] = useState(false);
