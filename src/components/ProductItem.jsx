@@ -28,9 +28,34 @@ const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd =
     preloadedRef.current = true;
   };
 
+  // Derive sizes to display on tiles (hide onesize/std)
+  const productObj = useMemo(() => {
+    const pid = String(id);
+    return (products || []).find(pr => String(pr._id ?? pr.slug ?? pr.id) === pid);
+  }, [products, id]);
+
+  const tileSizes = useMemo(() => {
+    let arr = Array.isArray(productObj?.sizes) ? productObj.sizes : [];
+    if (isFootwearProduct(productObj)) arr = uniqueUKLabels(arr);
+    arr = arr.map((s) => String(s)).filter(Boolean);
+    const bad = /^(one\s?size|onesize|os|std)$/i;
+    const seen = new Set();
+    const out = [];
+    for (const s of arr) {
+      if (bad.test(s)) continue;
+      const key = s.toUpperCase();
+      if (!seen.has(key)) { seen.add(key); out.push(s); }
+    }
+    return out;
+  }, [productObj]);
+
+  // Show up to 8 chips (fits ~2 rows nicely). If more, show +N indicator.
+  const visibleSizes = useMemo(() => tileSizes.slice(0, 8), [tileSizes]);
+  const sizesOverflow = tileSizes.length > visibleSizes.length ? (tileSizes.length - visibleSizes.length) : 0;
+
   const imgHeights = variant === "recommendation"
     ? "h-40 sm:h-44 md:h-52"
-    : "h-48 sm:h-56 md:h-64";
+    : "h-56 sm:h-64 md:h-72"; // slightly taller tiles for clearer meta (sizes + price)
 
   const nameStyle = variant === "recommendation"
     ? {
@@ -128,9 +153,9 @@ const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd =
       onMouseEnter={preload}
       onTouchStart={preload}
       style={linkStyle}
-      className={`text-gray-700 group block rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30 transition-transform active:scale-[0.98] hover:shadow-sm hover-lift cv-auto reveal-item ${inView ? 'in' : ''}`}
+      className={`text-gray-700 group block focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30 transition-transform active:scale-[0.98] hover:shadow-sm hover-lift cv-auto reveal-item ${inView ? 'in' : ''}`}
     >
-      <div className={`relative w-full overflow-hidden rounded-md bg-gray-100 ${imgHeights} select-none`}>
+      <div className={`relative w-full overflow-hidden bg-gray-100 ${imgHeights} select-none`}>
         <SafeImg
           src={cover}
           alt={name}
@@ -221,7 +246,25 @@ const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd =
         {name}
       </p>
 
-      <p className="text-sm font-semibold">
+      {tileSizes.length > 0 && (
+        <div className="mt-1 flex flex-wrap gap-x-1.5 gap-y-2 min-h-[64px] max-h-[64px] overflow-hidden">
+          {visibleSizes.map((sz) => (
+            <span
+              key={String(sz)}
+              className="inline-flex items-center justify-center h-7 min-w-[44px] px-2 border border-gray-300 text-[11px] leading-none uppercase bg-white"
+            >
+              {String(sz)}
+            </span>
+          ))}
+          {sizesOverflow > 0 && (
+            <span className="inline-flex items-center justify-center h-7 min-w-[44px] px-2 border border-gray-300 text-[11px] leading-none bg-white">
+              +{sizesOverflow}
+            </span>
+          )}
+        </div>
+      )}
+
+      <p className="mt-2 text-sm font-semibold">
         {currency}{price}
       </p>
     </Link>
