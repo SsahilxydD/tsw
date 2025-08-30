@@ -13,6 +13,11 @@ const ShopContextProvider = (props) => {
   const [showSearch, setShowSearch] = useState(false);
   const [cartItems, setCartItems] = useState({});
   const [products, setProducts] = useState([]);
+  const [address, setAddress] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('addr.v1') || 'null');
+    } catch { return null; }
+  });
 
   // NEW
   const [loadingProducts, setLoadingProducts] = useState(true);
@@ -84,6 +89,13 @@ const ShopContextProvider = (props) => {
     loadProducts();
   }, []);
 
+  // persist address
+  useEffect(() => {
+    try {
+      if (address) localStorage.setItem('addr.v1', JSON.stringify(address));
+    } catch {}
+  }, [address]);
+
   const addToCart = async (itemId, size) => {
     if (!size) {
       toast.error('Select product size');
@@ -136,6 +148,7 @@ const ShopContextProvider = (props) => {
     currency: '₹', delivery_fee,
     products, loadingProducts,               // NEW
     navigate,
+    address, setAddress,
     search, setSearch,
     showSearch, setShowSearch,
     addToCart, updateQuantity,

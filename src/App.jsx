@@ -14,6 +14,8 @@ import Product from "./pages/Product";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Cart from "./pages/Cart";
+import Address from "./pages/Address";
+import Payment from "./pages/Payment";
 import PlaceOrder from "./pages/PlaceOrder";
 import Orders from "./pages/Orders";
 import Login from "./pages/Login";
@@ -31,6 +33,8 @@ export default function App() {
           <Route path="/collection" element={<Collection />} />
           <Route path="/category/:cat" element={<Category />} />
           <Route path="/product/:id" element={<Product />} />
+          <Route path="/address" element={<Address />} />
+          <Route path="/payment" element={<Payment />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/cart" element={<Cart />} />

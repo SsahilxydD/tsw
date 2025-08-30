@@ -4,6 +4,10 @@ import { ShopContext } from '../context/ShopContext'
 import { assets } from '../assets/assets';
 import CartTotal from '../components/CartTotal';
 import QuantityStepper from '../components/QuantityStepper';
+import CartSteps from '../components/CartSteps';
+import Accordion from '../components/Accordion';
+import CartRecommendations from '../components/CartRecommendations';
+import CartStickyBar from '../components/CartStickyBar';
 
 const Cart = () => {
 
@@ -28,51 +32,31 @@ const Cart = () => {
     setCartData(tempData)
   }, [cartItems])
 
-  const buildWhatsAppMessage = () => {
-    const lines = [];
-    lines.push("Hi! I'd like to order these items:");
-    lines.push("");
-    for (const it of cartData) {
-      const p = products.find((pr) => String(pr._id) === String(it._id) || String(pr.slug) === String(it._id));
-      if (!p) continue;
-      const pid = String(p._id ?? p.slug ?? it._id);
-      const url = `${window.location.origin}/product/${pid}`;
-      const sizeText = it.size && it.size !== 'std' ? ` (Size: ${it.size})` : '';
-      const qtyText = it.quantity > 1 ? ` x${it.quantity}` : '';
-      lines.push(`• ${p.name || p.title}${sizeText}${qtyText} – ${url}`);
-    }
-    const total = cartData.reduce((sum, it) => {
-      const p = products.find((pr) => String(pr._id) === String(it._id) || String(pr.slug) === String(it._id));
-      return sum + (p ? (Number(p.price) || 0) * (Number(it.quantity) || 0) : 0);
-    }, 0);
-    if (total > 0) {
-      lines.push("");
-      lines.push(`Estimated total: ${currency}${total.toLocaleString()}`);
-    }
-    lines.push("");
-    lines.push("Please confirm availability and payment options. Thanks!");
-    return lines.join("\n");
-  };
-
-  const openWhatsApp = () => {
-    const msg = buildWhatsAppMessage();
-    const href = `https://wa.me/919933778870?text=${encodeURIComponent(msg)}`;
-    window.open(href, '_blank', 'noopener');
-  };
+  // No checkout on My Bag; proceed to Address.
 
   return (
     <div className='border-t pt-14'>
 
-      <div className='text-2xl mb-3'>
-        <Title text1={'YOUR'} text2={'CART'} />
+      <div className='mb-5'>
+        <CartSteps active="bag" />
       </div>
 
-      <div className='space-y-4'>
-        {cartData.map((item, index) => {
-          const productData = products.find((product) => product._id === item._id);
-          const cover = Array.isArray(productData?.image)
-            ? (productData.image[0] || '')
-            : (Array.isArray(productData?.images) ? (productData.images[0] || '') : (productData?.image || ''));
+      <div className='max-w-6xl mx-auto px-4'>
+        <div className='flex items-center justify-between mb-4'>
+          <div className='text-2xl'>
+            <Title text1={'YOUR'} text2={'CART'} />
+          </div>
+          <div className='text-sm text-gray-600'>
+            {cartData.filter(i => i.quantity>0).length} item{cartData.filter(i => i.quantity>0).length!==1?'s':''} selected
+          </div>
+        </div>
+
+        <div className='space-y-4'>
+          {cartData.map((item, index) => {
+            const productData = products.find((product) => product._id === item._id);
+            const cover = Array.isArray(productData?.image)
+              ? (productData.image[0] || '')
+              : (Array.isArray(productData?.images) ? (productData.images[0] || '') : (productData?.image || ''));
 
           return (
             <div key={index} className='rounded-md border bg-white p-4 sm:p-5 text-gray-700 flex items-center gap-4 sm:gap-6 hover:shadow-md transition-all duration-200'>
@@ -82,6 +66,10 @@ const Cart = () => {
                 <div className='mt-2 flex items-center gap-3'>
                   <span className='text-sm font-semibold'>{currency}{productData?.price}</span>
                   {item.size && <span className='text-xs px-2 py-1 rounded-full border bg-slate-50'>{item.size}</span>}
+                </div>
+                <div className='mt-3 hidden sm:flex items-center gap-6 text-xs text-gray-500'>
+                  <button className='underline' onClick={() => updateQuantity(item._id, item.size, 0)}>Remove</button>
+                  <button className='underline opacity-50 cursor-not-allowed' title='Coming soon'>Move to wishlist</button>
                 </div>
               </div>
               <div className='flex items-center gap-3'>
@@ -94,7 +82,7 @@ const Cart = () => {
                   type='button'
                   aria-label='Remove item'
                   onClick={() => updateQuantity(item._id, item.size, 0)}
-                  className='p-2 rounded hover:bg-gray-100 active:scale-95 transition'
+                  className='p-2 rounded hover:bg-gray-100 active:scale-95 transition sm:hidden'
                 >
                   <img className='w-5 sm:w-5' src={assets.bin_icon} alt='' />
                 </button>
@@ -102,19 +90,33 @@ const Cart = () => {
             </div>
           )
         })}
-      </div>
-
-      <div className='flex justify-end my-20'>
-        <div className='w-full sm:w-[450px]'>
-          <CartTotal />
-          <div className='w-full text-end'>
-            <button onClick={openWhatsApp} disabled={cartData.length === 0} className={`text-sm my-8 px-8 py-3 rounded ${cartData.length === 0 ? 'bg-gray-300 text-white cursor-not-allowed' : 'bg-black text-white hover:opacity-90'}`}>
-              BUY ON WHATSAPP
-            </button>
-          </div>
         </div>
 
+        <div className='mt-8 grid sm:grid-cols-2 gap-4'>
+          <Accordion title="Apply Coupon">
+            <div className='flex gap-2'>
+              <input className='flex-1 border rounded px-3 h-10' placeholder='Enter coupon code' />
+              <button className='h-10 px-4 rounded bg-black text-white text-sm'>Apply</button>
+            </div>
+          </Accordion>
+          <Accordion title="Gift Voucher">
+            <div className='flex gap-2'>
+              <input className='flex-1 border rounded px-3 h-10' placeholder='Enter voucher code' />
+              <button className='h-10 px-4 rounded bg-black text-white text-sm'>Redeem</button>
+            </div>
+          </Accordion>
+        </div>
+
+        {/* Totals removed from My Bag (shown on Payment step) */}
+
+        <CartRecommendations />
       </div>
+
+      <CartStickyBar
+        buttonText="CONTINUE"
+        onClick={() => navigate('/address')}
+        disabled={cartData.length === 0}
+      />
 
     </div>
   )
