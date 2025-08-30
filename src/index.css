@@ -52,8 +52,13 @@ input, select, textarea { font-size: 16px; }
 .animate-cart-leave { animation: cartLeave .24s ease-out both; }
 
 /* Transition-based reveal (snappy, no ghosting) */
-.reveal-item { opacity: 0; transform: translateY(2px); will-change: opacity, transform; }
-.reveal-item.in { opacity: 1; transform: translateY(0); transition: opacity 260ms ease-out, transform 260ms cubic-bezier(.22,.8,.24,1); }
+:root { --reveal-dur: 220ms; }
+.reveal-item { opacity: .2; transform: translateY(2px); will-change: opacity, transform, filter; }
+.reveal-item.in { opacity: 1; transform: translateY(0); transition: opacity var(--reveal-dur) ease-out, transform var(--reveal-dur) cubic-bezier(.22,.8,.24,1), filter 160ms ease-out; }
+
+/* Subtle motion blur hint during fast scroll */
+.scrolling-fast .reveal-item:not(.in) img, .scrolling-fast .reveal-item img { filter: blur(.6px); }
+.reveal-item.in img { filter: blur(0); }
 .animate-blur-pop { animation: blurPop .28s ease-out both; will-change: transform, filter, opacity; }
 
 .skeleton-shimmer {

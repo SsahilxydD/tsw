@@ -19,7 +19,12 @@ export default function useInView(options = {}) {
           if (options.once !== false) observer.unobserve(entry.target);
         }
       }
-    }, { root: options.root ?? null, rootMargin: options.rootMargin ?? "0px 0px -10% 0px", threshold: options.threshold ?? 0.15 });
+    }, {
+      root: options.root ?? null,
+      // Pre-arm well before entering the viewport to avoid blank gaps during rapid scroll
+      rootMargin: options.rootMargin ?? "100% 0px 20% 0px",
+      threshold: options.threshold ?? 0.01
+    });
 
     observer.observe(node);
     return () => observer.disconnect();

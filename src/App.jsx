@@ -4,6 +4,7 @@ import { Routes, Route, useLocation } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
 import ScrollProgress from "./components/ScrollProgress";
+import ScrollEffects from "./components/ScrollEffects";
 import Footer from "./components/Footer";
 import WhatsAppCTA from "./components/WhatsAppCTA";
 import Notice from "./components/Notice";
@@ -33,6 +34,7 @@ export default function App() {
 
       <Navbar />
       <ScrollProgress />
+      <ScrollEffects />
 
       <main id="main-content" className="min-h-[60vh]">
         <div key={location.pathname} className="animate-page">

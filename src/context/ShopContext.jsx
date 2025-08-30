@@ -78,10 +78,15 @@ const ShopContextProvider = (props) => {
           else if (lc.includes("women") || lc.includes("lady")) category = "Women";
           else if (lc.includes("kid")) category = "Kids";
 
+          // Base price markup: add 750 to all except Topwear
+          const basePrice = Number(item.price ?? 0) || 0;
+          const isTopwear = /topwear/i.test(String(item.subCategory || ""));
+          const price = basePrice > 0 && !isTopwear ? basePrice + 750 : basePrice;
+
           return {
             _id: (item.slug ?? item.slug_name ?? item.title)?.toString(),
             name: formatName(item.title ?? item.slug_name ?? ""),
-            price: Number(item.price ?? 0),
+            price,
             mrp: Number(item.mrp ?? 0),
             image: images[0] ?? "",
             images,
