@@ -80,7 +80,8 @@ const ShopContextProvider = (props) => {
 
           // Base price markup: add 750 to all except Topwear
           const basePrice = Number(item.price ?? 0) || 0;
-          const isTopwear = /topwear/i.test(String(item.subCategory || ""));
+          // Exempt if either category or subCategory contains "topwear" (as in products.json)
+          const isTopwear = /topwear/i.test(`${item?.category ?? ''} ${item?.subCategory ?? ''}`);
           const price = basePrice > 0 && !isTopwear ? basePrice + 750 : basePrice;
 
           return {
