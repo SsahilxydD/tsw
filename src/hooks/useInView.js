@@ -19,7 +19,7 @@ export default function useInView(options = {}) {
           if (options.once !== false) observer.unobserve(entry.target);
         }
       }
-    }, { root: options.root ?? null, rootMargin: options.rootMargin ?? "25% 0px -5% 0px", threshold: options.threshold ?? 0.01 });
+    }, { root: options.root ?? null, rootMargin: options.rootMargin ?? "0px 0px -10% 0px", threshold: options.threshold ?? 0.15 });
 
     observer.observe(node);
     return () => observer.disconnect();

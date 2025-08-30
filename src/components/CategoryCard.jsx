@@ -10,7 +10,7 @@ const CategoryCard = ({ name, count, image, i }) => {
     <Link
       to={href}
       aria-label={`${display} (${count} items)`}
-      className={`group block rounded-lg overflow-hidden border bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30 hover:shadow-md transition-shadow hover-lift reveal-item ${i!=null ? 'in' : ''}`}
+      className={`group block cv-auto rounded-lg overflow-hidden border bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30 hover:shadow-md transition-shadow hover-lift reveal-item ${i!=null ? 'in' : ''}`}
       style={{ transitionDelay: `${((i ?? 0) % 10) * 70}ms`, WebkitTapHighlightColor: "transparent" }}
     >
       {/* fixed aspect for zero CLS */}
@@ -33,3 +33,4 @@ const CategoryCard = ({ name, count, image, i }) => {
 };
 
 export default CategoryCard;
+
