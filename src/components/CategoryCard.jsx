@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import SafeImg from "./SafeImg";
 
-const CategoryCard = ({ name, count, image }) => {
+const CategoryCard = ({ name, count, image, i }) => {
   const href = `/category/${encodeURIComponent(name)}`;
   const display = (name || "").replace(/[_-]+/g, " ").replace(/\b\w/g, m => m.toUpperCase());
 
@@ -10,8 +10,8 @@ const CategoryCard = ({ name, count, image }) => {
     <Link
       to={href}
       aria-label={`${display} (${count} items)`}
-      className="group block rounded-lg overflow-hidden border bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30"
-      style={{ WebkitTapHighlightColor: "transparent" }}
+      className={`group block rounded-lg overflow-hidden border bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30 hover:shadow-md transition-shadow reveal-item ${i!=null ? 'in' : ''}`}
+      style={{ transitionDelay: `${((i ?? 0) % 10) * 70}ms`, WebkitTapHighlightColor: "transparent" }}
     >
       {/* fixed aspect for zero CLS */}
       <div className="relative aspect-[4/5] bg-gray-100 overflow-hidden">

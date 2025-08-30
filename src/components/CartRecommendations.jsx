@@ -82,6 +82,7 @@ export default function CartRecommendations() {
             name={item.name}
             price={item.price}
             variant="recommendation"
+            i={index}
           />
         ))}
       </div>

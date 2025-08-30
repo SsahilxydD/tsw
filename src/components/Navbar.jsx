@@ -98,6 +98,17 @@ const Navbar = () => {
         </div>
       </div>
 
+      {/* Mobile nav links */}
+      <nav className="md:hidden border-t bg-white">
+        <div className="max-w-6xl mx-auto px-4 py-2">
+          <ul className="flex items-center justify-center gap-6 text-sm text-gray-700">
+            <li><Link to="/" className="py-1.5 px-1 hover:underline">Home</Link></li>
+            <li><Link to="/about" className="py-1.5 px-1 hover:underline">About</Link></li>
+            <li><Link to="/contact" className="py-1.5 px-1 hover:underline">Contact</Link></li>
+          </ul>
+        </div>
+      </nav>
+
       {/* Revealable search bar (only on listing routes) */}
       {enableSearch && showSearch && (
         <div className="border-t bg-white">

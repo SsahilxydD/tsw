@@ -28,6 +28,7 @@ const BestSeller = () => {
             image={Array.isArray(item.image) ? item.image[0] : item.image}
             name={item.name}
             price={item.price}
+            i={index}
           />
         ))}
       </div>

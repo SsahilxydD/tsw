@@ -369,7 +369,7 @@ export default function Product() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 gap-y-6">
-          {related.map((item) => (
+          {related.map((item, index) => (
             <ProductItem
               key={String(item._id ?? item.slug)}
               id={String(item._id ?? item.slug)}
@@ -380,6 +380,7 @@ export default function Product() {
               }
               name={item.name || item.title}
               price={item.price}
+              i={index}
             />
           ))}
         </div>

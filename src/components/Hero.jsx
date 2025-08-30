@@ -7,7 +7,7 @@ const Hero = () => {
   const poster = assets.hero_poster || assets.hero_image || "";
 
   return (
-    <div className="relative w-full h-[80vh] sm:h-[90vh] border border-gray-400 overflow-hidden">
+    <div className="relative w-full h-[80vh] sm:h-[90vh] border border-gray-400 overflow-hidden animate-fade-in">
       {hasVideo ? (
         <video
           className="absolute top-0 left-0 w-full h-full object-cover"
@@ -34,7 +34,7 @@ const Hero = () => {
       <div className="absolute inset-0 bg-black/30" />
 
       {/* content */}
-      <div className="relative z-10 flex flex-col items-center justify-center h-full text-center text-white px-4">
+      <div className="relative z-10 flex flex-col items-center justify-center h-full text-center text-white px-4 animate-blur-up">
         <div className="flex items-center gap-2">
         </div>
 

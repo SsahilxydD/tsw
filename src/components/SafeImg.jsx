@@ -17,8 +17,8 @@ export default function SafeImg({ src, alt = "", className = "", loading = "lazy
       draggable={false}
       onLoad={() => setLoaded(true)}
       onError={() => setBroken(true)}
-      className={`${className} ${loaded ? "opacity-100" : "opacity-0"} transition-opacity duration-300 motion-reduce:transition-none`}
-      {...rest}
+      className={`${className} ${loaded ? "opacity-100" : "opacity-0"} transition-opacity duration-500 ease-out motion-reduce:transition-none`}
+    {...rest}
     />
   );
 }

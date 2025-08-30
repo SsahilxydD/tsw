@@ -59,17 +59,17 @@ const Categories = () => {
           ) : (
             <>
               {/* Full rows */}
-              {main3.map(({ name, count, image }) => (
-                <CategoryCard key={name} name={name} count={count} image={image} />
+              {main3.map(({ name, count, image }, idx) => (
+                <CategoryCard key={name} name={name} count={count} image={image} i={idx} />
               ))}
 
               {/* Centered last row (1–2 items) */}
               {rem3 !== 0 && (
                 <div className="col-span-3">
                   <div className="flex justify-center gap-4">
-                    {tail3.map(({ name, count, image }) => (
+                    {tail3.map(({ name, count, image }, idx) => (
                       <div key={name} className="w-full max-w-[360px] min-w-[140px]">
-                        <CategoryCard name={name} count={count} image={image} />
+                        <CategoryCard name={name} count={count} image={image} i={main3.length + idx} />
                       </div>
                     ))}
                   </div>
@@ -94,17 +94,17 @@ const Categories = () => {
           ) : (
             <>
               {/* Full rows */}
-              {main5.map(({ name, count, image }) => (
-                <CategoryCard key={name} name={name} count={count} image={image} />
+              {main5.map(({ name, count, image }, idx) => (
+                <CategoryCard key={name} name={name} count={count} image={image} i={idx} />
               ))}
 
               {/* Centered last row (1–4 items) */}
               {rem5 !== 0 && (
                 <div className="col-span-5">
                   <div className="flex justify-center gap-4">
-                    {tail5.map(({ name, count, image }) => (
+                    {tail5.map(({ name, count, image }, idx) => (
                       <div key={name} className="w-full max-w-[360px] min-w-[140px]">
-                        <CategoryCard name={name} count={count} image={image} />
+                        <CategoryCard name={name} count={count} image={image} i={main5.length + idx} />
                       </div>
                     ))}
                   </div>

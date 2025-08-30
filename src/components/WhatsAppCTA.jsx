@@ -1,5 +1,5 @@
 // src/components/WhatsAppCTA.jsx
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 
 /**
  * Floating WhatsApp CTA
@@ -20,6 +20,11 @@ export default function WhatsAppCTA({
   iconSrc = "/src/assets/whatsapp.png",
   iconOnly = false,
 }) {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setShow(true), 200);
+    return () => clearTimeout(t);
+  }, []);
   const normalized = String(phone || "").replace(/\D/g, "");
   const encodedMsg = encodeURIComponent(message);
 
@@ -57,7 +62,7 @@ export default function WhatsAppCTA({
   // Position leaves space for sticky ATC on mobile (bottom-20). Lower on desktop.
   return (
     <div
-      className="fixed right-4 bottom-20 sm:bottom-6 z-40"
+      className={`fixed right-4 bottom-20 sm:bottom-6 z-40 ${show ? 'animate-slide-up' : 'opacity-0'}`}
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
       <button

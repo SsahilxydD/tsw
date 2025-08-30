@@ -30,6 +30,7 @@ const LatestCollection = () => {
             image={Array.isArray(item.image) ? item.image : (item.image ? [item.image] : [])}
             name={item.name}
             price={item.price}
+            i={index}
           />
         ))}
       </div>

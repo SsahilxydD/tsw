@@ -1,6 +1,6 @@
 // src/App.jsx
 import React from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -21,6 +21,7 @@ import Orders from "./pages/Orders";
 import Login from "./pages/Login";
 
 export default function App() {
+  const location = useLocation();
   return (
     <>
       <ScrollToTop />
@@ -28,6 +29,7 @@ export default function App() {
       <Navbar />
 
       <main id="main-content" className="min-h-[60vh]">
+        <div key={location.pathname} className="animate-page">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/collection" element={<Collection />} />
@@ -44,6 +46,7 @@ export default function App() {
           {/* Fallback */}
           <Route path="*" element={<Home />} />
         </Routes>
+        </div>
       </main>
 
       <Footer />

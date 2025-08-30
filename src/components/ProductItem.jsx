@@ -2,13 +2,15 @@
 import React, { useContext, useRef } from "react";
 import { Link } from "react-router-dom";
 import { ShopContext } from "../context/ShopContext";
+import useInView from "../hooks/useInView";
 import SafeImg from "./SafeImg";
 
 // variant: "default" | "recommendation"
-const ProductItem = ({ id, image, name, price, variant = "default" }) => {
+const ProductItem = ({ id, image, name, price, variant = "default", i }) => {
   const { currency } = useContext(ShopContext);
   const cover = Array.isArray(image) ? (image[0] || "") : (image || "");
   const preloadedRef = useRef(false);
+  const [ref, inView] = useInView({ once: true });
 
   const preload = () => {
     if (preloadedRef.current || !cover) return;
@@ -42,14 +44,15 @@ const ProductItem = ({ id, image, name, price, variant = "default" }) => {
 
   return (
     <Link
+      ref={ref}
       to={`/product/${id}`}
       title={name}
       aria-label={name}
       onMouseEnter={preload}
       onTouchStart={preload}
       style={{ WebkitTapHighlightColor: "transparent" }}
-      className="text-gray-700 group block rounded-md focus:outline-none focus-visible:ring-2
-                 focus-visible:ring-black/30 transition-transform active:scale-[0.98]"
+      className={`text-gray-700 group block rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30 transition-transform active:scale-[0.98] hover:shadow-sm reveal-item ${inView ? 'in' : ''}`}
+      style={inView ? { transitionDelay: `${((i ?? 0) % 10) * 70}ms` } : undefined}
     >
       <div className={`relative w-full overflow-hidden rounded-md bg-gray-100 ${imgHeights} select-none`}>
         <SafeImg
