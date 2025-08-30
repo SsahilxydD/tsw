@@ -112,6 +112,12 @@ const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd =
       )
     : null;
 
+  const linkStyle = React.useMemo(() => {
+    const base = { WebkitTapHighlightColor: "transparent" };
+    if (inView) base.transitionDelay = `${((i ?? 0) % 10) * 70}ms`;
+    return base;
+  }, [inView, i]);
+
   return (
     <>
     <Link
@@ -121,9 +127,8 @@ const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd =
       aria-label={name}
       onMouseEnter={preload}
       onTouchStart={preload}
-      style={{ WebkitTapHighlightColor: "transparent" }}
+      style={linkStyle}
       className={`text-gray-700 group block rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30 transition-transform active:scale-[0.98] hover:shadow-sm hover-lift cv-auto reveal-item ${inView ? 'in' : ''}`}
-      style={inView ? { transitionDelay: `${((i ?? 0) % 10) * 70}ms` } : undefined}
     >
       <div className={`relative w-full overflow-hidden rounded-md bg-gray-100 ${imgHeights} select-none`}>
         <SafeImg
@@ -226,4 +231,5 @@ const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd =
 };
 
 export default ProductItem;
+
 
