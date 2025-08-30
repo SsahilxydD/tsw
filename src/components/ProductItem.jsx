@@ -4,7 +4,8 @@ import { Link } from "react-router-dom";
 import { ShopContext } from "../context/ShopContext";
 import SafeImg from "./SafeImg";
 
-const ProductItem = ({ id, image, name, price }) => {
+// variant: "default" | "recommendation"
+const ProductItem = ({ id, image, name, price, variant = "default" }) => {
   const { currency } = useContext(ShopContext);
   const cover = Array.isArray(image) ? (image[0] || "") : (image || "");
   const preloadedRef = useRef(false);
@@ -15,6 +16,29 @@ const ProductItem = ({ id, image, name, price }) => {
     img.src = cover;
     preloadedRef.current = true;
   };
+
+  const imgHeights = variant === "recommendation"
+    ? "h-40 sm:h-44 md:h-52"
+    : "h-48 sm:h-56 md:h-64";
+
+  const nameStyle = variant === "recommendation"
+    ? {
+        display: "-webkit-box",
+        WebkitLineClamp: 1,
+        WebkitBoxOrient: "vertical",
+        overflow: "hidden",
+        lineHeight: "1.25rem",
+        height: "1.25rem",
+      }
+    : {
+        display: "-webkit-box",
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: "vertical",
+        overflow: "hidden",
+        lineHeight: "1.25rem",
+        height: "calc(2 * 1.25rem + 4px)",
+        paddingBottom: "2px",
+      };
 
   return (
     <Link
@@ -27,7 +51,7 @@ const ProductItem = ({ id, image, name, price }) => {
       className="text-gray-700 group block rounded-md focus:outline-none focus-visible:ring-2
                  focus-visible:ring-black/30 transition-transform active:scale-[0.98]"
     >
-      <div className="relative w-full overflow-hidden rounded-md bg-gray-100 h-48 sm:h-56 md:h-64 select-none">
+      <div className={`relative w-full overflow-hidden rounded-md bg-gray-100 ${imgHeights} select-none`}>
         <SafeImg
           src={cover}
           alt={name}
@@ -39,19 +63,8 @@ const ProductItem = ({ id, image, name, price }) => {
         />
       </div>
 
-      {/* Two-line clamp with a tiny cushion to avoid clipping descenders */}
-      <p
-        className="mt-3 text-sm leading-5 overflow-hidden normal-case tracking-normal"
-        style={{
-          display: "-webkit-box",
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: "vertical",
-          overflow: "hidden",
-          lineHeight: "1.25rem",                 // Tailwind leading-5
-          height: "calc(2 * 1.25rem + 4px)",     // small buffer prevents cut-off
-          paddingBottom: "2px",                  // extra safety for descenders
-        }}
-      >
+      {/* Name clamp */}
+      <p className="mt-3 text-sm leading-5 overflow-hidden normal-case tracking-normal" style={nameStyle}>
         {name}
       </p>
 

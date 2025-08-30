@@ -44,10 +44,14 @@ export default function Payment() {
     if (address) {
       const name = `${address.firstName || ''} ${address.lastName || ''}`.trim();
       lines.push(name);
+      if (address.addressType) lines.push(`Type: ${address.addressType}`);
       lines.push(address.phone ? `Phone: ${address.phone}` : "");
       lines.push(address.email ? `Email: ${address.email}` : "");
-      const addrParts = [address.street, address.city, address.state, address.zip, address.country].filter(Boolean);
-      lines.push(addrParts.join(", "));
+      if (address.address1) lines.push(address.address1);
+      if (address.address2) lines.push(address.address2);
+      if (address.landmark) lines.push(`Landmark: ${address.landmark}`);
+      const addrParts = [address.city, address.state, address.zip, address.country].filter(Boolean);
+      if (addrParts.length) lines.push(addrParts.join(", "));
     }
     lines.push("");
     lines.push("Please confirm availability and payment options. Thanks!");
@@ -129,4 +133,3 @@ export default function Payment() {
     </div>
   );
 }
-
