@@ -7,7 +7,7 @@ import QuantityStepper from '../components/QuantityStepper';
 import CartSteps from '../components/CartSteps';
 import Accordion from '../components/Accordion';
 import CartRecommendations from '../components/CartRecommendations';
-import CartStickyBar from '../components/CartStickyBar';
+// import CartStickyBar from '../components/CartStickyBar';
 import { isFootwearProduct, toUKLabel } from '../utils/size';
 
 const Cart = () => {
@@ -149,16 +149,24 @@ const Cart = () => {
           </Accordion>
         </div>
 
+        {/* Primary action placed beneath coupon section */}
+        <div className='mt-6 flex justify-end'>
+          <button
+            type='button'
+            disabled={cartData.length === 0}
+            onClick={() => navigate('/address')}
+            className={`px-6 py-3 text-sm rounded text-white pressable ${cartData.length === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-black hover:opacity-90'}`}
+          >
+            Proceed to checkout
+          </button>
+        </div>
+
         {/* Totals removed from My Bag (shown on Payment step) */}
 
         <CartRecommendations />
       </div>
 
-      <CartStickyBar
-        buttonText="CONTINUE"
-        onClick={() => navigate('/address')}
-        disabled={cartData.length === 0}
-      />
+      {/* Removed sticky bar on cart page to keep CTA near coupon */}
 
     </div>
   )
