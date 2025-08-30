@@ -36,7 +36,7 @@ const Contact = () => {
             </div>
             <div className='border rounded-md p-4 bg-white'>
               <p className='text-gray-500'>Email</p>
-              <p className='font-medium mt-1'>support@solowardrobe.com</p>
+              <p className='font-medium mt-1'>thesolowardrobe@gmail.com</p>
             </div>
             <div className='border rounded-md p-4 bg-white'>
               <p className='text-gray-500'>Hours</p>

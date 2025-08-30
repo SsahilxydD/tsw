@@ -1,9 +1,27 @@
 import React from "react";
 
+function calcDims(w) {
+  const WW = Number.isFinite(w) ? w : 1024;
+  // Smart scaling for buttons (min..max bounds)
+  // Very small phones (~320-360): 26-28px; up to tablet: 32-36px
+  const btn = WW < 360 ? 26 : WW < 400 ? 28 : WW < 480 ? 30 : WW < 640 ? 32 : 36;
+  const gap = WW < 360 ? 6 : WW < 400 ? 8 : 8;
+  const font = WW < 360 ? 12 : 13; // number font size
+  const textMinW = Math.max(22, Math.round(btn * 0.8));
+  return { btn, gap, font, textMinW };
+}
+
 export default function QuantityStepper({ value = 1, min = 1, max, onChange }) {
   const v = Number.isFinite(value) ? value : min;
   const canDec = v > min;
   const canInc = typeof max === "number" ? v < max : true;
+
+  const [dims, setDims] = React.useState(() => calcDims(typeof window !== 'undefined' ? window.innerWidth : 1024));
+  React.useEffect(() => {
+    const onR = () => setDims(calcDims(window.innerWidth));
+    window.addEventListener('resize', onR);
+    return () => window.removeEventListener('resize', onR);
+  }, []);
 
   const [bump, setBump] = React.useState(false);
   React.useEffect(() => {
@@ -16,19 +34,25 @@ export default function QuantityStepper({ value = 1, min = 1, max, onChange }) {
   const inc = () => onChange?.(Math.min(max ?? Infinity, v + 1));
 
   return (
-    <div className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-1.5 py-1 shadow-sm select-none">
+    <div
+      className="inline-flex items-center rounded-md border border-gray-300 bg-white px-1.5 py-1 shadow-sm select-none"
+      style={{ gap: `${dims.gap}px` }}
+    >
       <button
         type="button"
         aria-label="Decrease quantity"
         disabled={!canDec}
         onClick={dec}
-        style={{ touchAction: 'manipulation' }}
-        className={`h-8 w-8 grid place-content-center rounded-md text-white transition
+        style={{ touchAction: 'manipulation', width: dims.btn, height: dims.btn, fontSize: 16, lineHeight: 1 }}
+        className={`grid place-content-center rounded-md text-white transition pressable
           ${canDec ? "bg-black hover:opacity-90" : "bg-gray-300 cursor-not-allowed"}`}
       >
         −
       </button>
-      <span className={`min-w-6 text-center font-medium tabular-nums transition-transform ${bump ? 'scale-110' : 'scale-100'}`}>
+      <span
+        className={`text-center font-medium tabular-nums transition-transform ${bump ? 'scale-110' : 'scale-100'}`}
+        style={{ minWidth: dims.textMinW, fontSize: dims.font }}
+      >
         {v}
       </span>
       <button
@@ -36,8 +60,8 @@ export default function QuantityStepper({ value = 1, min = 1, max, onChange }) {
         aria-label="Increase quantity"
         disabled={!canInc}
         onClick={inc}
-        style={{ touchAction: 'manipulation' }}
-        className={`h-8 w-8 grid place-content-center rounded-md text-white transition
+        style={{ touchAction: 'manipulation', width: dims.btn, height: dims.btn, fontSize: 16, lineHeight: 1 }}
+        className={`grid place-content-center rounded-md text-white transition pressable
           ${canInc ? "bg-black hover:opacity-90" : "bg-gray-300 cursor-not-allowed"}`}
       >
         +

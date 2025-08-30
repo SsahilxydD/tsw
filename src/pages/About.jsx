@@ -7,7 +7,7 @@ const About = () => {
     <div className='border-t'>
       {/* Intro */}
       <section className='max-w-6xl mx-auto px-4 pt-10'>
-        <div className='text-center mb-8'>
+        <div className='text-center text-2xl mb-8'>
           <Title text1={'ABOUT'} text2={'SOLO WARDROBE'} />
         </div>
 

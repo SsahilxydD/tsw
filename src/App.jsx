@@ -3,8 +3,10 @@ import React from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
+import ScrollProgress from "./components/ScrollProgress";
 import Footer from "./components/Footer";
 import WhatsAppCTA from "./components/WhatsAppCTA";
+import Notice from "./components/Notice";
 import { ToastContainer, Slide } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import ScrollToTop from "./components/ScrollToTop";
@@ -30,6 +32,7 @@ export default function App() {
       <ScrollToTop />
 
       <Navbar />
+      <ScrollProgress />
 
       <main id="main-content" className="min-h-[60vh]">
         <div key={location.pathname} className="animate-page">
@@ -63,6 +66,8 @@ export default function App() {
         iconOnly                                    // <- icon-only mode
         // iconSrc="/src/assets/whatsapp.png" // optional custom icon
       />
+      {/* Lightweight in-app notices (add/remove, validation, etc.) */}
+      <Notice />
       <ToastContainer
         position="bottom-center"
         autoClose={1100}

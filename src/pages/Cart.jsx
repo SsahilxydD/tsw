@@ -8,6 +8,7 @@ import CartSteps from '../components/CartSteps';
 import Accordion from '../components/Accordion';
 import CartRecommendations from '../components/CartRecommendations';
 import CartStickyBar from '../components/CartStickyBar';
+import { isFootwearProduct, toUKLabel } from '../utils/size';
 
 const Cart = () => {
 
@@ -102,16 +103,24 @@ const Cart = () => {
               <img className='w-20 h-20 rounded-md object-cover border' src={cover} alt="" />
               <div className='flex-1 min-w-0'>
                 <p className='text-sm sm:text-base font-medium truncate'>{productData?.name}</p>
-                <div className='mt-2 flex items-center gap-3'>
-                  <span className='text-sm font-semibold'>{currency}{productData?.price}</span>
-                  {item.size && <span className='text-xs px-2 py-1 rounded-full border bg-slate-50'>{item.size}</span>}
+                <div className='mt-2 flex items-start gap-3 flex-wrap'>
+                  <div className='flex flex-col gap-1 w-fit'>
+                    {item.size && (
+                      <div className='px-2 py-1 text-xs border rounded-md bg-slate-50 w-fit'>
+                        {isFootwearProduct(productData) ? (toUKLabel(item.size) || item.size) : item.size}
+                      </div>
+                    )}
+                    <div className='px-2 py-1 text-sm font-semibold border rounded-md bg-white w-fit'>
+                      {currency}{productData?.price}
+                    </div>
+                  </div>
                 </div>
                 <div className='mt-3 hidden sm:flex items-center gap-6 text-xs text-gray-500'>
-                  <button className='underline' onClick={() => requestRemove(item._id, item.size)}>Remove</button>
+                  <button className='underline pressable' onClick={() => requestRemove(item._id, item.size)}>Remove</button>
                   <button className='underline opacity-50 cursor-not-allowed' title='Coming soon'>Move to wishlist</button>
                 </div>
               </div>
-              <div className='flex items-center gap-3'>
+              <div className='flex items-center gap-3 shrink-0'>
                 <QuantityStepper
                   value={item.quantity}
                   min={1}
@@ -121,7 +130,7 @@ const Cart = () => {
                   type='button'
                   aria-label='Remove item'
                   onClick={() => requestRemove(item._id, item.size)}
-                  className='p-2 rounded hover:bg-gray-100 active:scale-95 transition sm:hidden'
+                  className='p-2 rounded hover:bg-gray-100 active:scale-95 transition sm:hidden pressable'
                 >
                   <img className='w-5 sm:w-5' src={assets.bin_icon} alt='' />
                 </button>
@@ -156,3 +165,5 @@ const Cart = () => {
 }
 
 export default Cart
+
+

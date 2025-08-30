@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { ShopContext } from "../context/ShopContext";
 import useInView from "../hooks/useInView";
 import SafeImg from "./SafeImg";
+import { isFootwearProduct, toUKLabel, uniqueUKLabels } from "../utils/size";
 
 // variant: "default" | "recommendation"
 const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd = false, sizeHint, requireSize = false, disableFly = false }) => {
@@ -121,7 +122,7 @@ const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd =
       onMouseEnter={preload}
       onTouchStart={preload}
       style={{ WebkitTapHighlightColor: "transparent" }}
-      className={`text-gray-700 group block rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30 transition-transform active:scale-[0.98] hover:shadow-sm reveal-item ${inView ? 'in' : ''}`}
+      className={`text-gray-700 group block rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30 transition-transform active:scale-[0.98] hover:shadow-sm hover-lift reveal-item ${inView ? 'in' : ''}`}
       style={inView ? { transitionDelay: `${((i ?? 0) % 10) * 70}ms` } : undefined}
     >
       <div className={`relative w-full overflow-hidden rounded-md bg-gray-100 ${imgHeights} select-none`}>
@@ -152,13 +153,21 @@ const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd =
                 } else {
                   // If size selection is required and sizes exist, open picker
                   if (requireSize && sizes.length > 0 && !sizeHint) {
-                    setSizesForPick([...sizes]);
+                    const opts = isFootwearProduct(p) ? uniqueUKLabels(sizes) : sizes.map(String);
+                    setSizesForPick(opts);
                     setPicking(true);
                     return;
                   }
                   const y = window.scrollY;
                   let chosen = sizeHint || 'std';
-                  if (!sizeHint && sizes.length > 0) chosen = String(sizes[0]);
+                  if (!sizeHint && sizes.length > 0) {
+                    if (isFootwearProduct(p)) {
+                      const first = toUKLabel(sizes[0]);
+                      chosen = first || 'std';
+                    } else {
+                      chosen = String(sizes[0]);
+                    }
+                  }
                   addToCart(pid, chosen);
                   // Fly-to-cart animation everywhere except when disabled
                   if (!disableFly) {
@@ -194,7 +203,7 @@ const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd =
                 }
               } catch {}
             }}
-            className={`absolute bottom-2 right-2 px-2.5 py-1.5 rounded text-[11px] tracking-wide shadow-sm transition-colors duration-200 ${isAdded ? 'bg-white text-black border border-black' : 'bg-black/90 text-white hover:bg-black'}`}
+            className={`absolute bottom-2 right-2 px-2.5 py-1.5 rounded text-[11px] tracking-wide shadow-sm transition-colors duration-200 pressable ${isAdded ? 'bg-white text-black border border-black' : 'bg-black/90 text-white hover:bg-black'}`}
           >
             {isAdded ? 'ADDED' : 'ADD'}
           </button>

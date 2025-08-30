@@ -26,6 +26,15 @@ const Navbar = () => {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  const inputRef = useRef(null);
+  useEffect(() => {
+    if (!showSearch) return;
+    const onKey = (e) => { if (e.key === 'Escape') setShowSearch(false); };
+    document.addEventListener('keydown', onKey);
+    const t = setTimeout(() => { try { inputRef.current?.focus(); } catch {} }, 0);
+    return () => { document.removeEventListener('keydown', onKey); clearTimeout(t); };
+  }, [showSearch, setShowSearch]);
+
   const count = getCartCount();
   const prevRef = useRef(count);
   const [bump, setBump] = useState(false);
@@ -74,7 +83,7 @@ const Navbar = () => {
               type="button"
               aria-label="Search"
               onClick={() => setShowSearch(!showSearch)}
-              className="p-2 rounded hover:bg-gray-100"
+              className="p-2 rounded hover:bg-gray-100 pressable"
             >
               {assets.search_icon ? (
                 <img src={assets.search_icon} alt="" className="w-5 h-5" />
@@ -83,7 +92,7 @@ const Navbar = () => {
               )}
             </button>
           )}
-          <Link id="cart-anchor" to="/cart" aria-label="Cart" className="relative p-2 rounded hover:bg-gray-100">
+          <Link id="cart-anchor" to="/cart" aria-label="Cart" className="relative p-2 rounded hover:bg-gray-100 pressable">
             {assets.cart_icon ? (
               <img src={assets.cart_icon} alt="" className="w-5 h-5" />
             ) : (
@@ -117,6 +126,7 @@ const Navbar = () => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search products…"
+              ref={inputRef}
               className="flex-1 h-10 border rounded px-3 outline-none focus:ring-2 focus:ring-black/20"
             />
             <button
@@ -125,7 +135,7 @@ const Navbar = () => {
                 setSearch("");
                 setShowSearch(false);
               }}
-              className="h-10 px-3 border rounded"
+              className="h-10 px-3 border rounded pressable"
             >
               Cancel
             </button>
@@ -137,3 +147,4 @@ const Navbar = () => {
 };
 
 export default Navbar;
+

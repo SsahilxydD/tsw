@@ -68,7 +68,7 @@ export default function WhatsAppCTA({
       <button
         onClick={onClick}
         aria-label="Chat with us on WhatsApp"
-        className={`shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30 active:scale-[0.98]
+        className={`shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30 active:scale-[0.98] pressable
           ${iconOnly
             ? "rounded-full bg-[#25D366] h-12 w-12 flex items-center justify-center"
             : "flex items-center gap-2 rounded-full bg-[#25D366] text-white px-4 py-3 text-sm font-medium"}

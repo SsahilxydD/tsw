@@ -24,7 +24,7 @@ export default function SizeChips({ sizes = [], selected = [], onToggle, columns
             type="button"
             onClick={() => onToggle?.(s)}
             aria-pressed={isOn}
-            className={`px-3 py-1.5 rounded-full border text-sm transition
+            className={`px-3 py-1.5 rounded-full border text-sm transition pressable
               ${isOn
                 ? "bg-black text-white border-black"
                 : "bg-white text-gray-800 border-gray-300 hover:border-black"

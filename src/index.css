@@ -64,6 +64,13 @@ input, select, textarea { font-size: 16px; }
   animation: shimmer 1.4s ease-in-out infinite;
 }
 
+/* ===== Microinteraction utilities ===== */
+.pressable { transition: transform 160ms ease, opacity 160ms ease, box-shadow 160ms ease; }
+.pressable:active { transform: translateY(0.5px) scale(0.985); }
+.hover-lift { transition: transform 220ms cubic-bezier(.22,.8,.24,1), box-shadow 220ms ease; }
+.hover-lift:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0,0,0,0.07); }
+.focus-ring:focus-visible { outline: none !important; box-shadow: 0 0 0 3px rgba(0,0,0,0.14); border-color: rgba(0,0,0,0.22); }
+
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in, .animate-slide-up, .animate-pop, .animate-page, .animate-blur-up, .animate-soft-reveal, .animate-blur-pop, .animate-cart-enter, .animate-cart-leave, .skeleton-shimmer { animation: none !important; }
   .reveal-item.in { transition: none !important; }

@@ -4,6 +4,7 @@ import { useParams, Link } from "react-router-dom";
 import Title from "../components/Title";
 import ProductItem from "../components/ProductItem";
 import { ShopContext } from "../context/ShopContext";
+import { isFootwearProduct, toUKLabel, uniqueUKLabels, UK_FOOT_RANGE } from "../utils/size";
 
 // --- small helpers (no external deps) ---
 const STOPWORDS = new Set([
@@ -59,10 +60,6 @@ function shuffle(arr, rng = Math.random) {
 }
 
 // --- size helpers ---
-const FOOT_SIZES = [
-  "36","37","38","39","40","41","42","43","44","45","46",
-  "M-6","M-7","M-8","M-9","M-10","M-11"
-];
 const APPAREL_SIZES = ["S","M","L","XL"];
 const ONE_SIZE = ["ONESIZE"];
 
@@ -70,28 +67,28 @@ const norm = (s) => String(s || "").toUpperCase();
 
 function inferMasterSizes(p) {
   const cat = String(p?.category || p?.categoryRaw || "").toLowerCase();
-  const ps = (Array.isArray(p?.sizes) ? p.sizes : []).map(norm);
+  const ps = Array.isArray(p?.sizes) ? p.sizes : [];
 
-  const isFoot =
-    ps.some((x) => /^\d+$/.test(x) || x.startsWith("M-")) ||
-    /(shoe|sneaker|footwear)/.test(cat);
+  if (isFootwearProduct(p)) {
+    // For footwear, show a consistent UK range
+    return UK_FOOT_RANGE;
+  }
 
-  if (isFoot) return FOOT_SIZES;
-
+  const up = ps.map(norm);
   const isApp =
-    ps.some((x) => ["XS","S","M","L","XL","XXL"].includes(x)) ||
+    up.some((x) => ["XS","S","M","L","XL","XXL"].includes(x)) ||
     /(topwear|shirt|tshirt|hoodie|jacket|sweat|tee|trouser|pant|jean)/.test(cat);
 
   if (isApp) return APPAREL_SIZES;
 
   const isOne =
-    ps.includes("ONESIZE") ||
+    up.includes("ONESIZE") ||
     /(sunglass|watch|perfume|fragrance|belt|wallet|bag|cap|accessor)/.test(cat);
 
   if (isOne) return ONE_SIZE;
 
   // Fallback: if product declares sizes, show them; otherwise onesize.
-  return ps.length ? [...new Set(ps)] : ONE_SIZE;
+  return up.length ? [...new Set(up)] : ONE_SIZE;
 }
 
 export default function Product() {
@@ -136,10 +133,13 @@ export default function Product() {
 
   // build master list + set of available sizes for this product
   const masterSizes = React.useMemo(() => inferMasterSizes(product), [product]);
-  const availableSet = React.useMemo(
-    () => new Set((product?.sizes || []).map(norm)),
-    [product]
-  );
+  const availableSet = React.useMemo(() => {
+    if (!product) return new Set();
+    if (isFootwearProduct(product)) {
+      return new Set(uniqueUKLabels(product.sizes));
+    }
+    return new Set((product?.sizes || []).map(norm));
+  }, [product]);
 
   // gate CTAs until size is selected (when sizes exist)
   const requiresSize = hasSizes && masterSizes.length > 0;
@@ -346,7 +346,7 @@ export default function Product() {
             <button
               onClick={handleAdd}
               disabled={!canSubmit}
-              className={`px-5 py-3 bg-black text-white text-sm rounded transition
+              className={`px-5 py-3 bg-black text-white text-sm rounded transition pressable
                 ${!canSubmit ? "opacity-50 cursor-not-allowed" : "hover:opacity-90 active:scale-95"}
                 ${added ? "ring-2 ring-black" : ""}`}
             >
@@ -363,7 +363,7 @@ export default function Product() {
                 )}`;
                 window.open(wa, "_blank", "noopener");
               }}
-              className={`px-4 py-3 border rounded text-sm
+              className={`px-4 py-3 border rounded text-sm pressable
                 ${!canSubmit ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50"}`}
             >
               Buy on WhatsApp
@@ -416,3 +416,4 @@ export default function Product() {
     </div>
   );
 }
+

@@ -13,7 +13,7 @@ export default function CartStickyBar({ totalText, buttonText = "CONTINUE", onCl
           type="button"
           disabled={disabled}
           onClick={onClick}
-          className={`ml-auto px-6 py-3 rounded text-white text-sm tracking-wide active:scale-95 transition
+          className={`ml-auto px-6 py-3 rounded text-white text-sm tracking-wide active:scale-95 transition pressable
             ${disabled ? 'bg-gray-300 cursor-not-allowed' : 'bg-black hover:opacity-90'}`}
         >
           {buttonText}
