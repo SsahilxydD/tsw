@@ -60,6 +60,9 @@ export function uniqueUKLabels(sizes = []) {
   for (const raw of sizes) {
     const label = toUKLabel(raw);
     if (!label) continue;
+    const n = parseFloat(String(label).replace(/[^0-9.]/g, ""));
+    // Clamp to valid store range (UK 5 .. 13)
+    if (!Number.isFinite(n) || n < 5 || n > 13) continue;
     if (!seen.has(label)) { seen.add(label); out.push(label); }
   }
   // Sort by numeric UK

@@ -4,6 +4,7 @@ import ProductItem from "../components/ProductItem";
 import SkeletonCard from "../components/SkeletonCard";
 import MobileFilters from "../components/MobileFilters";
 import SizeChips from "../components/SizeChips";
+import { isFootwearProduct, uniqueUKLabels } from "../utils/size";
 import { ShopContext } from "../context/ShopContext";
 import useDebouncedValue from "../hooks/useDebouncedValue";
 
@@ -16,11 +17,17 @@ const Collection = () => {
   const debouncedSearch = useDebouncedValue(search, 250);
 
   // sizes available across the whole catalog
+  const normalizeSizesForProduct = (p) => {
+    let arr = Array.isArray(p?.sizes) ? p.sizes : [];
+    if (isFootwearProduct(p)) return uniqueUKLabels(arr);
+    return arr.map((s) => String(s)).filter(Boolean);
+  };
+
   const availableSizes = useMemo(() => {
     const set = new Set();
     if (Array.isArray(products)) {
       for (const p of products) {
-        Array.isArray(p.sizes) && p.sizes.forEach((s) => s && set.add(s));
+        for (const s of normalizeSizesForProduct(p)) set.add(s);
       }
     }
     return Array.from(set);
@@ -48,9 +55,10 @@ const Collection = () => {
 
     // size filter
     if (hasSizes && sizeFilters.length > 0) {
-      copy = copy.filter(
-        (item) => Array.isArray(item.sizes) && item.sizes.some((s) => sizeFilters.includes(s))
-      );
+      copy = copy.filter((item) => {
+        const norm = normalizeSizesForProduct(item);
+        return norm.some((s) => sizeFilters.includes(s));
+      });
     }
 
     // sorting / featured (scramble by session)
