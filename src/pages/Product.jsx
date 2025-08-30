@@ -311,22 +311,28 @@ export default function Product() {
           {masterSizes.length > 0 && (
             <div className="mt-5">
               <p className="text-sm font-medium mb-2">Select Size</p>
-              <div className="flex flex-wrap gap-2">
-                {masterSizes.map((sz) => {
+              {/* Single-line, horizontally scrollable size boxes (adjoined) */}
+              <div className="flex overflow-x-auto whitespace-nowrap">
+                {masterSizes.map((sz, i) => {
                   const SZ = norm(sz);
                   const available = availableSet.size === 0 ? true : availableSet.has(SZ);
                   const active = selectedSize === SZ;
+                  const label = SZ.replace(/^UK-/, "");
+                  const lastIdx = masterSizes.length - 1;
+                  const roundClass = i === 0
+                    ? "rounded-l-sm"
+                    : (i === lastIdx ? "rounded-r-sm" : "rounded-none");
                   return (
                     <button
                       key={SZ}
                       type="button"
                       onClick={() => available && setSelectedSize(SZ)}
                       disabled={!available}
-                      className={`px-3 py-2 text-sm border rounded
-                        ${active ? "bg-black text-white border-black" : "hover:bg-gray-50"}
+                      className={`h-9 w-9 text-xs border grid place-content-center shrink-0 ${roundClass} ${i>0? 'ml-[-1px]': ''}
+                        ${active ? "bg-black text-white border-black" : "bg-white hover:bg-gray-50"}
                         ${!available ? "line-through opacity-40 cursor-not-allowed bg-gray-100 hover:bg-gray-100" : ""}`}
                     >
-                      {SZ}
+                      {label}
                     </button>
                   );
                 })}
@@ -357,7 +363,7 @@ export default function Product() {
               disabled={!canSubmit}
               onClick={() => {
                 if (!canSubmit) return;
-                const sizePart = selectedSize ? ` (Size: ${selectedSize})` : "";
+                const sizePart = selectedSize ? ` (Size: ${String(selectedSize).replace(/^UK-/, '')})` : "";
                 const wa = `https://wa.me/919933778870?text=${encodeURIComponent(
                   `Hi, I'm interested in this product: ${window.location.href}${sizePart}`
                 )}`;

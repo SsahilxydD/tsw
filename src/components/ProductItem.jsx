@@ -124,7 +124,7 @@ const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd =
                     setPicking(false);
                   }}
                 >
-                  {String(sz)}
+                  {String(sz).replace(/^UK-/, '')}
                 </button>
               ))}
             </div>
@@ -247,20 +247,21 @@ const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd =
       </p>
 
       {tileSizes.length > 0 && (
-        <div className="mt-1 flex flex-wrap gap-x-1.5 gap-y-2 min-h-[64px] max-h-[64px] overflow-hidden">
-          {visibleSizes.map((sz) => (
-            <span
-              key={String(sz)}
-              className="inline-flex items-center justify-center h-7 min-w-[44px] px-2 border border-gray-300 text-[11px] leading-none uppercase bg-white"
-            >
-              {String(sz)}
-            </span>
-          ))}
-          {sizesOverflow > 0 && (
-            <span className="inline-flex items-center justify-center h-7 min-w-[44px] px-2 border border-gray-300 text-[11px] leading-none bg-white">
-              +{sizesOverflow}
-            </span>
-          )}
+        <div className="mt-1 flex overflow-x-auto whitespace-nowrap items-center">
+          {tileSizes.map((sz, i) => {
+            const lastIdx = tileSizes.length - 1;
+            const roundClass = i === 0
+              ? "rounded-l-[3px]"
+              : (i === lastIdx ? "rounded-r-[3px]" : "rounded-none");
+            return (
+              <span
+                key={String(sz)}
+                className={`inline-flex items-center justify-center h-8 w-8 shrink-0 border border-gray-300 text-[12px] leading-none bg-white ${roundClass} ${i>0? 'ml-[-1px]': ''}`}
+              >
+                {String(sz).replace(/^UK-/, '')}
+              </span>
+            );
+          })}
         </div>
       )}
 

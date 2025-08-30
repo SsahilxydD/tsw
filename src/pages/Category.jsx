@@ -76,8 +76,8 @@ const Category = () => {
     // size filter
     if (hasSizes && sizeFilters.length > 0) {
       copy = copy.filter((item) => {
-        const norm = normalizeSizesForProduct(item);
-        return norm.some((s) => sizeFilters.includes(s));
+        const normSet = new Set(normalizeSizesForProduct(item).map(String));
+        return sizeFilters.every((s) => normSet.has(String(s)));
       });
     }
 
@@ -107,6 +107,27 @@ const Category = () => {
   const isEmpty = !isLoading && list.length === 0;
   const selectedCount = sizeFilters.length;
 
+  // compute sticky offset equal to header height (prevents overlap on top)
+  const [stickyTop, setStickyTop] = useState(64);
+  useEffect(() => {
+    const update = () => {
+      try {
+        const header = document.querySelector('header');
+        const h = header ? header.offsetHeight : 64;
+        setStickyTop(h);
+      } catch {}
+    };
+    update();
+    window.addEventListener('resize', update);
+    const header = document.querySelector('header');
+    let obs;
+    if (header && 'MutationObserver' in window) {
+      obs = new MutationObserver(update);
+      obs.observe(header, { childList: true, subtree: true, attributes: true });
+    }
+    return () => { window.removeEventListener('resize', update); try { obs && obs.disconnect(); } catch {} };
+  }, []);
+
   return (
     <div className="pt-10 border-t">
       <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row gap-6">
@@ -129,7 +150,7 @@ const Category = () => {
         {/* RIGHT */}
         <section className="flex-1">
           {/* Mobile toolbar */}
-          <div className="sm:hidden sticky top-16 z-10 bg-white/95 backdrop-blur border-b -mx-4 px-4 py-2 mb-4">
+          <div className="sm:hidden sticky z-10 bg-white/95 backdrop-blur border-b -mx-4 px-4 py-2 mb-4" style={{ top: stickyTop }}>
             <div className="flex items-center justify-between">
               {hasSizes ? (
                 <button onClick={() => setFiltersOpen(true)} className="px-3 h-9 border rounded text-sm">

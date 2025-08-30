@@ -33,7 +33,7 @@ export default function Payment() {
       if (!p) continue;
       const pid = String(p._id ?? p.slug ?? it._id);
       const url = `${window.location.origin}/product/${pid}`;
-      const sizeText = it.size && it.size !== 'std' ? ` (Size: ${it.size})` : '';
+      const sizeText = it.size && it.size !== 'std' ? ` (Size: ${String(it.size).replace(/^UK-/, '')})` : '';
       const qtyText = it.quantity > 1 ? ` x${it.quantity}` : '';
       lines.push(`• ${p.name || p.title}${sizeText}${qtyText}`);
       lines.push(`  ${url}`);
@@ -98,7 +98,7 @@ export default function Payment() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{p?.name}</p>
                     <p className="text-xs text-gray-500 mt-1">
-                      {currency}{p?.price} {it.size && <span className="ml-2">Size: {it.size}</span>} {it.quantity > 1 && <span className="ml-2">Qty: {it.quantity}</span>}
+                      {currency}{p?.price} {it.size && <span className="ml-2">Size: {String(it.size).replace(/^UK-/, '')}</span>} {it.quantity > 1 && <span className="ml-2">Qty: {it.quantity}</span>}
                     </p>
                   </div>
                 </div>

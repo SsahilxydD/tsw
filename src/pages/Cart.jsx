@@ -107,7 +107,9 @@ const Cart = () => {
                   <div className='flex flex-col gap-1 w-fit'>
                     {item.size && (
                       <div className='px-2 py-1 text-xs border rounded-md bg-slate-50 w-fit'>
-                        {isFootwearProduct(productData) ? (toUKLabel(item.size) || item.size) : item.size}
+                        {isFootwearProduct(productData)
+                          ? String(toUKLabel(item.size) || item.size).replace(/^UK-/, '')
+                          : item.size}
                       </div>
                     )}
                     <div className='px-2 py-1 text-sm font-semibold border rounded-md bg-white w-fit'>
@@ -150,7 +152,7 @@ const Cart = () => {
         </div>
 
         {/* Primary action placed beneath coupon section */}
-        <div className='mt-6 flex justify-end'>
+        <div className='mt-6 flex justify-center'>
           <button
             type='button'
             disabled={cartData.length === 0}

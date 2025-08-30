@@ -18,6 +18,7 @@ export default function SizeChips({ sizes = [], selected = [], onToggle, columns
     <div className={`grid ${colClass} gap-2`}>
       {sizes.map((s) => {
         const isOn = selected.includes(s);
+        const label = String(s).replace(/^UK-/, "");
         return (
           <button
             key={s}
@@ -29,9 +30,9 @@ export default function SizeChips({ sizes = [], selected = [], onToggle, columns
                 ? "bg-black text-white border-black"
                 : "bg-white text-gray-800 border-gray-300 hover:border-black"
               } focus:outline-none focus:ring-2 focus:ring-black/25`}
-            title={s}
+            title={label}
           >
-            {s}
+            {label}
           </button>
         );
       })}
