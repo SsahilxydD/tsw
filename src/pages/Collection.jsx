@@ -6,6 +6,7 @@ import MobileFilters from "../components/MobileFilters";
 import SizeChips from "../components/SizeChips";
 import { isFootwearProduct, uniqueUKLabels } from "../utils/size";
 import { ShopContext } from "../context/ShopContext";
+import { assets } from "../assets/assets";
 import useDebouncedValue from "../hooks/useDebouncedValue";
 
 // NEW: session-seeded scramble (adds only “Featured” ordering)
@@ -13,7 +14,7 @@ import { scrambleProducts } from "../utils/scramble";
 import { getSessionSeed } from "../utils/rand";
 
 const Collection = () => {
-  const { products, search, showSearch, loadingProducts } = useContext(ShopContext);
+  const { products, search, showSearch, setShowSearch, loadingProducts } = useContext(ShopContext);
   const debouncedSearch = useDebouncedValue(search, 250);
 
   // sizes available across the whole catalog
@@ -132,13 +133,25 @@ const Collection = () => {
           {/* Mobile toolbar */}
           <div className="sm:hidden sticky z-10 bg-white/95 backdrop-blur border-b -mx-4 px-4 py-2 mb-4" style={{ top: stickyTop }}>
             <div className="flex items-center justify-between">
-              {hasSizes ? (
-                <button onClick={() => setFiltersOpen(true)} className="px-3 h-9 border rounded text-sm">
-                  Filters{selectedCount ? ` (${selectedCount})` : ""}
+              <div className="flex items-center gap-2">
+                {hasSizes && (
+                  <button onClick={() => setFiltersOpen(true)} className="px-3 h-9 border rounded text-sm">
+                    Filters{selectedCount ? ` (${selectedCount})` : ""}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  aria-label="Search products"
+                  onClick={() => setShowSearch((v) => !v)}
+                  className="px-3 h-9 border rounded text-sm flex items-center justify-center"
+                >
+                  {assets.search_icon ? (
+                    <img src={assets.search_icon} alt="" className="w-4 h-4" />
+                  ) : (
+                    <span>Search</span>
+                  )}
                 </button>
-              ) : (
-                <div />
-              )}
+              </div>
 
               <select
                 aria-label="Sort products"
