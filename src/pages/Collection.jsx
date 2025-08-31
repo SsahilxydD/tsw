@@ -205,21 +205,19 @@ const Collection = () => {
         </section>
       </div>
 
-      {/* Mobile drawer */}
-      {hasSizes && (
-        <MobileFilters
-          open={filtersOpen}
-          onClose={() => setFiltersOpen(false)}
-          sizes={availableSizes}
-          selected={sizeFilters}
-          onToggle={toggleSize}
-          onClear={() => setSizeFilters([])}
-          onApply={() => {
-            applyFilterAndOrder();
-            setFiltersOpen(false);
-          }}
-        />
-      )}
+      {/* Mobile drawer (always rendered, even if no sizes) */}
+      <MobileFilters
+        open={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        sizes={availableSizes}
+        selected={sizeFilters}
+        onToggle={toggleSize}
+        onClear={() => setSizeFilters([])}
+        onApply={() => {
+          applyFilterAndOrder();
+          setFiltersOpen(false);
+        }}
+      />
     </div>
   );
 };

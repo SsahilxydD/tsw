@@ -200,8 +200,14 @@ export default function MobileFilters({
           className="p-4 overflow-auto max-h-[calc(80vh-104px)]"
           style={{ WebkitOverflowScrolling: "touch", maxHeight: "calc((var(--rvh, 1vh) * 80) - 104px)" }}
         >
-          <p className="mb-3 text-sm font-medium">SIZE</p>
-          <SizeChips sizes={sizes} selected={selected} onToggle={onToggle} columns={3} />
+          {sizes.length > 0 ? (
+            <>
+              <p className="mb-3 text-sm font-medium">SIZE</p>
+              <SizeChips sizes={sizes} selected={selected} onToggle={onToggle} columns={3} />
+            </>
+          ) : (
+            <p className="text-sm text-gray-500">No size filters available.</p>
+          )}
         </div>
 
         {/* Actions */}
