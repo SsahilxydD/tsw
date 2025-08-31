@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import SizeChips from "./SizeChips";
 
 export default function MobileFilters({
@@ -55,7 +56,12 @@ export default function MobileFilters({
   useEffect(() => {
     if (!open) return;
     const r = sheetRef.current?.getBoundingClientRect();
-    const h = r?.height || 0;
+    let h = r?.height || 0;
+    // Fallback for Safari/iOS when height is 0 on first frame
+    if (h < 40) {
+      const vh = window.innerHeight || document.documentElement.clientHeight || 640;
+      h = Math.min(Math.max(320, Math.round(vh * 0.8)), 900);
+    }
     setSheetH(h);
 
     // start below viewport then slide up
@@ -65,7 +71,12 @@ export default function MobileFilters({
       offsetRef.current = 0;
       setOffsetY(0);
     });
-    return () => cancelAnimationFrame(id);
+    // Extra safety: also fallback via setTimeout in case rAF is throttled
+    const tid = setTimeout(() => {
+      offsetRef.current = 0;
+      setOffsetY(0);
+    }, 32);
+    return () => { cancelAnimationFrame(id); clearTimeout(tid); };
   }, [open]);
 
   // ESC closes
@@ -164,8 +175,8 @@ export default function MobileFilters({
 
   if (!open) return null;
 
-  return (
-    <div className="fixed inset-0 z-40" role="dialog" aria-modal="true" aria-label="Filters">
+  const node = (
+    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Filters">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/40" onClick={() => requestClose(true)} />
 
@@ -231,4 +242,11 @@ export default function MobileFilters({
       </div>
     </div>
   );
+
+  // Render at document.body to avoid ancestor stacking/overflow issues on iOS
+  try {
+    return createPortal(node, document.body);
+  } catch {
+    return node;
+  }
 }
