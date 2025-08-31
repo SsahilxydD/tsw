@@ -76,22 +76,8 @@ const Navbar = () => {
           </ul>
         </nav>
 
-        {/* Right controls: search (where relevant) + cart */}
+        {/* Right controls: cart only (search moved to page toolbars) */}
         <div className="flex items-center gap-2">
-          {enableSearch && (
-            <button
-              type="button"
-              aria-label="Search"
-              onClick={() => setShowSearch(!showSearch)}
-              className="p-2 rounded hover:bg-gray-100 pressable"
-            >
-              {assets.search_icon ? (
-                <img src={assets.search_icon} alt="" className="w-5 h-5" />
-              ) : (
-                <span className="text-sm">Search</span>
-              )}
-            </button>
-          )}
           <Link id="cart-anchor" to="/cart" aria-label="Cart" className="relative p-2 rounded hover:bg-gray-100 pressable">
             {assets.cart_icon ? (
               <img src={assets.cart_icon} alt="" className="w-5 h-5" />
@@ -147,4 +133,3 @@ const Navbar = () => {
 };
 
 export default Navbar;
-
