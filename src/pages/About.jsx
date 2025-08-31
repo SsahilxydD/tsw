@@ -1,6 +1,5 @@
 import React from 'react'
 import Title from '../components/Title'
-import { assets } from '../assets/assets'
 
 const About = () => {
   return (
@@ -12,7 +11,6 @@ const About = () => {
         </div>
 
         <div className='grid md:grid-cols-2 gap-10 items-center'>
-          <img className='w-full rounded-md border animate-soft-reveal' src={assets.about_img} alt="Solo Wardrobe" />
           <div className='text-gray-700 space-y-5 animate-soft-reveal'>
             <h2 className='text-xl font-semibold'>The Story</h2>
             <p>

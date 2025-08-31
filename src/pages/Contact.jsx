@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import Title from '../components/Title'
-import { assets } from '../assets/assets'
 
 const Contact = () => {
   const [name, setName] = useState('')
@@ -21,9 +20,7 @@ const Contact = () => {
       </div>
 
       <div className='max-w-6xl mx-auto px-4 my-10 grid md:grid-cols-2 gap-10 items-start'>
-        <img className='w-full rounded-md border animate-soft-reveal' src={assets.contact_img} alt="Contact" />
-
-        <div className='space-y-6'>
+        <div className='space-y-6 md:col-span-2'>
           <div className='animate-soft-reveal'>
             <h3 className='text-lg font-semibold'>We’re here to help</h3>
             <p className='text-gray-600 text-sm mt-2'>Questions about fit, shipping, or a product? Drop us a note and we’ll get back quickly.</p>
