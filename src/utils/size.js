@@ -41,7 +41,7 @@ export function toUKLabel(raw) {
     const uk = EU_TO_UK.get(eu);
     return uk ? `UK-${uk}` : null;
   }
-  // Bare number: if 36..48 treat as EU; if 3..13 treat as UK
+  // Bare number: if 36..48 treat as EU; if 3..12 treat as UK
   m = s.match(/^(\d{1,2})(?:\.5)?$/);
   if (m) {
     const n = parseInt(m[1], 10);
@@ -49,7 +49,7 @@ export function toUKLabel(raw) {
       const uk = EU_TO_UK.get(n);
       return uk ? `UK-${uk}` : null;
     }
-    if (n >= 3 && n <= 14) return `UK-${n}`;
+    if (n >= 3 && n <= 12) return `UK-${n}`;
   }
   return null;
 }
@@ -61,8 +61,8 @@ export function uniqueUKLabels(sizes = []) {
     const label = toUKLabel(raw);
     if (!label) continue;
     const n = parseFloat(String(label).replace(/[^0-9.]/g, ""));
-    // Clamp to valid store range (UK 5 .. 13)
-    if (!Number.isFinite(n) || n < 5 || n > 13) continue;
+    // Clamp to valid store range (UK 5 .. 12)
+    if (!Number.isFinite(n) || n < 5 || n > 12) continue;
     if (!seen.has(label)) { seen.add(label); out.push(label); }
   }
   // Sort by numeric UK
@@ -74,4 +74,4 @@ export function uniqueUKLabels(sizes = []) {
   return out;
 }
 
-export const UK_FOOT_RANGE = [5,6,7,8,9,10,11,12,13].map((n) => `UK-${n}`);
+export const UK_FOOT_RANGE = [5,6,7,8,9,10,11,12].map((n) => `UK-${n}`);
