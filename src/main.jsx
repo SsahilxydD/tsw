@@ -26,3 +26,15 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   }
   window.addEventListener('touchend', onTouchEnd, { passive: false });
 })();
+
+// Set a CSS variable for reliable viewport height across iOS/Android
+// Use as var(--rvh) = 1% of the real innerHeight
+(() => {
+  const update = () => {
+    const vh = window.innerHeight * 0.01;
+    document.documentElement.style.setProperty('--rvh', `${vh}px`);
+  };
+  update();
+  window.addEventListener('resize', update);
+  window.addEventListener('orientationchange', update);
+})();

@@ -27,14 +27,27 @@ export default function MobileFilters({
   const lastYRef = useRef(0);
   const lastTRef = useRef(0);
 
-  // Lock background scroll, focus close
+  // Lock background scroll robustly on iOS/Android, focus close
   useEffect(() => {
     if (!open) return;
-    const prev = document.body.style.overflow;
+    const scrollY = window.scrollY || window.pageYOffset || 0;
+    const prev = {
+      overflow: document.body.style.overflow,
+      position: document.body.style.position,
+      top: document.body.style.top,
+      width: document.body.style.width,
+    };
     document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
     setTimeout(() => closeBtnRef.current?.focus(), 0);
     return () => {
-      document.body.style.overflow = prev;
+      document.body.style.overflow = prev.overflow;
+      document.body.style.position = prev.position;
+      document.body.style.top = prev.top;
+      document.body.style.width = prev.width;
+      window.scrollTo(0, scrollY);
     };
   }, [open]);
 
@@ -159,8 +172,8 @@ export default function MobileFilters({
       {/* Bottom sheet */}
       <div
         ref={sheetRef}
-        className="absolute inset-x-0 bottom-0 rounded-t-2xl bg-white max-h-[80vh] overflow-hidden transition-transform duration-300 will-change-transform"
-        style={{ transform: `translateY(${offsetY}px)` }}
+        className="absolute inset-x-0 bottom-0 rounded-t-2xl bg-white max-h-[80vh] overflow-hidden transition-transform duration-300 will-change-transform overscroll-contain"
+        style={{ transform: `translateY(${offsetY}px)`, maxHeight: "calc(var(--rvh, 1vh) * 80)" }}
       >
         {/* Header: full-area drag; grid keeps handle centered & Close aligned */}
         <div className="border-b grid grid-cols-3 items-center h-12 touch-none select-none"
@@ -183,13 +196,19 @@ export default function MobileFilters({
         </div>
 
         {/* Content */}
-        <div className="p-4 overflow-auto max-h-[calc(80vh-104px)]">
+        <div
+          className="p-4 overflow-auto max-h-[calc(80vh-104px)]"
+          style={{ WebkitOverflowScrolling: "touch", maxHeight: "calc((var(--rvh, 1vh) * 80) - 104px)" }}
+        >
           <p className="mb-3 text-sm font-medium">SIZE</p>
           <SizeChips sizes={sizes} selected={selected} onToggle={onToggle} columns={3} />
         </div>
 
         {/* Actions */}
-        <div className="p-4 border-t flex items-center gap-3">
+        <div
+          className="p-4 border-t flex items-center gap-3"
+          style={{ paddingBottom: "max(env(safe-area-inset-bottom), 12px)" }}
+        >
           <button className="px-4 py-2 border rounded text-sm" onClick={onClear}>
             Clear
           </button>
