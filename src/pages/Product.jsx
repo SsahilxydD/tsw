@@ -69,26 +69,27 @@ function inferMasterSizes(p) {
   const cat = String(p?.category || p?.categoryRaw || "").toLowerCase();
   const ps = Array.isArray(p?.sizes) ? p.sizes : [];
 
+  // If no sizes are provided, do not render a size selector at all.
+  if (ps.length === 0) return [];
+
   if (isFootwearProduct(p)) {
-    // For footwear, show a consistent UK range
+    // For footwear, show a consistent UK range and strike-out unavailable.
     return UK_FOOT_RANGE;
   }
 
-  const up = ps.map(norm);
+  const up = ps.map(norm).filter(Boolean);
   const isApp =
     up.some((x) => ["XS","S","M","L","XL","XXL"].includes(x)) ||
     /(topwear|shirt|tshirt|hoodie|jacket|sweat|tee|trouser|pant|jean)/.test(cat);
 
-  if (isApp) return APPAREL_SIZES;
+  // Only infer the standard apparel grid when sizes exist.
+  if (isApp && up.length > 0) return APPAREL_SIZES;
 
-  const isOne =
-    up.includes("ONESIZE") ||
-    /(sunglass|watch|perfume|fragrance|belt|wallet|bag|cap|accessor)/.test(cat);
+  // Only show explicit one-size if declared in data.
+  if (up.includes("ONESIZE")) return ONE_SIZE;
 
-  if (isOne) return ONE_SIZE;
-
-  // Fallback: if product declares sizes, show them; otherwise onesize.
-  return up.length ? [...new Set(up)] : ONE_SIZE;
+  // Otherwise, show the unique provided sizes.
+  return [...new Set(up)];
 }
 
 export default function Product() {
