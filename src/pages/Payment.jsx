@@ -63,7 +63,7 @@ export default function Payment() {
       const street = [];
       if (address.address1) street.push(address.address1);
       if (address.address2) street.push(address.address2);
-      if (address.landmark) street.push(`Landmark: ${address.landmark}`);
+      if (address.locality || address.landmark) street.push(`Locality: ${address.locality || address.landmark}`);
       if (street.length) {
         lines.push("");
         lines.push("*Address:*");
@@ -71,7 +71,7 @@ export default function Payment() {
       }
 
       // Locality + country
-      const locality = [address.city, address.state, address.zip].filter(Boolean).join(", ");
+      const locality = [address.district || address.city, address.state, address.zip].filter(Boolean).join(", ");
       const country = address.country;
       if (locality || country) {
         lines.push("");
@@ -79,11 +79,7 @@ export default function Payment() {
         if (locality) lines.push(locality);
         if (country) lines.push(country);
       }
-      if (address.location && typeof address.location.lat === 'number' && typeof address.location.lng === 'number') {
-        const lat = address.location.lat;
-        const lng = address.location.lng;
-        lines.push(`Map: https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=17/${lat}/${lng}`);
-      }
+      // Map link removed; only postal address retained
     }
     lines.push("");
     return lines.join("\n");
@@ -148,7 +144,7 @@ export default function Payment() {
                     {address.address1 && <p>{address.address1}</p>}
                     {address.address2 && <p>{address.address2}</p>}
                     {address.landmark && <p>Landmark: {address.landmark}</p>}
-                    <p>{[address.city, address.state, address.zip, address.country].filter(Boolean).join(', ')}</p>
+                    <p>{[address.district || address.city, address.state, address.zip, address.country].filter(Boolean).join(', ')}</p>
                   </>
                 )}
               </div>
