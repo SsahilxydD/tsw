@@ -94,7 +94,7 @@ function inferMasterSizes(p) {
 
 export default function Product() {
   const { id } = useParams();
-  const { products, currency, addToCart } = React.useContext(ShopContext);
+  const { products, currency, addToCart, navigate } = React.useContext(ShopContext);
   const [added, setAdded] = React.useState(false);
 
   // scroll to top on product change (prevents jumping)
@@ -364,16 +364,15 @@ export default function Product() {
               disabled={!canSubmit}
               onClick={() => {
                 if (!canSubmit) return;
-                const sizePart = selectedSize ? ` (Size: ${String(selectedSize).replace(/^UK-/, '')})` : "";
-                const wa = `https://wa.me/919933778870?text=${encodeURIComponent(
-                  `Hi, I'm interested in this product: ${window.location.href}${sizePart}`
-                )}`;
-                window.open(wa, "_blank", "noopener");
+                const sizeToSend = hasSizes ? selectedSize : 'std';
+                const pid = String(product._id ?? product.slug);
+                addToCart(pid, sizeToSend);
+                navigate('/address');
               }}
               className={`px-4 py-3 border rounded text-sm pressable
                 ${!canSubmit ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50"}`}
             >
-              Buy on WhatsApp
+              Buy now
             </button>
           </div>
 

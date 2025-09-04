@@ -1,8 +1,18 @@
-# React + Vite
+# App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Google Places Autocomplete (Address)
 
-Currently, two official plugins are available:
+The Address page can use Google Places to auto-fill Area/Society, City, State, PIN, and Country. Configure:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+1. Create a Google Cloud API key with Maps JavaScript API enabled.
+2. Add the key to a `.env` file at the project root:
+
+```
+VITE_GOOGLE_MAPS_API_KEY=your_api_key_here
+```
+
+3. Restart the dev server. The “Search area or society” field will show suggestions and auto-fill address details on selection.
+
+Notes:
+- If the key isn’t set, the page still works with PIN auto-fill (Zippopotam.us + India Pincode fallback).
+- The app does not store the API key in the repo; it’s read from env at runtime via Vite.

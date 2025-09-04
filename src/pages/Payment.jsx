@@ -27,7 +27,7 @@ export default function Payment() {
     const lines = [];
     lines.push("New order request");
     lines.push("");
-    lines.push("Items:");
+    lines.push("*Items:*");
     for (const it of cartList) {
       const p = products.find((pr) => String(pr._id) === String(it._id) || String(pr.slug) === String(it._id));
       if (!p) continue;
@@ -35,7 +35,7 @@ export default function Payment() {
       const url = `${window.location.origin}/product/${pid}`;
       const sizeText = it.size && it.size !== 'std' ? ` (Size: ${String(it.size).replace(/^UK-/, '')})` : '';
       const qtyText = it.quantity > 1 ? ` x${it.quantity}` : '';
-      lines.push(`• ${p.name || p.title}${sizeText}${qtyText}`);
+      lines.push( `- ${p.name || p.title}${sizeText}${qtyText}`); 
       lines.push(`  ${url}`);
     }
     const total = cartList.reduce((sum, it) => {
@@ -43,23 +43,50 @@ export default function Payment() {
       return sum + (p ? (Number(p.price) || 0) * (Number(it.quantity) || 0) : 0);
     }, 0);
     lines.push("");
-    lines.push(`Total: ${currency}${total.toLocaleString()}`);
+    lines.push(`*Total:* ${currency}${total.toLocaleString()}`);
     lines.push("");
-    lines.push("Shipping address:");
+    lines.push("*Shipping address:*");
     if (address) {
+      // Contact block
+      const contact = [];
       const name = `${address.firstName || ''} ${address.lastName || ''}`.trim();
-      lines.push(name);
-      lines.push(address.phone ? `Phone: ${address.phone}` : "");
-      lines.push(address.email ? `Email: ${address.email}` : "");
-      if (address.address1) lines.push(address.address1);
-      if (address.address2) lines.push(address.address2);
-      if (address.landmark) lines.push(`Landmark: ${address.landmark}`);
-      const addrParts = [address.city, address.state, address.zip, address.country].filter(Boolean);
-      if (addrParts.length) lines.push(addrParts.join(", "));
+      if (name) contact.push(`Name: ${name}`);
+      if (address.phone) contact.push(`Phone: ${address.phone}`);
+      if (address.email) contact.push(`Email: ${address.email}`);
+      if (contact.length) {
+        lines.push("");
+        lines.push("*Contact:*");
+        lines.push(...contact);
+      }
+
+      // Street block
+      const street = [];
+      if (address.address1) street.push(address.address1);
+      if (address.address2) street.push(address.address2);
+      if (address.landmark) street.push(`Landmark: ${address.landmark}`);
+      if (street.length) {
+        lines.push("");
+        lines.push("*Address:*");
+        lines.push(...street);
+      }
+
+      // Locality + country
+      const locality = [address.city, address.state, address.zip].filter(Boolean).join(", ");
+      const country = address.country;
+      if (locality || country) {
+        lines.push("");
+        lines.push("*Location:*");
+        if (locality) lines.push(locality);
+        if (country) lines.push(country);
+      }
+      if (address.location && typeof address.location.lat === 'number' && typeof address.location.lng === 'number') {
+        const lat = address.location.lat;
+        const lng = address.location.lng;
+        lines.push(`Map: https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=17/${lat}/${lng}`);
+      }
     }
     lines.push("");
-    lines.push("Please confirm availability and payment options. Thanks!");
-    return lines.filter(Boolean).join("\n");
+    return lines.join("\n");
   };
 
   const onWhatsApp = () => {
@@ -118,7 +145,10 @@ export default function Payment() {
                     <p className="font-medium">{`${address.firstName || ''} ${address.lastName || ''}`.trim()}</p>
                     {address.phone && <p>Phone: {address.phone}</p>}
                     {address.email && <p>Email: {address.email}</p>}
-                    <p>{[address.street, address.city, address.state, address.zip, address.country].filter(Boolean).join(', ')}</p>
+                    {address.address1 && <p>{address.address1}</p>}
+                    {address.address2 && <p>{address.address2}</p>}
+                    {address.landmark && <p>Landmark: {address.landmark}</p>}
+                    <p>{[address.city, address.state, address.zip, address.country].filter(Boolean).join(', ')}</p>
                   </>
                 )}
               </div>
