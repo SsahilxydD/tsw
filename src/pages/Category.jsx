@@ -14,12 +14,35 @@ import useDebouncedValue from "../hooks/useDebouncedValue";
 import { scrambleProducts } from "../utils/scramble";
 import { getSessionSeed } from "../utils/rand";
 
-const toDisplay = (s) =>
-  (s ?? "")
+const toDisplay = (s) => {
+  let t = String(s ?? "")
     .replace(/[_-]+/g, " ")
     .replace(/\s+/g, " ")
     .trim()
-    .replace(/\b\w/g, (m) => m.toUpperCase());
+    .toLowerCase();
+
+  // Normalize common merged category names
+  t = t.replace(/flip\s?flops?/g, "flip flops");
+  t = t.replace(/(formal|casual|sports|ethnic)(\s?)(footwear)/g, "$1 footwear");
+  t = t.replace(/\btopwear\b/g, "top wear");
+  t = t.replace(/\bbottomwear\b/g, "bottom wear");
+  t = t.replace(/\bformalfootwear\b/g, "formal footwear");
+  t = t.replace(/\bcasualfootwear\b/g, "casual footwear");
+  // Ladies watches normalization
+  t = t.replace(/\bladieswatch(?:es)?\b/g, "ladies watches");
+  t = t.replace(/\bladies\s+watch\b/g, "ladies watches");
+  t = t.replace(/\b(women['’]s|mens|men's|ladies)\s+watch\b/g, "$1 watches");
+  t = t.replace(/\bwomens?perfume\b/g, "women's perfume");
+  t = t.replace(/\bmens?perfume\b/g, "men's perfume");
+  t = t.replace(/\bt\s?-?\s?shirts?\b/g, "t shirts");
+  t = t.replace(/\bt\s?-?\s?shirt\b/g, "t shirt");
+
+  return t.replace(/\b([a-z])(\w*)/g, (full, a, b, idx, str) => {
+    const prev = idx > 0 ? str[idx - 1] : '';
+    if (prev === "'") return a + b; // keep the s in 's lowercase
+    return a.toUpperCase() + b;
+  });
+};
 
 const Category = () => {
   const { cat } = useParams();

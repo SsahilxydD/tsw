@@ -12,9 +12,26 @@ const CategoryCard = ({ name, count, image, i }) => {
       .trim()
       .toLowerCase();
 
-    // Split concatenations (e.g., womensperfume -> womens perfume)
+    // Common merges -> spaced words
+    s = s.replace(/flip\s?flops?/g, "flip flops");
+    s = s.replace(/(formal|casual|sports|ethnic)(\s?)(footwear)/g, "$1 footwear");
+    s = s.replace(/\btopwear\b/g, "top wear");
+    s = s.replace(/\bbottomwear\b/g, "bottom wear");
+    s = s.replace(/\bformalfootwear\b/g, "formal footwear");
+    s = s.replace(/\bcasualfootwear\b/g, "casual footwear");
+    // Ladies watches normalization
+    s = s.replace(/\bladieswatch(?:es)?\b/g, "ladies watches");
+    s = s.replace(/\bladies\s+watch\b/g, "ladies watches");
+    // Also promote plural when singular watch appears after gendered term
+    s = s.replace(/\b(women['’]s|mens|men's|ladies)\s+watch\b/g, "$1 watches");
+
+    // Split concatenations like womensperfume -> womens perfume
     s = s.replace(/womens?perfume/g, "womens perfume");
     s = s.replace(/mens?perfume/g, "mens perfume");
+
+    // T-Shirt variants
+    s = s.replace(/\bt\s?-?\s?shirts?\b/g, "t shirts");
+    s = s.replace(/\bt\s?-?\s?shirt\b/g, "t shirt");
 
     // Prefer possessive forms
     s = s.replace(/\bwomens\b/g, "women's");

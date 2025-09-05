@@ -78,11 +78,12 @@ const ShopContextProvider = (props) => {
           else if (lc.includes("women") || lc.includes("lady")) category = "Women";
           else if (lc.includes("kid")) category = "Kids";
 
-          // Base price markup: add 750 to all except Topwear
+          // Base price markup: add 750 to all except Topwear and Shirt/T‑Shirt categories
           const basePrice = Number(item.price ?? 0) || 0;
-          // Exempt if either category or subCategory contains "topwear" (as in products.json)
-          const isTopwear = /topwear/i.test(`${item?.category ?? ''} ${item?.subCategory ?? ''}`);
-          const price = basePrice > 0 && !isTopwear ? basePrice + 750 : basePrice;
+          // Exempt if category or subCategory mentions topwear, shirt(s), or t‑shirt(s)
+          const catHint = `${item?.category ?? ''} ${item?.subCategory ?? ''}`;
+          const noMarkup = /(topwear|shirt|shirts|t\s?-?shirt|t\s?-?shirts)/i.test(catHint);
+          const price = basePrice > 0 && !noMarkup ? basePrice + 750 : basePrice;
 
           return {
             _id: (item.slug ?? item.slug_name ?? item.title)?.toString(),

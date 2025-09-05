@@ -134,18 +134,35 @@ export default function Product() {
     return /\bjeans?\b/.test(cat);
   }, [product]);
 
-  const hasSizes =
-    product && Array.isArray(product.sizes) && product.sizes.length > 0 && !jeansLike;
+  // Parse footwear sizes (UK labels) when present; otherwise empty
+  const footParsed = React.useMemo(() => {
+    if (!product) return [];
+    if (!isFootwearProduct(product)) return [];
+    return uniqueUKLabels(product.sizes);
+  }, [product]);
+
+  const hasSizes = React.useMemo(() => {
+    if (!product || jeansLike) return false;
+    if (isFootwearProduct(product)) return footParsed.length > 0;
+    return Array.isArray(product.sizes) && product.sizes.length > 0;
+  }, [product, jeansLike, footParsed]);
 
   // build master list + set of available sizes for this product
-  const masterSizes = React.useMemo(() => (jeansLike ? [] : inferMasterSizes(product)), [product, jeansLike]);
+  const masterSizes = React.useMemo(() => {
+    if (jeansLike) return [];
+    if (isFootwearProduct(product)) {
+      // Only render footwear size grid when explicit sizes exist; otherwise hide sizes
+      return footParsed.length > 0 ? UK_FOOT_RANGE : [];
+    }
+    return inferMasterSizes(product);
+  }, [product, jeansLike, footParsed]);
   const availableSet = React.useMemo(() => {
     if (!product) return new Set();
     if (isFootwearProduct(product)) {
       return new Set(uniqueUKLabels(product.sizes));
     }
     return new Set((product?.sizes || []).map(norm));
-  }, [product]);
+  }, [product, footParsed]);
 
   // gate CTAs until size is selected (when sizes exist)
   const requiresSize = hasSizes && masterSizes.length > 0;
