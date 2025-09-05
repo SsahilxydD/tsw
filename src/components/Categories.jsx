@@ -34,12 +34,17 @@ const Categories = () => {
   const main3Count = rem3 === 0 ? categories.length : categories.length - rem3;
   const main3 = categories.slice(0, main3Count);
   const tail3 = categories.slice(main3Count); // 0/1/2 items
+  // Keep last-row tiles the same width as grid columns, but spread them evenly across the row.
+  const GAP_PX = 16; // matches tailwind gap-4
+  const COL_W3 = `calc((100% - ${(3 - 1) * GAP_PX}px) / 3)`;
 
   // ---- 5-col (desktop lg+) remainder logic ----
   const rem5 = categories.length % 5;
   const main5Count = rem5 === 0 ? categories.length : categories.length - rem5;
   const main5 = categories.slice(0, main5Count);
   const tail5 = categories.slice(main5Count); // 0..4 items
+  // Even distribution with identical widths as the main grid
+  const COL_W5 = `calc((100% - ${(5 - 1) * GAP_PX}px) / 5)`;
 
   return (
     <section className="my-10">
@@ -67,9 +72,9 @@ const Categories = () => {
               {/* Centered last row (1–2 items) */}
               {rem3 !== 0 && (
                 <div className="col-span-3">
-                  <div className="flex justify-center gap-4">
+                  <div className="flex justify-evenly">
                     {tail3.map(({ name, count, image }, idx) => (
-                      <div key={name} className="w-full max-w-[360px] min-w-[140px]">
+                      <div key={name} className="shrink-0" style={{ width: COL_W3 }}>
                         <CategoryCard name={name} count={count} image={image} i={main3.length + idx} />
                       </div>
                     ))}
@@ -104,9 +109,9 @@ const Categories = () => {
               {/* Centered last row (1–4 items) */}
               {rem5 !== 0 && (
                 <div className="col-span-5">
-                  <div className="flex justify-center gap-4">
+                  <div className="flex justify-evenly">
                     {tail5.map(({ name, count, image }, idx) => (
-                      <div key={name} className="w-full max-w-[360px] min-w-[140px]">
+                      <div key={name} className="shrink-0" style={{ width: COL_W5 }}>
                         <CategoryCard name={name} count={count} image={image} i={main5.length + idx} />
                       </div>
                     ))}

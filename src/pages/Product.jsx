@@ -129,11 +129,16 @@ export default function Product() {
   const [selectedSize, setSelectedSize] = React.useState("");
   React.useEffect(() => setSelectedSize(""), [id]);
 
+  const jeansLike = React.useMemo(() => {
+    const cat = String(product?.category || product?.categoryRaw || "").toLowerCase();
+    return /\bjeans?\b/.test(cat);
+  }, [product]);
+
   const hasSizes =
-    product && Array.isArray(product.sizes) && product.sizes.length > 0;
+    product && Array.isArray(product.sizes) && product.sizes.length > 0 && !jeansLike;
 
   // build master list + set of available sizes for this product
-  const masterSizes = React.useMemo(() => inferMasterSizes(product), [product]);
+  const masterSizes = React.useMemo(() => (jeansLike ? [] : inferMasterSizes(product)), [product, jeansLike]);
   const availableSet = React.useMemo(() => {
     if (!product) return new Set();
     if (isFootwearProduct(product)) {

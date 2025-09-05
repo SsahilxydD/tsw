@@ -10,7 +10,8 @@ const EU_TO_UK = new Map([
 export function isFootwearProduct(p) {
   const cat = String(p?.category || p?.categoryRaw || "").toLowerCase();
   const sizes = Array.isArray(p?.sizes) ? p.sizes : [];
-  const hasFootHint = /(shoe|sneaker|footwear|loafer|boot)/.test(cat);
+  // Include flip-flops, slides, slippers, clogs, sandals alongside shoes
+  const hasFootHint = /(shoe|sneaker|footwear|loafer|boot|flip\s?flop|slide|slipper|clog|sandal)/.test(cat);
   const hasNumeric = sizes.some((x) => /^(?:m[-\s]?)?\d{1,2}(?:\.5)?$/i.test(String(x).trim()));
   return hasFootHint || hasNumeric;
 }
