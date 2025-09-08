@@ -68,8 +68,9 @@ const CategoryCard = ({ name, count, image, i }) => {
       <div className="relative aspect-[5/4] overflow-hidden bg-white">
         {/* centered label only */}
         <div className="absolute inset-0 grid place-content-center text-center px-4">
-          <h3 className="prata-regular text-base sm:text-lg text-gray-800 px-1" style={titleBoxStyle}>
-            {display}
+          <h3 className="prata-regular text-base sm:text-lg text-gray-800" style={titleBoxStyle}>
+            <span className="block">{firstWord}</span>
+            {restWords && <span className="block">{restWords}</span>}
           </h3>
           <div className="mt-2 h-px w-8 bg-gray-300 mx-auto" />
           <p className="mt-2 text-xs text-gray-500">{count} items</p>
@@ -80,6 +81,5 @@ const CategoryCard = ({ name, count, image, i }) => {
 };
 
 export default CategoryCard;
-
 
 
