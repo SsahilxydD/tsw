@@ -50,12 +50,12 @@ const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd =
   }, [productObj]);
 
   // Show up to 8 chips (fits ~2 rows nicely). If more, show +N indicator.
-  const visibleSizes = useMemo(() => tileSizes.slice(0, 8), [tileSizes]);
+  const visibleSizes = useMemo(() => tileSizes.slice(0, 7), [tileSizes]);
   const sizesOverflow = tileSizes.length > visibleSizes.length ? (tileSizes.length - visibleSizes.length) : 0;
 
   const imgHeights = variant === "recommendation"
-    ? "h-40 sm:h-44 md:h-52"
-    : "h-56 sm:h-64 md:h-72"; // slightly taller tiles for clearer meta (sizes + price)
+    ? "aspect-square"
+    : "aspect-[4/5]"; // stable, CLS-free tiles
 
   const nameStyle = variant === "recommendation"
     ? {
@@ -247,21 +247,20 @@ const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd =
       </p>
 
       {tileSizes.length > 0 && (
-        <div className="mt-1 flex overflow-x-auto whitespace-nowrap items-center">
-          {tileSizes.map((sz, i) => {
-            const lastIdx = tileSizes.length - 1;
-            const roundClass = i === 0
-              ? "rounded-l-[3px]"
-              : (i === lastIdx ? "rounded-r-[3px]" : "rounded-none");
-            return (
-              <span
-                key={String(sz)}
-                className={`inline-flex items-center justify-center h-8 w-8 shrink-0 border border-gray-300 text-[12px] leading-none bg-white ${roundClass} ${i>0? 'ml-[-1px]': ''}`}
-              >
-                {String(sz).replace(/^UK-/, '')}
-              </span>
-            );
-          })}
+        <div className="mt-2 flex overflow-x-auto whitespace-nowrap items-center gap-1.5 pr-2">
+          {visibleSizes.map((sz) => (
+            <span
+              key={String(sz)}
+              className="inline-flex items-center h-7 px-2 rounded-md border border-gray-300 bg-white text-[11px] leading-none tracking-wide"
+            >
+              {String(sz).replace(/^UK-/, '')}
+            </span>
+          ))}
+          {sizesOverflow > 0 && (
+            <span className="inline-flex items-center h-7 px-2 rounded-md border border-gray-200 bg-gray-50 text-[11px] leading-none text-gray-500">
+              +{sizesOverflow}
+            </span>
+          )}
         </div>
       )}
 

@@ -10,10 +10,7 @@
 }
 
 /* App-like touch behavior: remove tap highlight and prevent odd zoom/jank */
-html, body {
-  -webkit-text-size-adjust: 100%;
-  touch-action: pan-x pan-y; /* allow scrolling, avoid gestures changing zoom */
-}
+ param($m) $m.Value -replace "\}\s*$","  -webkit-font-smoothing: antialiased;`n  -moz-osx-font-smoothing: grayscale;`n  text-rendering: optimizeLegibility;`n}\n" 
 
 /* Buttons/links behave like native apps (no double-tap zoom, faster taps) */
 button, [role="button"], a {
@@ -118,3 +115,4 @@ a.active hr {
     color: white;
   }
 }
+

@@ -40,6 +40,8 @@ const Collection = () => {
   const PAGE_SIZE = 12;
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const sentinelRef = React.useRef(null);
 
   // "" => Featured (scrambled), "price-high-low", "price-low-high"
   const [sortValue, setSortValue] = useState("");
@@ -80,12 +82,34 @@ const Collection = () => {
 
     setList(copy);
     setVisibleCount(PAGE_SIZE);
+    setLoadingMore(false);
   };
 
   useEffect(() => {
     applyFilterAndOrder();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [products, showSearch, debouncedSearch, hasSizes, sizeFilters, sortValue]);
+
+  // Auto-load more when the sentinel becomes visible
+  useEffect(() => {
+    const target = sentinelRef.current;
+    if (!target || typeof window === 'undefined' || !('IntersectionObserver' in window)) return;
+    const obs = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (!e.isIntersecting) continue;
+        if (loadingMore) continue;
+        if (visibleCount >= list.length) continue;
+        setLoadingMore(true);
+        const t = setTimeout(() => {
+          setVisibleCount((c) => Math.min(c + PAGE_SIZE, list.length));
+          setLoadingMore(false);
+        }, 450);
+        return () => clearTimeout(t);
+      }
+    }, { rootMargin: '200px 0px' });
+    obs.observe(target);
+    return () => { try { obs.disconnect(); } catch {} };
+  }, [list.length, visibleCount, loadingMore]);
 
   const isLoading = Boolean(loadingProducts);
   const isEmpty = !isLoading && list.length === 0;
@@ -205,15 +229,17 @@ const Collection = () => {
               ))
             )}
           </div>
-          {!isLoading && visibleCount < list.length && (
+          {!isLoading && (
             <div className="mt-8 flex justify-center">
-              <button
-                type="button"
-                onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
-                className="px-4 py-2 border rounded text-sm hover:bg-gray-50"
-              >
-                Load more ({list.length - visibleCount} more)
-              </button>
+              {visibleCount < list.length ? (
+                <div ref={sentinelRef} className="h-10 w-full max-w-xs grid place-content-center">
+                  {loadingMore && (
+                    <div className="w-6 h-6 border-2 border-gray-300 border-t-black rounded-full animate-spin" aria-label="Loading" />
+                  )}
+                </div>
+              ) : (
+                <div className="text-xs text-gray-400">End of results</div>
+              )}
             </div>
           )}
         </section>
