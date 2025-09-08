@@ -37,6 +37,8 @@ const Collection = () => {
 
   const [sizeFilters, setSizeFilters] = useState([]);
   const [list, setList] = useState(Array.isArray(products) ? products : []);
+  const PAGE_SIZE = 12;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   // "" => Featured (scrambled), "price-high-low", "price-low-high"
@@ -77,6 +79,7 @@ const Collection = () => {
     }
 
     setList(copy);
+    setVisibleCount(PAGE_SIZE);
   };
 
   useEffect(() => {
@@ -190,7 +193,7 @@ const Collection = () => {
                 <SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard />
               </>
             ) : (
-              list.map((item, index) => (
+              list.slice(0, visibleCount).map((item, index) => (
                 <ProductItem
                   key={item._id || item.id || item.slug || index}
                   id={item._id ?? item.id ?? item.slug}
@@ -202,6 +205,17 @@ const Collection = () => {
               ))
             )}
           </div>
+          {!isLoading && visibleCount < list.length && (
+            <div className="mt-8 flex justify-center">
+              <button
+                type="button"
+                onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                className="px-4 py-2 border rounded text-sm hover:bg-gray-50"
+              >
+                Load more ({list.length - visibleCount} more)
+              </button>
+            </div>
+          )}
         </section>
       </div>
 
