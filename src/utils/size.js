@@ -1,4 +1,4 @@
-// Size normalization utilities (footwear → UK sizes)
+// Size normalization utilities (footwear -> UK sizes)
 
 // Map common EU sizes to UK (men's). Integer mapping for consistency.
 const EU_TO_UK = new Map([
@@ -13,7 +13,10 @@ export function isFootwearProduct(p) {
   // Include flip-flops, slides, slippers, clogs, sandals alongside shoes
   const hasFootHint = /(shoe|sneaker|footwear|loafer|boot|flip\s?flop|slide|slipper|clog|sandal)/.test(cat);
   const hasNumeric = sizes.some((x) => /^(?:m[-\s]?)?\d{1,2}(?:\.5)?$/i.test(String(x).trim()));
-  return hasFootHint || hasNumeric;
+  // Some scraped catalogs carry placeholder tokens like "EURO" / "UK" without numbers
+  const hasUnitToken = sizes.some((x) => /^(EURO|EU|UK|US)$/i.test(String(x).trim()))
+    || sizes.some((x) => /^(\d{1,2})-(UK|EU)$/i.test(String(x).trim()));
+  return hasFootHint || hasNumeric || hasUnitToken;
 }
 
 export function toUKLabel(raw) {
@@ -22,25 +25,41 @@ export function toUKLabel(raw) {
   if (!s0) return null;
   const s = s0.toUpperCase().replace(/_/g, " ").replace(/\s+/g, " ");
 
-  // M-7 or M 7 → UK-7
+  // M-7 or M 7 -> UK-7
   let m = s.match(/^M[-\s]?(\d{1,2}(?:\.5)?)$/);
   if (m) return `UK-${m[1]}`;
   // UK 7
   m = s.match(/^UK[-\s]?(\d{1,2}(?:\.5)?)$/);
   if (m) return `UK-${m[1]}`;
-  // US 8 → UK 7 (approx men: UK = US - 1)
+  // US 8 -> UK 7 (approx men: UK = US - 1)
   m = s.match(/^US[-\s]?(\d{1,2}(?:\.5)?)$/);
   if (m) {
     const us = parseFloat(m[1]);
     const uk = isFinite(us) ? (us - 1) : NaN;
     return isFinite(uk) ? `UK-${(uk % 1 === 0 ? uk.toFixed(0) : uk.toFixed(1))}` : null;
   }
-  // EU 41 → UK via table
+  // EU 41 -> UK via table
   m = s.match(/^EU[R]?[-\s]?(\d{2})$/);
   if (m) {
     const eu = parseInt(m[1], 10);
     const uk = EU_TO_UK.get(eu);
     return uk ? `UK-${uk}` : null;
+  }
+  // Mis-labeled tokens like "41-UK" or "42-EU" -> interpret sensibly
+  m = s.match(/^(\d{1,2})-(UK|EU)$/);
+  if (m) {
+    const n = parseInt(m[1], 10);
+    const sys = m[2];
+    if (sys === 'UK') {
+      // If within a plausible UK range treat as UK directly; otherwise consider it EU
+      if (n >= 3 && n <= 12) return `UK-${n}`;
+      const uk = EU_TO_UK.get(n);
+      return uk ? `UK-${uk}` : null;
+    }
+    if (sys === 'EU') {
+      const uk = EU_TO_UK.get(n);
+      return uk ? `UK-${uk}` : null;
+    }
   }
   // Bare number: if 36..48 treat as EU; if 3..12 treat as UK
   m = s.match(/^(\d{1,2})(?:\.5)?$/);
@@ -76,3 +95,4 @@ export function uniqueUKLabels(sizes = []) {
 }
 
 export const UK_FOOT_RANGE = [5,6,7,8,9,10,11,12].map((n) => `UK-${n}`);
+

@@ -60,7 +60,7 @@ function shuffle(arr, rng = Math.random) {
 }
 
 // --- size helpers ---
-const APPAREL_SIZES = ["S","M","L","XL"];
+const APPAREL_SIZES = ["S","M","L","XL","XXL"];
 const ONE_SIZE = ["ONESIZE"];
 
 const norm = (s) => String(s || "").toUpperCase();
