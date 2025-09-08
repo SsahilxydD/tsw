@@ -10,19 +10,35 @@ const EU_TO_UK = new Map([
 export function isFootwearProduct(p) {
   const cat = String(p?.category || p?.categoryRaw || "").toLowerCase();
   const sizes = Array.isArray(p?.sizes) ? p.sizes : [];
+  // Never classify bottomwear as footwear
+  if (/(jeans|trouser|pant|chino|bottom\s?wear|shorts?)\b/.test(cat)) return false;
+
   // Include flip-flops, slides, slippers, clogs, sandals alongside shoes
   const hasFootHint = /(shoe|sneaker|footwear|loafer|boot|flip\s?flop|slide|slipper|clog|sandal)/.test(cat);
-  const hasNumeric = sizes.some((x) => /^(?:m[-\s]?)?\d{1,2}(?:\.5)?$/i.test(String(x).trim()));
+
+  // Numeric shoe sizes typically fall into these ranges
+  const looksLikeFootNumber = (n) => (n >= 3 && n <= 12) || (n >= 36 && n <= 48);
+  const hasFootNumeric = sizes.some((x) => {
+    const s = String(x).trim().toUpperCase();
+    // Accept tokens like M-7, 7, 7.5, 41, etc., but avoid waist-like patterns (30x32)
+    if (/\b\d{2}\s*[Xx*/-]\s*\d{2}\b/.test(s)) return false;
+    const m = s.match(/^(?:M[-\s]?)?(\d{1,2})(?:\.5)?$/);
+    if (!m) return false;
+    const n = parseInt(m[1], 10);
+    return looksLikeFootNumber(n);
+  });
+
   // Some scraped catalogs carry placeholder tokens like "EURO" / "UK" without numbers
   const hasUnitToken = sizes.some((x) => /^(EURO|EU|UK|US)$/i.test(String(x).trim()))
     || sizes.some((x) => /^(\d{1,2})-(UK|EU)$/i.test(String(x).trim()));
-  return hasFootHint || hasNumeric || hasUnitToken;
+
+  return hasFootHint || hasFootNumeric || hasUnitToken;
 }
 
 // Detect jeans/bottomwear by category
 export function isJeansProduct(p) {
   const cat = String(p?.category || p?.categoryRaw || "").toLowerCase();
-  return /\bjeans?\b/.test(cat) || /\bbottom\s?wear\b/.test(cat);
+  return /(jeans|trouser|pant|chino|denim|bottom\s?wear)\b/.test(cat);
 }
 
 // Normalize jeans sizes to numeric waist strings: "30", "32", ...
