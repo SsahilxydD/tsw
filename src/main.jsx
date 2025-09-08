@@ -42,9 +42,12 @@ if (ReactDOMClient && typeof ReactDOMClient.createRoot === 'function') {
 (() => {
   const update = () => {
     const vh = window.innerHeight * 0.01;
-    document.documentElement.style.setProperty('--rvh', ${vh}px);
+    document.documentElement.style.setProperty('--rvh', `${vh}px`);
   };
   update();
   window.addEventListener('resize', update);
   window.addEventListener('orientationchange', update);
 })();
+
+
+
