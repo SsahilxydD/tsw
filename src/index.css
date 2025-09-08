@@ -78,7 +78,6 @@ input, select, textarea { font-size: 16px; }
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in, .animate-slide-up, .animate-pop, .animate-page, .animate-blur-up, .animate-soft-reveal, .animate-blur-pop, .animate-cart-enter, .animate-cart-leave, .skeleton-shimmer { animation: none !important; }
   .reveal-item.in { transition: none !important; }
-  .annc-track { animation: none !important; }
 }
 
 /* Performance: avoid off-screen paints on large lists */
@@ -121,10 +120,10 @@ a.active hr {
 
 /* ===== Announcement marquee ===== */
 .annc-wrap { position: relative; overflow: hidden; }
-.annc-track { display: flex; width: max-content; animation: anncMarquee 24s linear infinite; will-change: transform; }
+.annc-track { display: flex; width: max-content; white-space: nowrap; animation: anncMarquee 22s linear infinite; will-change: transform; }
 .group:hover .annc-track { animation-play-state: paused; }
 .annc-seq { display: flex; gap: 2rem; padding-right: 2rem; }
-@keyframes anncMarquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes anncMarquee { from { transform: translate3d(0,0,0); } to { transform: translate3d(-50%,0,0); } }
 
 
 

@@ -49,6 +49,8 @@ const Navbar = () => {
     prevRef.current = count;
   }, [count]);
 
+  const showAnnouncement = !/^(?:\/category\/discounted)(?:\/|$)/i.test(location.pathname || "");
+
   return (
     <header
       className={`sticky top-0 z-30 bg-white/95 backdrop-blur border-b ${
@@ -93,43 +95,45 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Announcement bar (marquee) */}
-      <div className="bg-black text-white">
-        <Link
-          to="/category/discounted"
-          className="block group focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
-          aria-label="Click here for huge discounts"
-        >
-          <div className="annc-wrap">
-            <div className="annc-track uppercase tracking-wide text-[11px] sm:text-xs py-1.5">
-              <div className="annc-seq">
-                <span>Click Here For Huge Discounts</span>
-                <span className="opacity-40">•</span>
-                <span>Click Here For Huge Discounts</span>
-                <span className="opacity-40">•</span>
-                <span>Click Here For Huge Discounts</span>
-                <span className="opacity-40">•</span>
-                <span>Click Here For Huge Discounts</span>
-                <span className="opacity-40">•</span>
-                <span>Click Here For Huge Discounts</span>
-                <span className="opacity-40">•</span>
-              </div>
-              <div className="annc-seq" aria-hidden="true">
-                <span>Click Here For Huge Discounts</span>
-                <span className="opacity-40">•</span>
-                <span>Click Here For Huge Discounts</span>
-                <span className="opacity-40">•</span>
-                <span>Click Here For Huge Discounts</span>
-                <span className="opacity-40">•</span>
-                <span>Click Here For Huge Discounts</span>
-                <span className="opacity-40">•</span>
-                <span>Click Here For Huge Discounts</span>
-                <span className="opacity-40">•</span>
+      {/* Announcement bar (marquee) — hidden on Discounted category */}
+      {showAnnouncement && (
+        <div className="bg-black text-white">
+          <Link
+            to="/category/discounted"
+            className="block group focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+            aria-label="Click here for huge discounts"
+          >
+            <div className="annc-wrap">
+              <div className="annc-track uppercase tracking-wide text-[11px] sm:text-xs py-1.5">
+                <div className="annc-seq">
+                  <span>Click Here For Huge Discounts</span>
+                  <span className="opacity-40">•</span>
+                  <span>Click Here For Huge Discounts</span>
+                  <span className="opacity-40">•</span>
+                  <span>Click Here For Huge Discounts</span>
+                  <span className="opacity-40">•</span>
+                  <span>Click Here For Huge Discounts</span>
+                  <span className="opacity-40">•</span>
+                  <span>Click Here For Huge Discounts</span>
+                  <span className="opacity-40">•</span>
+                </div>
+                <div className="annc-seq" aria-hidden="true">
+                  <span>Click Here For Huge Discounts</span>
+                  <span className="opacity-40">•</span>
+                  <span>Click Here For Huge Discounts</span>
+                  <span className="opacity-40">•</span>
+                  <span>Click Here For Huge Discounts</span>
+                  <span className="opacity-40">•</span>
+                  <span>Click Here For Huge Discounts</span>
+                  <span className="opacity-40">•</span>
+                  <span>Click Here For Huge Discounts</span>
+                  <span className="opacity-40">•</span>
+                </div>
               </div>
             </div>
-          </div>
-        </Link>
-      </div>
+          </Link>
+        </div>
+      )}
 
       {/* Mobile nav links */}
       <nav className="md:hidden border-t bg-white">
