@@ -1,5 +1,5 @@
 import { createContext, useEffect, useRef, useState } from "react";
-import { isJeansProduct, normalizeJeansSizes } from "../utils/size";
+import { isJeansProduct, isFootwearProduct, normalizeJeansSizes } from "../utils/size";
 import { useNavigate } from "react-router-dom";
 
 export const ShopContext = createContext();
@@ -100,12 +100,83 @@ const ShopContextProvider = (props) => {
           else if (lc.includes("women") || lc.includes("lady")) category = "Women";
           else if (lc.includes("kid")) category = "Kids";
 
-          // Base price markup: add 750 to all except Topwear and Shirt/T‑Shirt categories
+          // Price adjustments per category/type
           const basePrice = Number(item.price ?? 0) || 0;
-          // Exempt if category or subCategory mentions topwear, shirt(s), or t‑shirt(s)
-          const catHint = `${item?.category ?? ''} ${item?.subCategory ?? ''}`;
-          const noMarkup = /(topwear|shirt|shirts|t\s?-?shirt|t\s?-?shirts)/i.test(catHint);
-          const price = basePrice > 0 && !noMarkup ? basePrice + 750 : basePrice;
+          const lcCat = String(item?.category ?? "").toLowerCase();
+          const lcSub = String(item?.subCategory ?? "").toLowerCase();
+          const title = String(item?.title ?? item?.slug_name ?? "");
+          const lcTitle = title.toLowerCase();
+
+          // Combined hint for keyword detection
+          const hint = `${lcCat} ${lcSub} ${lcTitle}`;
+
+          // Quick keyword flags
+          const isCap = /\bcap\b/.test(hint);
+          const isBelt = /\bbelt\b/.test(hint);
+          const isFlipFlop = /(flip\s?-?flop|slides?)/.test(hint);
+          const isHoodie = /\bhoodies?\b/.test(hint);
+          const isHandbag = /(hand\s?bag|handbags?)/.test(hint);
+          const isJacket = /\bjacket\b/.test(hint);
+          const isShirt = /\bshirts?\b/.test(hint);
+          const isSunglasses = /(sunglass|sunglasses)/.test(hint);
+          const isSweatshirt = /\bsweat\s?shirt\b/.test(hint);
+          const isTShirt = /(t\s?-?shirt|tshirt)\b/.test(hint);
+          const isTrackPant = /(track\s?pant|jogger)s?\b/.test(hint);
+          const isTracksuit = /\btracksuit\b/.test(hint);
+          const isWallet = /\bwallet\b/.test(hint);
+          const isWomensWatch = /(women['’]s?\s+watch|lad(?:y|ies)\s+watch)/.test(hint);
+          const isMensWatch = /\bwatch\b/.test(hint) && !isWomensWatch;
+          const isWomensPerfume = /(women['’]s?\s+perfume|pour\s+femme)/.test(hint);
+          const isMensPerfume = (/(men['’]s?\s+perfume|pour\s+homme)/.test(hint)) || (/\b(edp|edt)\b/.test(hint) && !isWomensPerfume);
+          const isDiscounted = /\bdiscounted\b/.test(lcCat);
+          const isShoe = isFootwearProduct({ category: item?.category, categoryRaw: item?.categoryRaw, sizes: item?.sizes });
+
+          let priceAdj = 0;
+          if (isDiscounted) {
+            priceAdj = -200; // Discounted overrides
+          } else if (isBelt) {
+            priceAdj = 600;
+          } else if (isCap) {
+            priceAdj = 600;
+          } else if (isFlipFlop) {
+            priceAdj = 600;
+          } else if (isHoodie) {
+            priceAdj = 600;
+          } else if (isHandbag) {
+            priceAdj = 550;
+          } else if (isJacket) {
+            priceAdj = 600;
+          } else if (isJeansProduct({ category: item?.category, categoryRaw: item?.categoryRaw })) {
+            priceAdj = 550;
+          } else if (isWomensWatch) {
+            priceAdj = 600;
+          } else if (isMensPerfume) {
+            priceAdj = 600;
+          } else if (isShirt) {
+            priceAdj = 600;
+          } else if (isSunglasses) {
+            priceAdj = 700;
+          } else if (isSweatshirt) {
+            priceAdj = 650;
+          } else if (isTShirt) {
+            priceAdj = 650;
+          } else if (isTrackPant) {
+            priceAdj = 650;
+          } else if (isTracksuit) {
+            priceAdj = 600;
+          } else if (isWallet) {
+            priceAdj = 650;
+          } else if (isMensWatch) {
+            priceAdj = 600;
+          } else if (isWomensPerfume) {
+            priceAdj = 600;
+          } else if (isShoe) {
+            priceAdj = 600;
+          } else {
+            priceAdj = 0; // default: no change
+          }
+
+          const price = Math.max(0, basePrice + priceAdj);
 
           const mappedItem = {
             _id: (item.slug ?? item.slug_name ?? item.title)?.toString(),
