@@ -244,16 +244,7 @@ const Category = () => {
 
           {/* Desktop header */}
           <div className="hidden sm:flex justify-between items-center text-base sm:text-2xl mb-4">
-            {catKeyLower === 'discounted' ? (
-              <div className='inline-flex gap-3 items-center mb-3 select-none'>
-                <p className='uppercase tracking-[0.18em] text-[11px] sm:text-xs text-gray-500'>
-                  CATEGORY <span className='normal-case tracking-normal text-red-600 font-semibold'>SALE!!!</span>
-                </p>
-                <p className='w-8 sm:w-12 h-[1px] sm:h-[2px] bg-gray-300'></p>
-              </div>
-            ) : (
-              <Title text1={"CATEGORY"} text2={toDisplay(catKey)} />
-            )}
+            <Title text1={"CATEGORY"} text2={toDisplay(catKey)} />
             <select
               aria-label="Sort products"
               value={sortValue}

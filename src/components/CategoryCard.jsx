@@ -44,7 +44,10 @@ const CategoryCard = ({ name, count, image, i }) => {
       return a.toUpperCase() + b;
     });
   };
-  const display = formatCategory(name);
+
+  // NEW: SALE!!! handling for discounted category
+  const isDiscounted = String(name).toLowerCase() === "discounted";
+  const display = isDiscounted ? "SALE!!!" : formatCategory(name);
 
   // Two-line clamp with safe word wrapping, avoids mid-letter clipping
   const titleBoxStyle = {
@@ -68,7 +71,10 @@ const CategoryCard = ({ name, count, image, i }) => {
       <div className="relative aspect-[5/4] overflow-hidden bg-white">
         {/* centered label only */}
         <div className="absolute inset-0 grid place-content-center text-center px-4">
-          <h3 className="prata-regular text-base sm:text-lg text-gray-800 px-1" style={titleBoxStyle}>
+          <h3
+            className={`prata-regular text-base sm:text-lg px-1 ${isDiscounted ? 'text-red-600' : 'text-gray-800'}`}
+            style={titleBoxStyle}
+          >
             {display}
           </h3>
           <div className="mt-2 h-px w-8 bg-gray-300 mx-auto" />
@@ -80,6 +86,3 @@ const CategoryCard = ({ name, count, image, i }) => {
 };
 
 export default CategoryCard;
-
-
-
