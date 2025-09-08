@@ -1,20 +1,17 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap');
+@font-face{font-family:'Latienne Pro';src:url('/fonts/LatiennePro-Regular.woff2') format('woff2'),url('/fonts/LatiennePro-Regular.woff') format('woff');font-weight:400;font-style:normal;font-display:swap;}\n
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 * {
-  font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, 'Noto Sans', 'Helvetica Neue', sans-serif;
-  font-feature-settings: 'liga','kern','pnum','tnum';
+  font-family: 'Latienne Pro', Georgia, 'Times New Roman', serif;
+  font-feature-settings: 'liga','kern','pnum','onum';
 }
 
-html, body {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-}
+/* App-like touch behavior: remove tap highlight and prevent odd zoom/jank */
+ param($m) $m.Value -replace "\}\s*$","  -webkit-font-smoothing: antialiased;`n  -moz-osx-font-smoothing: grayscale;`n  text-rendering: optimizeLegibility;`n}\n" 
 
-/* App-like touch behavior: remove tap highlight and prevent odd zoom/jank *//* Buttons/links behave like native apps (no double-tap zoom, faster taps) */
+/* Buttons/links behave like native apps (no double-tap zoom, faster taps) */
 button, [role="button"], a {
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
@@ -98,8 +95,8 @@ input, select, textarea { font-size: 16px; }
 .Toastify__toast-container--bottom-center { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 64px) !important; }
 
 .prata-regular {
-  font-family: "Source Serif 4", Georgia, "Times New Roman", serif;
-  font-weight: 600;
+  font-family: 'Latienne Pro', Georgia, 'Times New Roman', serif;
+  font-weight: 400;
   font-style: normal;
 }
 
@@ -117,6 +114,7 @@ a.active hr {
     color: white;
   }
 }
+
 
 
 
