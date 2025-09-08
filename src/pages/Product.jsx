@@ -78,18 +78,27 @@ function inferMasterSizes(p) {
   }
 
   const up = ps.map(norm).filter(Boolean);
-  const isApp =
-    up.some((x) => ["XS","S","M","L","XL","XXL"].includes(x)) ||
-    /(topwear|shirt|tshirt|hoodie|jacket|sweat|tee|trouser|pant|jean)/.test(cat);
 
-  // Only infer the standard apparel grid when sizes exist.
-  if (isApp && up.length > 0) return APPAREL_SIZES;
+  // Treat classic topwear only (not jeans/trousers) as S..XXL grid
+  const isTopwear = /(topwear|shirt|t\s?-?shirt|tshirt|hoodie|jacket|sweat|sweatshirt|tee)\b/.test(cat)
+    || up.some((x) => ["XS","S","M","L","XL","XXL"].includes(x));
+  const isBottomwear = /(jeans|trouser|pant|bottomwear|bottom\s?wear)\b/.test(cat);
+
+  if (isTopwear && !isBottomwear && up.length > 0) return APPAREL_SIZES;
 
   // Only show explicit one-size if declared in data.
   if (up.includes("ONESIZE")) return ONE_SIZE;
 
-  // Otherwise, show the unique provided sizes.
-  return [...new Set(up)];
+  // For jeans/bottomwear or any other category, show unique provided sizes (keep numeric waist etc.).
+  // Preserve original ordering but dedupe case-insensitively.
+  const seen = new Set();
+  const out = [];
+  for (const s of ps) {
+    const U = norm(s);
+    if (!U) continue;
+    if (!seen.has(U)) { seen.add(U); out.push(String(s)); }
+  }
+  return out;
 }
 
 export default function Product() {
@@ -129,11 +138,6 @@ export default function Product() {
   const [selectedSize, setSelectedSize] = React.useState("");
   React.useEffect(() => setSelectedSize(""), [id]);
 
-  const jeansLike = React.useMemo(() => {
-    const cat = String(product?.category || product?.categoryRaw || "").toLowerCase();
-    return /\bjeans?\b/.test(cat);
-  }, [product]);
-
   // Parse footwear sizes (UK labels) when present; otherwise empty
   const footParsed = React.useMemo(() => {
     if (!product) return [];
@@ -142,20 +146,19 @@ export default function Product() {
   }, [product]);
 
   const hasSizes = React.useMemo(() => {
-    if (!product || jeansLike) return false;
+    if (!product) return false;
     if (isFootwearProduct(product)) return footParsed.length > 0;
     return Array.isArray(product.sizes) && product.sizes.length > 0;
-  }, [product, jeansLike, footParsed]);
+  }, [product, footParsed]);
 
   // build master list + set of available sizes for this product
   const masterSizes = React.useMemo(() => {
-    if (jeansLike) return [];
     if (isFootwearProduct(product)) {
       // Only render footwear size grid when explicit sizes exist; otherwise hide sizes
       return footParsed.length > 0 ? UK_FOOT_RANGE : [];
     }
     return inferMasterSizes(product);
-  }, [product, jeansLike, footParsed]);
+  }, [product, footParsed]);
   const availableSet = React.useMemo(() => {
     if (!product) return new Set();
     if (isFootwearProduct(product)) {

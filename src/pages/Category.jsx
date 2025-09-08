@@ -63,7 +63,6 @@ const Category = () => {
   }, [products, catKeyLower]);
 
   // sizes present in this category
-  const suppressSizes = /\bjeans?\b/.test(catKeyLower);
   const normalizeSizesForProduct = (p) => {
     let arr = Array.isArray(p?.sizes) ? p.sizes : [];
     if (isFootwearProduct(p)) return uniqueUKLabels(arr);
@@ -71,13 +70,12 @@ const Category = () => {
   };
 
   const availableSizes = useMemo(() => {
-    if (suppressSizes) return [];
     const set = new Set();
     for (const p of baseProducts) {
       for (const s of normalizeSizesForProduct(p)) set.add(s);
     }
     return Array.from(set);
-  }, [baseProducts, suppressSizes]);
+  }, [baseProducts]);
   const hasSizes = availableSizes.length > 0;
 
   const [sizeFilters, setSizeFilters] = useState([]);
