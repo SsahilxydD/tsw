@@ -93,6 +93,44 @@ const Navbar = () => {
         </div>
       </div>
 
+      {/* Announcement bar (marquee) */}
+      <div className="bg-black text-white">
+        <Link
+          to="/category/discounted"
+          className="block group focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+          aria-label="Click here for huge discounts"
+        >
+          <div className="annc-wrap">
+            <div className="annc-track uppercase tracking-wide text-[11px] sm:text-xs py-1.5">
+              <div className="annc-seq">
+                <span>Click Here For Huge Discounts</span>
+                <span className="opacity-40">•</span>
+                <span>Click Here For Huge Discounts</span>
+                <span className="opacity-40">•</span>
+                <span>Click Here For Huge Discounts</span>
+                <span className="opacity-40">•</span>
+                <span>Click Here For Huge Discounts</span>
+                <span className="opacity-40">•</span>
+                <span>Click Here For Huge Discounts</span>
+                <span className="opacity-40">•</span>
+              </div>
+              <div className="annc-seq" aria-hidden="true">
+                <span>Click Here For Huge Discounts</span>
+                <span className="opacity-40">•</span>
+                <span>Click Here For Huge Discounts</span>
+                <span className="opacity-40">•</span>
+                <span>Click Here For Huge Discounts</span>
+                <span className="opacity-40">•</span>
+                <span>Click Here For Huge Discounts</span>
+                <span className="opacity-40">•</span>
+                <span>Click Here For Huge Discounts</span>
+                <span className="opacity-40">•</span>
+              </div>
+            </div>
+          </div>
+        </Link>
+      </div>
+
       {/* Mobile nav links */}
       <nav className="md:hidden border-t bg-white">
         <div className="max-w-6xl mx-auto px-4 py-2">
