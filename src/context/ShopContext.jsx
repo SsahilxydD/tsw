@@ -102,34 +102,38 @@ const ShopContextProvider = (props) => {
 
           // Price adjustments per category/type
           const basePrice = Number(item.price ?? 0) || 0;
-          const lcCat = String(item?.category ?? "").toLowerCase();
+          // Use the original category strings for robust detection
+          const lcRaw = String(originalCategory ?? "").toLowerCase();
           const lcSub = String(item?.subCategory ?? "").toLowerCase();
           const title = String(item?.title ?? item?.slug_name ?? "");
           const lcTitle = title.toLowerCase();
 
-          // Combined hint for keyword detection
-          const hint = `${lcCat} ${lcSub} ${lcTitle}`;
+          // Combined hint for keyword detection (raw category + sub + title)
+          const hint = `${lcRaw} ${lcSub} ${lcTitle}`;
 
           // Quick keyword flags
-          const isCap = /\bcap\b/.test(hint);
-          const isBelt = /\bbelt\b/.test(hint);
-          const isFlipFlop = /(flip\s?-?flop|slides?)/.test(hint);
-          const isHoodie = /\bhoodies?\b/.test(hint);
-          const isHandbag = /(hand\s?bag|handbags?)/.test(hint);
-          const isJacket = /\bjacket\b/.test(hint);
-          const isShirt = /\bshirts?\b/.test(hint);
-          const isSunglasses = /(sunglass|sunglasses)/.test(hint);
-          const isSweatshirt = /\bsweat\s?shirt\b/.test(hint);
-          const isTShirt = /(t\s?-?shirt|tshirt)\b/.test(hint);
-          const isTrackPant = /(track\s?pant|jogger)s?\b/.test(hint);
-          const isTracksuit = /\btracksuit\b/.test(hint);
-          const isWallet = /\bwallet\b/.test(hint);
-          const isWomensWatch = /(women['’]s?\s+watch|lad(?:y|ies)\s+watch)/.test(hint);
-          const isMensWatch = /\bwatch\b/.test(hint) && !isWomensWatch;
-          const isWomensPerfume = /(women['’]s?\s+perfume|pour\s+femme)/.test(hint);
-          const isMensPerfume = (/(men['’]s?\s+perfume|pour\s+homme)/.test(hint)) || (/\b(edp|edt)\b/.test(hint) && !isWomensPerfume);
-          const isDiscounted = /\bdiscounted\b/.test(lcCat);
-          const isShoe = isFootwearProduct({ category: item?.category, categoryRaw: item?.categoryRaw, sizes: item?.sizes });
+          // Helper to match any of a list of regexes
+          const any = (regexes) => regexes.some((r) => r.test(hint));
+
+          const isCap = any([/\bcaps?\b/i]);
+          const isBelt = any([/\bbelts?\b/i]);
+          const isFlipFlop = any([/(flip\s*-?\s*flops?)/i, /\bslides?\b/i]);
+          const isHoodie = any([/\bhoodies?\b/i, /hooded\s+sweatshirt/i]);
+          const isHandbag = any([/(hand\s*bags?)/i, /\bhandbag\b/i]);
+          const isJacket = any([/\bjackets?\b/i]);
+          const isShirt = any([/\bshirts?\b/i, /formal\s+shirt/i]);
+          const isSunglasses = any([/(sunglass|sunglasses|shades)\b/i]);
+          const isSweatshirt = any([/\bsweat\s*-?\s*shirts?\b/i, /\bsweatshirt\b/i]);
+          const isTShirt = any([/(t\s*-?\s*shirts?|tshirts?)\b/i, /\btees?\b/i]);
+          const isTrackPant = any([/(track\s*-?\s*pants?|trackpants?)\b/i, /\bjoggers?\b/i]);
+          const isTracksuit = any([/\btrack\s*-?\s*suits?\b/i, /\btracksuits?\b/i]);
+          const isWallet = any([/\bwallets?\b/i]);
+          const isWomensWatch = any([/(women['’]s?\s+watch|lad(?:y|ies)\s+watch)/i]);
+          const isMensWatch = /\bwatch\b/i.test(hint) && !isWomensWatch;
+          const isWomensPerfume = any([/(women['’]s?\s+perfume|pour\s+femme)/i]);
+          const isMensPerfume = any([/(men['’]s?\s+perfume|pour\s+homme)/i]) || (/\b(edp|edt)\b/i.test(hint) && !isWomensPerfume);
+          const isDiscounted = /\bdiscounted\b/i.test(lcRaw);
+          const isShoe = isFootwearProduct({ category: originalCategory, categoryRaw: originalCategory, sizes: item?.sizes });
 
           let priceAdj = 0;
           if (isDiscounted) {
@@ -146,7 +150,7 @@ const ShopContextProvider = (props) => {
             priceAdj = 550;
           } else if (isJacket) {
             priceAdj = 600;
-          } else if (isJeansProduct({ category: item?.category, categoryRaw: item?.categoryRaw })) {
+          } else if (isJeansProduct({ category: originalCategory, categoryRaw: originalCategory })) {
             priceAdj = 550;
           } else if (isWomensWatch) {
             priceAdj = 600;
