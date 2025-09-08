@@ -58,17 +58,38 @@ const ShopContextProvider = (props) => {
     const loadProducts = async () => {
       try {
         setLoadingProducts(true);
-        const res = await fetch("/data/products.json", { cache: "no-store" });
-        if (!res.ok) throw new Error("Failed to load /data/products.json");
-        const raw = await res.json();
+        // Try multiple sources to support both root and /data locations
+        const sources = [
+          { url: "/data/products.json", basePrefix: "/data" },
+        ];
+        let raw = null;
+        let basePrefix = "";
+        let lastErr = null;
+        for (const src of sources) {
+          try {
+            const r = await fetch(src.url, { cache: "no-store" });
+            if (!r.ok) { lastErr = new Error(`Failed to load ${src.url}`); continue; }
+            raw = await r.json();
+            basePrefix = src.basePrefix;
+            break;
+          } catch (e) { lastErr = e; }
+        }
+        if (!raw) throw lastErr || new Error("No products source available");
 
         const mapped = Array.isArray(raw) ? raw.map((item) => {
           const images = Array.isArray(item.images)
             ? item.images.map((src) => {
                 if (!src) return "";
                 if (/^https?:\/\//i.test(src)) return src;
-                if (src.startsWith("/data/")) return src;
-                return `/data${src}`;
+                // If the source file was under /data, prefix /data for relative-rooted paths
+                if (basePrefix) {
+                  if (src.startsWith(basePrefix + "/")) return src;
+                  if (src.startsWith("/")) return `${basePrefix}${src}`;
+                  return `${basePrefix}/${src}`;
+                }
+                // root-based dataset: keep leading-slash paths as-is
+                if (src.startsWith("/")) return src;
+                return `/${src}`;
               })
             : [];
 
