@@ -4,7 +4,7 @@ import { useParams, Link } from "react-router-dom";
 import Title from "../components/Title";
 import ProductItem from "../components/ProductItem";
 import { ShopContext } from "../context/ShopContext";
-import { isFootwearProduct, toUKLabel, uniqueUKLabels, UK_FOOT_RANGE } from "../utils/size";
+import { isFootwearProduct, isJeansProduct, normalizeJeansSizes, toUKLabel, uniqueUKLabels, UK_FOOT_RANGE } from "../utils/size";
 
 // --- small helpers (no external deps) ---
 const STOPWORDS = new Set([
@@ -89,8 +89,12 @@ function inferMasterSizes(p) {
   // Only show explicit one-size if declared in data.
   if (up.includes("ONESIZE")) return ONE_SIZE;
 
-  // For jeans/bottomwear or any other category, show unique provided sizes (keep numeric waist etc.).
-  // Preserve original ordering but dedupe case-insensitively.
+  // For jeans/bottomwear: normalize to numeric waist labels and sort
+  if (isBottomwear) {
+    return normalizeJeansSizes(ps);
+  }
+
+  // Otherwise, show the unique provided sizes (case-insensitive)
   const seen = new Set();
   const out = [];
   for (const s of ps) {
@@ -163,6 +167,9 @@ export default function Product() {
     if (!product) return new Set();
     if (isFootwearProduct(product)) {
       return new Set(uniqueUKLabels(product.sizes));
+    }
+    if (isJeansProduct(product)) {
+      return new Set(normalizeJeansSizes(product.sizes));
     }
     return new Set((product?.sizes || []).map(norm));
   }, [product, footParsed]);

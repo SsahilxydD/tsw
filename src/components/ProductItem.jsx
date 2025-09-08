@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { ShopContext } from "../context/ShopContext";
 import useInView from "../hooks/useInView";
 import SafeImg from "./SafeImg";
-import { isFootwearProduct, toUKLabel, uniqueUKLabels } from "../utils/size";
+import { isFootwearProduct, isJeansProduct, normalizeJeansSizes, toUKLabel, uniqueUKLabels } from "../utils/size";
 
 // variant: "default" | "recommendation"
 const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd = false, sizeHint, requireSize = false, disableFly = false }) => {
@@ -37,7 +37,8 @@ const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd =
   const tileSizes = useMemo(() => {
     let arr = Array.isArray(productObj?.sizes) ? productObj.sizes : [];
     if (isFootwearProduct(productObj)) arr = uniqueUKLabels(arr);
-    arr = arr.map((s) => String(s)).filter(Boolean);
+    else if (isJeansProduct(productObj)) arr = normalizeJeansSizes(arr);
+    else arr = arr.map((s) => String(s)).filter(Boolean);
     const bad = /^(one\s?size|onesize|os|std)$/i;
     const seen = new Set();
     const out = [];
@@ -183,7 +184,9 @@ const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd =
                 } else {
                   // If size selection is required and sizes exist, open picker
                   if (requireSize && sizes.length > 0 && !sizeHint) {
-                    const opts = isFootwearProduct(p) ? uniqueUKLabels(sizes) : sizes.map(String);
+                    const opts = isFootwearProduct(p)
+                      ? uniqueUKLabels(sizes)
+                      : (isJeansProduct(p) ? normalizeJeansSizes(sizes) : sizes.map(String));
                     setSizesForPick(opts);
                     setPicking(true);
                     return;

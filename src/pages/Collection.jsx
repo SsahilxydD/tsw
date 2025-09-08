@@ -4,7 +4,7 @@ import ProductItem from "../components/ProductItem";
 import SkeletonCard from "../components/SkeletonCard";
 import MobileFilters from "../components/MobileFilters";
 import SizeChips from "../components/SizeChips";
-import { isFootwearProduct, uniqueUKLabels } from "../utils/size";
+import { isFootwearProduct, isJeansProduct, normalizeJeansSizes, uniqueUKLabels } from "../utils/size";
 import { ShopContext } from "../context/ShopContext";
 import { assets } from "../assets/assets";
 import useDebouncedValue from "../hooks/useDebouncedValue";
@@ -21,6 +21,7 @@ const Collection = () => {
   const normalizeSizesForProduct = (p) => {
     let arr = Array.isArray(p?.sizes) ? p.sizes : [];
     if (isFootwearProduct(p)) return uniqueUKLabels(arr);
+    if (isJeansProduct(p)) return normalizeJeansSizes(arr);
     return arr.map((s) => String(s)).filter(Boolean);
   };
 
@@ -51,6 +52,8 @@ const Collection = () => {
 
   const applyFilterAndOrder = () => {
     let copy = Array.isArray(products) ? products.slice() : [];
+    // Globally hide jeans with no sizes in data
+    copy = copy.filter((p) => !(isJeansProduct(p) && normalizeJeansSizes(p.sizes).length === 0));
 
     // search (only when global search UI is visible)
     if (showSearch && debouncedSearch) {

@@ -1,4 +1,5 @@
 import { createContext, useEffect, useRef, useState } from "react";
+import { isJeansProduct, normalizeJeansSizes } from "../utils/size";
 import { useNavigate } from "react-router-dom";
 
 export const ShopContext = createContext();
@@ -85,7 +86,7 @@ const ShopContextProvider = (props) => {
           const noMarkup = /(topwear|shirt|shirts|t\s?-?shirt|t\s?-?shirts)/i.test(catHint);
           const price = basePrice > 0 && !noMarkup ? basePrice + 750 : basePrice;
 
-          return {
+          const mappedItem = {
             _id: (item.slug ?? item.slug_name ?? item.title)?.toString(),
             name: formatName(item.title ?? item.slug_name ?? ""),
             price,
@@ -100,9 +101,15 @@ const ShopContextProvider = (props) => {
             slug: item.slug ?? "",
             detail_url_src: item.detail_url_src ?? ""
           };
+
+          // Drop jeans products with no explicit sizes in data
+          if (isJeansProduct(mappedItem) && normalizeJeansSizes(mappedItem.sizes).length === 0) {
+            return null;
+          }
+          return mappedItem;
         }) : [];
 
-        setProducts(mapped);
+        setProducts(mapped.filter(Boolean));
       } catch (err) {
         console.error(err);
         setProducts([]);

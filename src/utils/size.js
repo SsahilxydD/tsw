@@ -19,6 +19,34 @@ export function isFootwearProduct(p) {
   return hasFootHint || hasNumeric || hasUnitToken;
 }
 
+// Detect jeans/bottomwear by category
+export function isJeansProduct(p) {
+  const cat = String(p?.category || p?.categoryRaw || "").toLowerCase();
+  return /\bjeans?\b/.test(cat) || /\bbottom\s?wear\b/.test(cat);
+}
+
+// Normalize jeans sizes to numeric waist strings: "30", "32", ...
+// Accept patterns like: 30, W30, 30W, 30x32, 30/32, 30-32, Waist 30
+export function normalizeJeansSizes(input = []) {
+  const out = [];
+  const seen = new Set();
+  for (const x of input) {
+    const s = String(x ?? "").toUpperCase().trim();
+    if (!s) continue;
+    // Grab the first two-digit number (waist). Support separators for length
+    const m = s.match(/\b(\d{2})\b(?:\s*[Xx*/-]\s*\d{2})?/);
+    if (!m) continue;
+    const n = parseInt(m[1], 10);
+    // Clamp to reasonable jeans waist range
+    if (!Number.isFinite(n) || n < 26 || n > 48) continue;
+    const label = String(n);
+    if (!seen.has(label)) { seen.add(label); out.push(label); }
+  }
+  // Sort numerically (ascending)
+  out.sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+  return out;
+}
+
 export function toUKLabel(raw) {
   if (raw == null) return null;
   const s0 = String(raw).trim();
@@ -95,4 +123,3 @@ export function uniqueUKLabels(sizes = []) {
 }
 
 export const UK_FOOT_RANGE = [5,6,7,8,9,10,11,12].map((n) => `UK-${n}`);
-

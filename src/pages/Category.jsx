@@ -5,7 +5,7 @@ import ProductItem from "../components/ProductItem";
 import SkeletonCard from "../components/SkeletonCard";
 import MobileFilters from "../components/MobileFilters";
 import SizeChips from "../components/SizeChips";
-import { isFootwearProduct, uniqueUKLabels } from "../utils/size";
+import { isFootwearProduct, isJeansProduct, normalizeJeansSizes, uniqueUKLabels } from "../utils/size";
 import { ShopContext } from "../context/ShopContext";
 import { assets } from "../assets/assets";
 import useDebouncedValue from "../hooks/useDebouncedValue";
@@ -55,17 +55,23 @@ const Category = () => {
   // base list for this category (unchanged logic)
   const baseProducts = useMemo(() => {
     if (!Array.isArray(products)) return [];
-    return products.filter(
+    let list = products.filter(
       (p) =>
         (p.categoryRaw && String(p.categoryRaw).toLowerCase() === catKeyLower) ||
         (!p.categoryRaw && String(p.category).toLowerCase() === catKeyLower)
     );
+    // For jeans category, hide products with no sizes in data
+    if (/\bjeans\b/.test(catKeyLower)) {
+      list = list.filter((p) => normalizeJeansSizes(p.sizes).length > 0);
+    }
+    return list;
   }, [products, catKeyLower]);
 
   // sizes present in this category
   const normalizeSizesForProduct = (p) => {
     let arr = Array.isArray(p?.sizes) ? p.sizes : [];
     if (isFootwearProduct(p)) return uniqueUKLabels(arr);
+    if (isJeansProduct(p)) return normalizeJeansSizes(arr);
     return arr.map((s) => String(s)).filter(Boolean);
   };
 
