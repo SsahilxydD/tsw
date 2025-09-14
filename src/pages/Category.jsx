@@ -95,6 +95,22 @@ const Category = () => {
   // "" => Featured (scrambled), "price-high-low", "price-low-high"
   const [sortValue, setSortValue] = useState("");
 
+  // Sub-category handling for Discounted page
+  // isDiscounted declared earlier
+  const subcats = useMemo(() => {
+    if (!isDiscounted) return [];
+    const s = new Set();
+    for (const p of baseProducts) {
+      const v = String(p?.subCategory || '').trim();
+      if (v) s.add(v);
+    }
+    const arr = Array.from(s);
+    const order = { Topwear: 0, Footwear: 1 };
+    arr.sort((a, b) => (order[a] ?? 99) - (order[b] ?? 99) || String(a).localeCompare(String(b)));
+    return arr;
+  }, [isDiscounted, baseProducts]);
+  const [subFilter, setSubFilter] = useState('');
+
   const toggleSize = (val) =>
     setSizeFilters((prev) => (prev.includes(val) ? prev.filter((s) => s !== val) : [...prev, val]));
 
@@ -105,6 +121,12 @@ const Category = () => {
     if (showSearch && debouncedSearch) {
       const q = debouncedSearch.trim().toLowerCase();
       copy = copy.filter((p) => (p.name || "").toLowerCase().includes(q));
+    }
+
+    // Discounted sub-category filter
+    if (isDiscounted && subFilter) {
+      const key = subFilter.toLowerCase();
+      copy = copy.filter((p) => String(p?.subCategory || '').toLowerCase() === key);
     }
 
     // size filter
@@ -137,7 +159,7 @@ const Category = () => {
   useEffect(() => {
     applyFilterAndOrder();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [baseProducts, hasSizes, sizeFilters, showSearch, debouncedSearch, sortValue, catKeyLower]);
+  }, [baseProducts, hasSizes, sizeFilters, showSearch, debouncedSearch, sortValue, catKeyLower, subFilter]);
 
   // Auto-load more when the sentinel becomes visible
   useEffect(() => {
@@ -262,6 +284,29 @@ const Category = () => {
               <option value="price-low-high">Price: Low → High</option>
             </select>
           </div>
+
+          {/* Sub-category chips (Discounted only) */}
+          {isDiscounted && subcats.length > 0 && (
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setSubFilter('')}
+                className={`px-3 py-1.5 rounded-full border text-xs tracking-wide pressable ${subFilter === '' ? 'bg-red-600 text-white border-red-600' : 'text-red-600 border-red-300 hover:border-red-600'}`}
+              >
+                All
+              </button>
+              {subcats.map((sc) => (
+                <button
+                  key={sc}
+                  type="button"
+                  onClick={() => setSubFilter(sc.toLowerCase())}
+                  className={`px-3 py-1.5 rounded-full border text-xs tracking-wide pressable ${subFilter === sc.toLowerCase() ? 'bg-red-600 text-white border-red-600' : 'text-red-600 border-red-300 hover:border-red-600'}`}
+                >
+                  {sc}
+                </button>
+              ))}
+            </div>
+          )}
 
           {isEmpty && <p className="text-sm text-gray-500 mb-6">No products match your filters.</p>}
 
