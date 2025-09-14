@@ -1,16 +1,16 @@
-import React, { useContext, useEffect, useMemo, useState } from "react";
+﻿import React, { useContext, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import Title from "../components/Title";
 import ProductItem from "../components/ProductItem";
 import SkeletonCard from "../components/SkeletonCard";
 import MobileFilters from "../components/MobileFilters";
 import SizeChips from "../components/SizeChips";
-import { isFootwearProduct, isJeansProduct, normalizeJeansSizes, uniqueUKLabels } from "../utils/size";
+import { isFootwearProduct, isJeansProduct, normalizeJeansSizes, uniqueUKLabels, toUKLabel } from "../utils/size";
 import { ShopContext } from "../context/ShopContext";
 import { assets } from "../assets/assets";
 import useDebouncedValue from "../hooks/useDebouncedValue";
 
-// NEW: session-seeded scramble (adds only “Featured” ordering)
+// NEW: session-seeded scramble (adds only â€œFeaturedâ€ ordering)
 import { scrambleProducts } from "../utils/scramble";
 import { getSessionSeed } from "../utils/rand";
 
@@ -31,7 +31,7 @@ const toDisplay = (s) => {
   // Ladies watches normalization
   t = t.replace(/\bladieswatch(?:es)?\b/g, "ladies watches");
   t = t.replace(/\bladies\s+watch\b/g, "ladies watches");
-  t = t.replace(/\b(women['’]s|mens|men's|ladies)\s+watch\b/g, "$1 watches");
+  t = t.replace(/\b(women['â€™]s|mens|men's|ladies)\s+watch\b/g, "$1 watches");
   t = t.replace(/\bwomens?perfume\b/g, "women's perfume");
   t = t.replace(/\bmens?perfume\b/g, "men's perfume");
   t = t.replace(/\bt\s?-?\s?shirts?\b/g, "t shirts");
@@ -75,13 +75,60 @@ const Category = () => {
     return arr.map((s) => String(s)).filter(Boolean);
   };
 
+  // Discounted handling
+  const isDiscounted = catKeyLower === 'discounted' || catKeyLower === 'sale';
+  const [subFilter, setSubFilter] = useState(() => (isDiscounted ? '' : ''));
+
+  // Scope the size source: for Discounted, respect selected sub-category
+  const sizeSource = useMemo(() => {
+    if (!isDiscounted) return baseProducts;
+    if (!subFilter) return [];
+    const key = subFilter.toLowerCase();
+    return baseProducts.filter((p) => String(p?.subCategory || '').toLowerCase() === key);
+  }, [isDiscounted, baseProducts, subFilter]);
+
   const availableSizes = useMemo(() => {
     const set = new Set();
+    const selectedIsFootwear = isDiscounted && subFilter.toLowerCase() === 'footwear';
+    const selectedIsTopwear = isDiscounted && subFilter.toLowerCase() === 'topwear';
+
+    if (selectedIsFootwear) {
+      // Only UK shoe sizes across all items; sort ascending numerically
+      for (const p of sizeSource) {
+        const arr = Array.isArray(p?.sizes) ? p.sizes : [];
+        for (const raw of arr) {
+          const uk = toUKLabel(raw);
+          if (uk) set.add(uk);
+        }
+      }
+      const out = Array.from(set);
+      out.sort((a, b) => parseFloat(a.replace(/[^0-9.]/g, '')) - parseFloat(b.replace(/[^0-9.]/g, '')));
+      return out;
+    }
+
+    if (selectedIsTopwear) {
+      // Only apparel chip sizes in canonical order
+      const order = ['XS','S','M','L','XL','XXL'];
+      for (const p of sizeSource) {
+        const arr = Array.isArray(p?.sizes) ? p.sizes : [];
+        for (const raw of arr) {
+          const s = String(raw).toUpperCase().trim();
+          if (order.includes(s)) set.add(s);
+        }
+      }
+      const out = Array.from(set);
+      out.sort((a,b) => order.indexOf(a) - order.indexOf(b));
+      return out;
+    }
+
+    // Default (non-discounted categories): derive from entire category and sort naturally
     for (const p of baseProducts) {
       for (const s of normalizeSizesForProduct(p)) set.add(s);
     }
-    return Array.from(set);
-  }, [baseProducts]);
+    const out = Array.from(set);
+    out.sort((a,b) => String(a).localeCompare(String(b), undefined, { numeric: true }));
+    return out;
+  }, [baseProducts, isDiscounted, sizeSource, subFilter]);
   const hasSizes = availableSizes.length > 0;
 
   const [sizeFilters, setSizeFilters] = useState([]);
@@ -94,9 +141,6 @@ const Category = () => {
 
   // "" => Featured (scrambled), "price-high-low", "price-low-high"
   const [sortValue, setSortValue] = useState("");
-
-  // Identify Discounted category early (used below)
-  const isDiscounted = catKeyLower === 'discounted' || catKeyLower === 'sale';
 
   // Sub-category handling for Discounted page
   // Build list with counts; include Topwear and Footwear; show Topwear first
@@ -122,7 +166,7 @@ const Category = () => {
     });
     return arr;
   }, [isDiscounted, baseProducts]);
-  const [subFilter, setSubFilter] = useState(() => (isDiscounted ? '' : ''));
+  
   // Ensure we always have a valid subFilter on Discounted and remove "All"
   useEffect(() => {
     if (!isDiscounted) return;
@@ -184,7 +228,7 @@ const Category = () => {
   useEffect(() => {
     applyFilterAndOrder();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [baseProducts, hasSizes, sizeFilters, showSearch, debouncedSearch, sortValue, catKeyLower, subFilter]);
+  }, [baseProducts, sizeSource, hasSizes, sizeFilters, showSearch, debouncedSearch, sortValue, catKeyLower, subFilter]);
 
   // Auto-load more when the sentinel becomes visible
   useEffect(() => {
@@ -237,7 +281,7 @@ const Category = () => {
     <div className="pt-10 border-t">
       <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row gap-6">
         {/* LEFT: Desktop filters */}
-        {hasSizes && (
+        {hasSizes && (!isDiscounted || !!subFilter) && (
           <aside className="min-w-60 hidden sm:block">
             <p className="my-2 text-xl">FILTERS</p>
             <div className="border border-gray-300 p-4 mt-4">
@@ -258,7 +302,7 @@ const Category = () => {
           <div className="sm:hidden sticky z-10 bg-white/95 backdrop-blur border-b -mx-4 px-4 py-2 mb-4" style={{ top: stickyTop }}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                {hasSizes && (
+                {hasSizes && (!isDiscounted || !!subFilter) && (
                   <button onClick={() => setFiltersOpen(true)} className="px-3 h-9 border rounded text-sm">
                     Filters{selectedCount ? ` (${selectedCount})` : ""}
                   </button>
@@ -283,8 +327,8 @@ const Category = () => {
                 className="h-9 px-3 border-2 border-gray-300 rounded text-sm"
               >
                 <option value="">Featured</option>
-                <option value="price-high-low">Price: High → Low</option>
-                <option value="price-low-high">Price: Low → High</option>
+                <option value="price-high-low">Price: High â†’ Low</option>
+                <option value="price-low-high">Price: Low â†’ High</option>
               </select>
             </div>
           </div>
@@ -303,8 +347,8 @@ const Category = () => {
               className="h-9 px-3 border-2 border-gray-300 rounded text-sm"
             >
               <option value="">Featured</option>
-              <option value="price-high-low">Price: High → Low</option>
-              <option value="price-low-high">Price: Low → High</option>
+              <option value="price-high-low">Price: High â†’ Low</option>
+              <option value="price-low-high">Price: Low â†’ High</option>
             </select>
           </div>
 
@@ -414,3 +458,4 @@ const Category = () => {
 };
 
 export default Category;
+
