@@ -99,24 +99,24 @@ const Category = () => {
   const isDiscounted = catKeyLower === 'discounted' || catKeyLower === 'sale';
 
   // Sub-category handling for Discounted page
-  // Build list with counts; exclude nonexistent Topwear; order Footwear first
+  // Build list with counts; include Topwear and Footwear; show Topwear first
   const subcats = useMemo(() => {
     if (!isDiscounted) return [];
     const counts = new Map();
     for (const p of baseProducts) {
       const raw = String(p?.subCategory || '').trim().toLowerCase();
       if (!raw) continue;
-      if (raw === 'topwear') continue; // per requirement: no Topwear under Discounted
       counts.set(raw, (counts.get(raw) || 0) + 1);
     }
     const arr = Array.from(counts.entries()).map(([key, count]) => ({
       key,
-      display: toDisplay(key),
+      display: key === 'topwear' ? 'Topwear' : toDisplay(key),
       count,
     }));
     arr.sort((a, b) => {
-      const ra = a.key === 'footwear' ? 0 : 9;
-      const rb = b.key === 'footwear' ? 0 : 9;
+      const order = (k) => (k === 'topwear' ? 0 : k === 'footwear' ? 1 : 9);
+      const ra = order(a.key);
+      const rb = order(b.key);
       if (ra !== rb) return ra - rb;
       return a.display.localeCompare(b.display);
     });
@@ -127,7 +127,12 @@ const Category = () => {
   useEffect(() => {
     if (!isDiscounted) return;
     if (!subcats.some((s) => s.key === subFilter)) {
-      setSubFilter(subcats[0]?.key || '');
+      // Default to Topwear when available; else Footwear; else first
+      const pref = subcats.find((s) => s.key === 'topwear')?.key
+        || subcats.find((s) => s.key === 'footwear')?.key
+        || subcats[0]?.key
+        || '';
+      setSubFilter(pref);
     }
   }, [isDiscounted, subcats, subFilter]);
 

@@ -182,12 +182,42 @@ const ShopContextProvider = (props) => {
 
           const price = Math.max(0, basePrice + priceAdj);
 
-          // Derive Discounted subCategory when missing using source URL
+          // Derive Discounted subCategory using hardened Topwear link checks
+          // If in Discounted, override subCategory based on source URL and heuristics
           let derivedSub = item.subCategory ?? "";
-          if (!derivedSub && isDiscounted) {
-            const srcUrl = String(item.detail_url_src || item.detail_url || "").toLowerCase();
-            const looksTopwear = /t-shirts?-cloths?-top-?wear/.test(srcUrl) || /top-?wear/.test(srcUrl);
-            derivedSub = looksTopwear ? "Topwear" : "Footwear";
+          if (isDiscounted) {
+            const srcUrl = String(
+              item.detail_url_src || item.detail_url || item.source_url || item.source || ""
+            ).toLowerCase();
+
+            // Strong Topwear URL patterns, allow minor hyphen/typo variations
+            const topwearPatterns = [
+              /thesolowardrobes\.cartpe\.in\/t-?shirts?-cloths?-top-?wear-?men\.html/,
+              /t-?shirts?-cloths?-top-?wear/,
+              /\btop-?wear\b/,
+            ];
+            const looksTopwearByUrl = topwearPatterns.some((re) => re.test(srcUrl));
+
+            // Footwear detection via size/category hints
+            const looksFootwear = isFootwearProduct({
+              category: originalCategory,
+              categoryRaw: originalCategory,
+              sizes: item?.sizes,
+            });
+
+            // Apparel hints (shirts, tees, hoodies, jackets, etc.)
+            const looksApparel = /(t\s?-?shirts?|tees?\b|shirt\b|hoodies?|sweat\s?-?shirts?|jacket\b)/i.test(hint)
+              || (Array.isArray(item.sizes) && item.sizes.some((s) => /^(?:XS|S|M|L|XL|XXL)$/i.test(String(s))))
+              || /\btop\s?wear\b/i.test(hint);
+
+            if (looksTopwearByUrl || (!looksFootwear && looksApparel)) {
+              derivedSub = "Topwear";
+            } else if (looksFootwear) {
+              derivedSub = "Footwear";
+            } else {
+              // Fallback per spec: everything else under Discounted → Footwear
+              derivedSub = "Footwear";
+            }
           }
 
           const mappedItem = {
