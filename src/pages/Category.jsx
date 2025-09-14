@@ -93,12 +93,15 @@ const Category = () => {
     const selectedIsTopwear = isDiscounted && subFilter.toLowerCase() === 'topwear';
 
     if (selectedIsFootwear) {
-      // Only UK shoe sizes across all items; sort ascending numerically
+      // Only UK shoe sizes across all items; clamp to UK 5..12 and sort ascending
       for (const p of sizeSource) {
         const arr = Array.isArray(p?.sizes) ? p.sizes : [];
         for (const raw of arr) {
           const uk = toUKLabel(raw);
-          if (uk) set.add(uk);
+          if (!uk) continue;
+          const n = parseFloat(String(uk).replace(/[^0-9.]/g, ''));
+          if (!Number.isFinite(n) || n < 5 || n > 12) continue;
+          set.add(`UK-${n % 1 === 0 ? n.toFixed(0) : n.toFixed(1)}`);
         }
       }
       const out = Array.from(set);
