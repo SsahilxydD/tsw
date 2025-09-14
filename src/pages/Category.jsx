@@ -186,6 +186,8 @@ const Category = () => {
     return () => { window.removeEventListener('resize', update); try { obs && obs.disconnect(); } catch {} };
   }, []);
 
+  const isDiscounted = catKeyLower === 'discounted' || catKeyLower === 'sale';
+
   return (
     <div className="pt-10 border-t">
       <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row gap-6">
@@ -244,7 +246,11 @@ const Category = () => {
 
           {/* Desktop header */}
           <div className="hidden sm:flex justify-between items-center text-base sm:text-2xl mb-4">
-            <Title text1={"CATEGORY"} text2={toDisplay(catKey)} />
+            <Title
+              text1={"CATEGORY"}
+              text2={isDiscounted ? 'Sale' : toDisplay(catKey)}
+              text2ClassName={isDiscounted ? 'text-red-600' : undefined}
+            />
             <select
               aria-label="Sort products"
               value={sortValue}

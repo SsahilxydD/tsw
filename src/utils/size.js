@@ -67,54 +67,74 @@ export function toUKLabel(raw) {
   if (raw == null) return null;
   const s0 = String(raw).trim();
   if (!s0) return null;
-  const s = s0.toUpperCase().replace(/_/g, " ").replace(/\s+/g, " ");
+  const s = s0
+    .toUpperCase()
+    .replace(/_/g, " ")
+    .replace(/[–—]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
 
-  // M-7 or M 7 -> UK-7
-  let m = s.match(/^M[-\s]?(\d{1,2}(?:\.5)?)$/);
+  // Helper: EU -> UK using table; accept decimals by nearest mapping
+  const euToUk = (euRaw) => {
+    if (euRaw == null || euRaw === "") return null;
+    const euNum = parseFloat(euRaw);
+    if (!Number.isFinite(euNum)) return null;
+    // Prefer exact integer mapping. If decimal, round to nearest mapped EU size
+    const exact = EU_TO_UK.get(Math.round(euNum));
+    return exact ? `UK-${exact}` : null;
+  };
+
+  // 1) If we can find an explicit UK value anywhere in the string, prefer it.
+  //    This covers patterns like "UK 7", "UK-7.5", "EURO 41 - UK 7" and "UK 10 / EURO 44"
+  let m = s.match(/\bUK\s*[-:]?\s*(\d{1,2}(?:\.5)?)\b/);
   if (m) return `UK-${m[1]}`;
-  // UK 7
-  m = s.match(/^UK[-\s]?(\d{1,2}(?:\.5)?)$/);
+
+  // 2) Common brand format: M-7 or M 7
+  m = s.match(/^M[-\s]?(\d{1,2}(?:\.5)?)$/);
   if (m) return `UK-${m[1]}`;
-  // US 8 -> UK 7 (approx men: UK = US - 1)
-  m = s.match(/^US[-\s]?(\d{1,2}(?:\.5)?)$/);
+
+  // 3) US sizes: US 8 -> UK 7 (approx men: UK = US - 1)
+  m = s.match(/\bUS\s*[-:]?\s*(\d{1,2}(?:\.5)?)\b/);
   if (m) {
     const us = parseFloat(m[1]);
     const uk = isFinite(us) ? (us - 1) : NaN;
     return isFinite(uk) ? `UK-${(uk % 1 === 0 ? uk.toFixed(0) : uk.toFixed(1))}` : null;
   }
-  // EU 41 -> UK via table
-  m = s.match(/^EU[R]?[-\s]?(\d{2})$/);
+
+  // 4) EU sizes anywhere: "EU 41", "EUR-42.5", "EURO 44"
+  m = s.match(/\bEU[RO]?\b\s*[-:]?\s*(\d{2}(?:\.5)?)\b/);
   if (m) {
-    const eu = parseInt(m[1], 10);
-    const uk = EU_TO_UK.get(eu);
-    return uk ? `UK-${uk}` : null;
+    const out = euToUk(m[1]);
+    if (out) return out;
   }
-  // Mis-labeled tokens like "41-UK" or "42-EU" -> interpret sensibly
-  m = s.match(/^(\d{1,2})-(UK|EU)$/);
+
+  // 5) Mis-labeled tokens like "41-UK" or "42-EU"
+  m = s.match(/^(\d{1,2})\s*-\s*(UK|EU)$/);
   if (m) {
-    const n = parseInt(m[1], 10);
+    const n = parseFloat(m[1]);
     const sys = m[2];
     if (sys === 'UK') {
-      // If within a plausible UK range treat as UK directly; otherwise consider it EU
-      if (n >= 3 && n <= 12) return `UK-${n}`;
-      const uk = EU_TO_UK.get(n);
-      return uk ? `UK-${uk}` : null;
+      if (n >= 3 && n <= 12) return `UK-${n % 1 === 0 ? n.toFixed(0) : n.toFixed(1)}`;
+      const out = euToUk(n);
+      if (out) return out;
     }
     if (sys === 'EU') {
-      const uk = EU_TO_UK.get(n);
-      return uk ? `UK-${uk}` : null;
+      const out = euToUk(n);
+      if (out) return out;
     }
   }
-  // Bare number: if 36..48 treat as EU; if 3..12 treat as UK
+
+  // 6) Bare number: if 36..48 -> EU; if 3..12 -> UK
   m = s.match(/^(\d{1,2})(?:\.5)?$/);
   if (m) {
-    const n = parseInt(m[1], 10);
+    const n = parseFloat(m[1]);
     if (n >= 36 && n <= 48) {
-      const uk = EU_TO_UK.get(n);
-      return uk ? `UK-${uk}` : null;
+      const out = euToUk(n);
+      if (out) return out;
     }
-    if (n >= 3 && n <= 12) return `UK-${n}`;
+    if (n >= 3 && n <= 12) return `UK-${n % 1 === 0 ? n.toFixed(0) : n.toFixed(1)}`;
   }
+
   return null;
 }
 
