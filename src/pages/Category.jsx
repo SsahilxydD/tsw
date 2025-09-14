@@ -99,19 +99,37 @@ const Category = () => {
   const isDiscounted = catKeyLower === 'discounted' || catKeyLower === 'sale';
 
   // Sub-category handling for Discounted page
+  // Build list with counts; exclude nonexistent Topwear; order Footwear first
   const subcats = useMemo(() => {
     if (!isDiscounted) return [];
-    const s = new Set();
+    const counts = new Map();
     for (const p of baseProducts) {
-      const v = String(p?.subCategory || '').trim();
-      if (v) s.add(v);
+      const raw = String(p?.subCategory || '').trim().toLowerCase();
+      if (!raw) continue;
+      if (raw === 'topwear') continue; // per requirement: no Topwear under Discounted
+      counts.set(raw, (counts.get(raw) || 0) + 1);
     }
-    const arr = Array.from(s);
-    const order = { Topwear: 0, Footwear: 1 };
-    arr.sort((a, b) => (order[a] ?? 99) - (order[b] ?? 99) || String(a).localeCompare(String(b)));
+    const arr = Array.from(counts.entries()).map(([key, count]) => ({
+      key,
+      display: toDisplay(key),
+      count,
+    }));
+    arr.sort((a, b) => {
+      const ra = a.key === 'footwear' ? 0 : 9;
+      const rb = b.key === 'footwear' ? 0 : 9;
+      if (ra !== rb) return ra - rb;
+      return a.display.localeCompare(b.display);
+    });
     return arr;
   }, [isDiscounted, baseProducts]);
-  const [subFilter, setSubFilter] = useState('');
+  const [subFilter, setSubFilter] = useState(() => (isDiscounted ? '' : ''));
+  // Ensure we always have a valid subFilter on Discounted and remove "All"
+  useEffect(() => {
+    if (!isDiscounted) return;
+    if (!subcats.some((s) => s.key === subFilter)) {
+      setSubFilter(subcats[0]?.key || '');
+    }
+  }, [isDiscounted, subcats, subFilter]);
 
   const toggleSize = (val) =>
     setSizeFilters((prev) => (prev.includes(val) ? prev.filter((s) => s !== val) : [...prev, val]));
@@ -285,26 +303,53 @@ const Category = () => {
             </select>
           </div>
 
-          {/* Sub-category chips (Discounted only) */}
+          {/* Discounted sub-category tiles styled like home */}
           {isDiscounted && subcats.length > 0 && (
-            <div className="mb-4 flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setSubFilter('')}
-                className={`px-3 py-1.5 rounded-full border text-xs tracking-wide pressable ${subFilter === '' ? 'bg-red-600 text-white border-red-600' : 'text-red-600 border-red-300 hover:border-red-600'}`}
-              >
-                All
-              </button>
-              {subcats.map((sc) => (
-                <button
-                  key={sc}
-                  type="button"
-                  onClick={() => setSubFilter(sc.toLowerCase())}
-                  className={`px-3 py-1.5 rounded-full border text-xs tracking-wide pressable ${subFilter === sc.toLowerCase() ? 'bg-red-600 text-white border-red-600' : 'text-red-600 border-red-300 hover:border-red-600'}`}
-                >
-                  {sc}
-                </button>
-              ))}
+            <div className="mb-6">
+              {/* Mobile/Tablet: 3 per row */}
+              <div className="lg:hidden">
+                <div className="grid grid-cols-3 gap-4">
+                  {subcats.map((sc, idx) => (
+                    <button
+                      key={sc.key}
+                      type="button"
+                      onClick={() => setSubFilter(sc.key)}
+                      className={`group block overflow-hidden border bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30 hover:shadow-md transition-shadow hover-lift ${subFilter===sc.key ? 'ring-2 ring-red-500' : ''}`}
+                      style={{ WebkitTapHighlightColor: 'transparent' }}
+                    >
+                      <div className="relative aspect-[5/4] overflow-hidden bg-white">
+                        <div className="absolute inset-0 grid place-content-center text-center px-4">
+                          <h3 className={`prata-regular text-base sm:text-lg px-1 ${subFilter===sc.key ? 'text-red-600' : 'text-gray-800'}`}>{sc.display}</h3>
+                          <div className="mt-2 h-px w-8 bg-gray-300 mx-auto" />
+                          <p className="mt-2 text-xs text-gray-500">{sc.count} items</p>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* Desktop: 5 per row */}
+              <div className="hidden lg:block">
+                <div className="grid grid-cols-5 gap-4">
+                  {subcats.map((sc, idx) => (
+                    <button
+                      key={sc.key}
+                      type="button"
+                      onClick={() => setSubFilter(sc.key)}
+                      className={`group block overflow-hidden border bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30 hover:shadow-md transition-shadow hover-lift ${subFilter===sc.key ? 'ring-2 ring-red-500' : ''}`}
+                      style={{ WebkitTapHighlightColor: 'transparent' }}
+                    >
+                      <div className="relative aspect-[5/4] overflow-hidden bg-white">
+                        <div className="absolute inset-0 grid place-content-center text-center px-4">
+                          <h3 className={`prata-regular text-base sm:text-lg px-1 ${subFilter===sc.key ? 'text-red-600' : 'text-gray-800'}`}>{sc.display}</h3>
+                          <div className="mt-2 h-px w-8 bg-gray-300 mx-auto" />
+                          <p className="mt-2 text-xs text-gray-500">{sc.count} items</p>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
