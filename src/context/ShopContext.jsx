@@ -180,7 +180,7 @@ const ShopContextProvider = (props) => {
             priceAdj = 0; // default: no change
           }
 
-          const price = Math.max(0, basePrice + priceAdj);
+          let price = Math.max(0, basePrice + priceAdj);
 
           // Derive Discounted subCategory using hardened Topwear link checks
           // If in Discounted, override subCategory based on source URL and heuristics
@@ -217,6 +217,14 @@ const ShopContextProvider = (props) => {
             } else {
               // Fallback per spec: everything else under Discounted → Footwear
               derivedSub = "Footwear";
+            }
+          }
+
+          // Flat pricing for Discounted Footwear page
+          if (isDiscounted) {
+            const subLower = String(derivedSub || '').toLowerCase();
+            if (subLower === 'footwear' || (!subLower && isShoe)) {
+              price = 2800;
             }
           }
 
