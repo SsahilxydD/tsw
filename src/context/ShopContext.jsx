@@ -182,6 +182,14 @@ const ShopContextProvider = (props) => {
 
           const price = Math.max(0, basePrice + priceAdj);
 
+          // Derive Discounted subCategory when missing using source URL
+          let derivedSub = item.subCategory ?? "";
+          if (!derivedSub && isDiscounted) {
+            const srcUrl = String(item.detail_url_src || item.detail_url || "").toLowerCase();
+            const looksTopwear = /t-shirts?-cloths?-top-?wear/.test(srcUrl) || /top-?wear/.test(srcUrl);
+            derivedSub = looksTopwear ? "Topwear" : "Footwear";
+          }
+
           const mappedItem = {
             _id: (item.slug ?? item.slug_name ?? item.title)?.toString(),
             name: formatName(item.title ?? item.slug_name ?? ""),
@@ -191,7 +199,7 @@ const ShopContextProvider = (props) => {
             images,
             category,
             categoryRaw: originalCategory,
-            subCategory: item.subCategory ?? "",
+            subCategory: derivedSub,
             sizes: Array.isArray(item.sizes) ? item.sizes : [],
             bestseller: Boolean(item.bestseller ?? false),
             slug: item.slug ?? "",
