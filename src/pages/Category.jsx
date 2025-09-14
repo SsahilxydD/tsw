@@ -95,8 +95,10 @@ const Category = () => {
   // "" => Featured (scrambled), "price-high-low", "price-low-high"
   const [sortValue, setSortValue] = useState("");
 
+  // Identify Discounted category early (used below)
+  const isDiscounted = catKeyLower === 'discounted' || catKeyLower === 'sale';
+
   // Sub-category handling for Discounted page
-  // isDiscounted declared earlier
   const subcats = useMemo(() => {
     if (!isDiscounted) return [];
     const s = new Set();
@@ -207,8 +209,6 @@ const Category = () => {
     }
     return () => { window.removeEventListener('resize', update); try { obs && obs.disconnect(); } catch {} };
   }, []);
-
-  const isDiscounted = catKeyLower === 'discounted' || catKeyLower === 'sale';
 
   return (
     <div className="pt-10 border-t">
