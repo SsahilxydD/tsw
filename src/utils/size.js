@@ -13,6 +13,13 @@ export function isFootwearProduct(p) {
   // Never classify bottomwear as footwear
   if (/(jeans|trouser|pant|chino|bottom\s?wear|shorts?)\b/.test(cat)) return false;
 
+  // If any size token can be parsed into a UK shoe label, treat as footwear.
+  try {
+    for (const x of sizes) {
+      if (toUKLabel(x)) return true;
+    }
+  } catch {}
+
   // Include flip-flops, slides, slippers, clogs, sandals alongside shoes
   const hasFootHint = /(shoe|sneaker|footwear|loafer|boot|flip\s?flop|slide|slipper|clog|sandal)/.test(cat);
 
