@@ -1,5 +1,5 @@
 ﻿import React, { useContext, useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import Title from "../components/Title";
 import ProductItem from "../components/ProductItem";
 import SkeletonCard from "../components/SkeletonCard";
@@ -50,6 +50,7 @@ const Category = () => {
   const catKeyLower = catKey.toLowerCase();
 
   const { products, search, showSearch, setShowSearch, loadingProducts } = useContext(ShopContext);
+  const [searchParams, setSearchParams] = useSearchParams();
   const debouncedSearch = useDebouncedValue(search, 250);
 
   // base list for this category (unchanged logic)
@@ -77,7 +78,7 @@ const Category = () => {
 
   // Discounted handling
   const isDiscounted = catKeyLower === 'discounted' || catKeyLower === 'sale';
-  const [subFilter, setSubFilter] = useState(() => (isDiscounted ? '' : ''));
+  const [subFilter, setSubFilter] = useState(() => (isDiscounted ? (searchParams.get('sub') || '') : ''));
 
   // Scope the size source: for Discounted, respect selected sub-category
   const sizeSource = useMemo(() => {
@@ -180,8 +181,15 @@ const Category = () => {
         || subcats[0]?.key
         || '';
       setSubFilter(pref);
+      if (pref) setSearchParams({ sub: pref });
     }
-  }, [isDiscounted, subcats, subFilter]);
+  }, [isDiscounted, subcats, subFilter, setSearchParams]);
+
+  // Persist chosen tab in the query string so browser back keeps it
+  useEffect(() => {
+    if (!isDiscounted) return;
+    if (subFilter) setSearchParams({ sub: subFilter });
+  }, [isDiscounted, subFilter, setSearchParams]);
 
   const toggleSize = (val) =>
     setSizeFilters((prev) => (prev.includes(val) ? prev.filter((s) => s !== val) : [...prev, val]));

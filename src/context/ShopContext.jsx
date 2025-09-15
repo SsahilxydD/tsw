@@ -176,7 +176,15 @@ const ShopContextProvider = (props) => {
             }
           }
 
-          // No extra overrides; keep the same simple rule for all categories
+          // Sales (Discounted) overrides: Footwear fixed at 2800; Topwear keeps base price
+          if (isDiscounted) {
+            const subLower = String(derivedSub || '').toLowerCase();
+            if (subLower === 'footwear' || (!subLower && isShoe)) {
+              price = 2800;
+            } else if (subLower === 'topwear') {
+              price = Math.max(0, basePrice);
+            }
+          }
 
           const mappedItem = {
             _id: (item.slug ?? item.slug_name ?? item.title)?.toString(),
