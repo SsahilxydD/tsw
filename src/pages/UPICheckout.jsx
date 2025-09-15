@@ -10,6 +10,8 @@ export default function UPICheckout() {
   const timerRef = useRef(null);
 
   const qs = useMemo(() => new URLSearchParams(window.location.search), []);
+  const isIOS = useMemo(() => /iPad|iPhone|iPod/i.test(navigator.userAgent), []);
+  const [showApps, setShowApps] = useState(false);
   const amountParam = qs.get('amount');
   const productId = qs.get('productId');
   const metaRef = qs.get('ref') || qs.get('note') || null;
@@ -83,6 +85,49 @@ export default function UPICheckout() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [order?.id, pollMs]);
 
+  function parseUpiParams(link) {
+    try {
+      const u = new URL(link);
+      const p = new URLSearchParams(u.search);
+      return {
+        pa: p.get('pa') || '',
+        pn: p.get('pn') || '',
+        am: p.get('am') || '',
+        cu: p.get('cu') || 'INR',
+        tn: p.get('tn') || '',
+      };
+    } catch (_) { return null; }
+  }
+
+  const appDeepLinks = useMemo(() => {
+    if (!order?.currentUpiLink) return [];
+    const q = parseUpiParams(order.currentUpiLink);
+    if (!q) return [];
+    const qs = (o) => Object.entries(o).map(([k,v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v||'')}`).join('&');
+    // Known iOS URL schemes. If the app isn't installed, iOS will do nothing (no chooser).
+    return [
+      { key: 'gpay', label: 'Google Pay', href: `gpay://upi/pay?${qs(q)}` },
+      { key: 'phonepe', label: 'PhonePe', href: `phonepe://upi/pay?${qs(q)}` },
+      { key: 'paytm', label: 'Paytm', href: `paytmmp://pay?${qs(q)}` },
+      { key: 'bhim', label: 'BHIM', href: `bhim://upi/pay?${qs(q)}` },
+    ];
+  }, [order?.currentUpiLink]);
+
+  const onOpenUpi = (e) => {
+    e.preventDefault();
+    if (!order?.currentUpiLink) return;
+    if (isIOS) {
+      setShowApps(true);
+    } else {
+      // Android and desktop: use generic UPI link; Android shows app picker
+      window.location.href = order.currentUpiLink;
+    }
+  };
+
+  const onCopy = async (text) => {
+    try { await navigator.clipboard.writeText(text); setError(''); } catch { /* ignore */ }
+  };
+
   return (
     <div className="border-t pt-8 px-4 max-w-4xl mx-auto">
       <div className="mb-4">
@@ -115,13 +160,26 @@ export default function UPICheckout() {
             <p><b>Paid:</b> ₹{fmt(order.paid)}</p>
             <p><b>Remaining:</b> ₹{fmt(order.remaining)}</p>
             {order.currentUpiLink && (
-              <a href={order.currentUpiLink} target="_blank" rel="noopener" className="inline-block mt-2 px-4 py-2 rounded-md bg-black text-white text-sm">Open UPI App</a>
+              <button onClick={onOpenUpi} className="inline-block mt-2 px-4 py-2 rounded-md bg-black text-white text-sm">Open UPI App</button>
             )}
             {order.status === 'PARTIAL' && (
               <p className="text-xs text-gray-500 mt-2">Partial payment received. New QR generated for the remainder.</p>
             )}
             {order.status === 'PAID' && (
               <p className="text-green-600 font-medium mt-2">Payment confirmed. Thank you!</p>
+            )}
+            {/* iOS app chooser */}
+            {isIOS && showApps && (
+              <div className="mt-3 border-t pt-3">
+                <p className="text-sm text-gray-700 mb-2">Open with:</p>
+                <div className="flex flex-wrap gap-2">
+                  {appDeepLinks.map((a) => (
+                    <a key={a.key} href={a.href} className="px-3 py-2 text-sm border rounded hover:bg-gray-50" rel="nofollow">{a.label}</a>
+                  ))}
+                  <button onClick={() => onCopy(order.currentUpiLink)} className="px-3 py-2 text-sm border rounded">Copy UPI link</button>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">If nothing happens, open your UPI app and scan the QR above.</p>
+              </div>
             )}
           </div>
         </div>
