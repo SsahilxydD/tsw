@@ -93,10 +93,9 @@ export default function Payment() {
   }, [cartList, products]);
 
   const onPay = () => {
-    // Redirect to UPI checkout page that auto-creates an order and shows QR
     const redirect = encodeURIComponent('/orders');
-    const url = `/checkout.html?amount=${encodeURIComponent(totalAmount)}&redirect=${redirect}`;
-    window.location.href = url;
+    const url = `/upi-checkout?amount=${encodeURIComponent(totalAmount)}&redirect=${redirect}`;
+    navigate(url);
   };
 
   if (cartList.length === 0) {
