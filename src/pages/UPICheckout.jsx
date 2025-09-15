@@ -104,14 +104,44 @@ export default function UPICheckout() {
     const q = parseUpiParams(order.currentUpiLink);
     if (!q) return [];
     const qs = (o) => Object.entries(o).map(([k,v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v||'')}`).join('&');
-    // Known iOS URL schemes. If the app isn't installed, iOS will do nothing (no chooser).
     return [
-      { key: 'gpay', label: 'Google Pay', href: `gpay://upi/pay?${qs(q)}` },
-      { key: 'phonepe', label: 'PhonePe', href: `phonepe://upi/pay?${qs(q)}` },
-      { key: 'paytm', label: 'Paytm', href: `paytmmp://pay?${qs(q)}` },
-      { key: 'bhim', label: 'BHIM', href: `bhim://upi/pay?${qs(q)}` },
+      {
+        key: 'gpay', label: 'Google Pay',
+        scheme: `tez://upi/pay?${qs(q)}`,
+        storeUrl: 'https://apps.apple.com/in/app/google-pay-upi-money-transfers/id1193357041'
+      },
+      {
+        key: 'phonepe', label: 'PhonePe',
+        scheme: `phonepe://upi/pay?${qs(q)}`,
+        storeUrl: 'https://apps.apple.com/in/app/phonepe-secure-payments-app/id1170055821'
+      },
+      {
+        key: 'paytm', label: 'Paytm',
+        scheme: `paytmmp://pay?${qs(q)}`,
+        storeUrl: 'https://apps.apple.com/in/app/paytm-secure-upi-payments/id473941634'
+      },
+      {
+        key: 'bhim', label: 'BHIM',
+        scheme: `bhim://upi/pay?${qs(q)}`,
+        storeUrl: 'https://apps.apple.com/in/app/bhim-making-india-cashless/id1172681203'
+      },
     ];
   }, [order?.currentUpiLink]);
+
+  const openWithScheme = (scheme, storeUrl) => {
+    try {
+      const timer = setTimeout(() => {
+        if (!document.hidden) window.location.href = storeUrl;
+      }, 900);
+      window.location.href = scheme;
+      // If app opens, the page typically goes to background (document.hidden=true)
+      const clear = () => { try { clearTimeout(timer); } catch {} };
+      window.addEventListener('pagehide', clear, { once: true });
+      window.addEventListener('visibilitychange', () => { if (document.hidden) clear(); }, { once: true });
+    } catch {
+      window.location.href = storeUrl;
+    }
+  };
 
   const onOpenUpi = (e) => {
     e.preventDefault();
@@ -174,7 +204,9 @@ export default function UPICheckout() {
                 <p className="text-sm text-gray-700 mb-2">Open with:</p>
                 <div className="flex flex-wrap gap-2">
                   {appDeepLinks.map((a) => (
-                    <a key={a.key} href={a.href} className="px-3 py-2 text-sm border rounded hover:bg-gray-50" rel="nofollow">{a.label}</a>
+                    <button key={a.key} onClick={() => openWithScheme(a.scheme, a.storeUrl)} className="px-3 py-2 text-sm border rounded hover:bg-gray-50">
+                      {a.label}
+                    </button>
                   ))}
                   <button onClick={() => onCopy(order.currentUpiLink)} className="px-3 py-2 text-sm border rounded">Copy UPI link</button>
                 </div>
