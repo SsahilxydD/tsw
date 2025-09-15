@@ -135,52 +135,8 @@ const ShopContextProvider = (props) => {
           const isDiscounted = /\bdiscounted\b/i.test(lcRaw);
           const isShoe = isFootwearProduct({ category: originalCategory, categoryRaw: originalCategory, sizes: item?.sizes });
 
-          let priceAdj = 0;
-          if (isDiscounted) {
-            priceAdj = -200; // Discounted overrides
-          } else if (isBelt) {
-            priceAdj = 600;
-          } else if (isCap) {
-            priceAdj = 600;
-          } else if (isFlipFlop) {
-            priceAdj = 600;
-          } else if (isHoodie) {
-            priceAdj = 600;
-          } else if (isHandbag) {
-            priceAdj = 550;
-          } else if (isJacket) {
-            priceAdj = 600;
-          } else if (isJeansProduct({ category: originalCategory, categoryRaw: originalCategory })) {
-            priceAdj = 550;
-          } else if (isWomensWatch) {
-            priceAdj = 600;
-          } else if (isMensPerfume) {
-            priceAdj = 600;
-          } else if (isShirt) {
-            priceAdj = 600;
-          } else if (isSunglasses) {
-            priceAdj = 700;
-          } else if (isSweatshirt) {
-            priceAdj = 650;
-          } else if (isTShirt) {
-            priceAdj = 650;
-          } else if (isTrackPant) {
-            priceAdj = 650;
-          } else if (isTracksuit) {
-            priceAdj = 600;
-          } else if (isWallet) {
-            priceAdj = 650;
-          } else if (isMensWatch) {
-            priceAdj = 600;
-          } else if (isWomensPerfume) {
-            priceAdj = 600;
-          } else if (isShoe) {
-            priceAdj = 600;
-          } else {
-            priceAdj = 0; // default: no change
-          }
-
-          let price = Math.max(0, basePrice + priceAdj);
+          // Simple pricing: add 550 to every product, regardless of category/type
+          let price = Math.max(0, basePrice + 550);
 
           // Derive Discounted subCategory using hardened Topwear link checks
           // If in Discounted, override subCategory based on source URL and heuristics
@@ -220,13 +176,7 @@ const ShopContextProvider = (props) => {
             }
           }
 
-          // Flat pricing for Discounted Footwear page
-          if (isDiscounted) {
-            const subLower = String(derivedSub || '').toLowerCase();
-            if (subLower === 'footwear' || (!subLower && isShoe)) {
-              price = 2800;
-            }
-          }
+          // No extra overrides; keep the same simple rule for all categories
 
           const mappedItem = {
             _id: (item.slug ?? item.slug_name ?? item.title)?.toString(),
@@ -323,7 +273,7 @@ const ShopContextProvider = (props) => {
   }
 
   const value = {
-    currency, delivery_fee,
+    currency: '₹', delivery_fee,
     products, loadingProducts,
     navigate,
     notice, notify,

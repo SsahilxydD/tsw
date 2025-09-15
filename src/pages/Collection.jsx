@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useState } from "react";
+﻿import React, { useContext, useEffect, useMemo, useState } from "react";
 import Title from "../components/Title";
 import ProductItem from "../components/ProductItem";
 import SkeletonCard from "../components/SkeletonCard";
@@ -9,7 +9,7 @@ import { ShopContext } from "../context/ShopContext";
 import { assets } from "../assets/assets";
 import useDebouncedValue from "../hooks/useDebouncedValue";
 
-// NEW: session-seeded scramble (adds only “Featured” ordering)
+// NEW: session-seeded scramble (adds only â€œFeaturedâ€ ordering)
 import { scrambleProducts } from "../utils/scramble";
 import { getSessionSeed } from "../utils/rand";
 
@@ -190,8 +190,8 @@ const Collection = () => {
                 className="h-9 px-3 border-2 border-gray-300 rounded text-sm"
               >
                 <option value="">Featured</option>
-                <option value="price-high-low">Price: High → Low</option>
-                <option value="price-low-high">Price: Low → High</option>
+                <option value="price-high-low">Price: High to Low</option>
+                <option value="price-low-high">Price: Low to High</option>
               </select>
             </div>
           </div>
@@ -206,8 +206,8 @@ const Collection = () => {
               className="h-9 px-3 border-2 border-gray-300 rounded text-sm"
             >
               <option value="">Featured</option>
-              <option value="price-high-low">Price: High → Low</option>
-              <option value="price-low-high">Price: Low → High</option>
+              <option value="price-high-low">Price: High to Low</option>
+              <option value="price-low-high">Price: Low to High</option>
             </select>
           </div>
 

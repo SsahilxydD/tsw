@@ -330,8 +330,8 @@ const Category = () => {
                 className="h-9 px-3 border-2 border-gray-300 rounded text-sm"
               >
                 <option value="">Featured</option>
-                <option value="price-high-low">Price: High â†’ Low</option>
-                <option value="price-low-high">Price: Low â†’ High</option>
+                <option value="price-high-low">Price: High to Low</option>
+                <option value="price-low-high">Price: Low to High</option>
               </select>
             </div>
           </div>
@@ -350,8 +350,8 @@ const Category = () => {
               className="h-9 px-3 border-2 border-gray-300 rounded text-sm"
             >
               <option value="">Featured</option>
-              <option value="price-high-low">Price: High â†’ Low</option>
-              <option value="price-low-high">Price: Low â†’ High</option>
+              <option value="price-high-low">Price: High to Low</option>
+              <option value="price-low-high">Price: Low to High</option>
             </select>
           </div>
 
