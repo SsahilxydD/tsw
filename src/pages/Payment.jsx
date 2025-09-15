@@ -85,10 +85,18 @@ export default function Payment() {
     return lines.join("\n");
   };
 
-  const onWhatsApp = () => {
-    const msg = composeMessage();
-    const href = `https://wa.me/919933778870?text=${encodeURIComponent(msg)}`;
-    window.open(href, '_blank', 'noopener');
+  const totalAmount = useMemo(() => {
+    return cartList.reduce((sum, it) => {
+      const p = products.find((pr) => String(pr._id) === String(it._id) || String(pr.slug) === String(it._id));
+      return sum + (p ? (Number(p.price) || 0) * (Number(it.quantity) || 0) : 0);
+    }, 0);
+  }, [cartList, products]);
+
+  const onPay = () => {
+    // Redirect to UPI checkout page that auto-creates an order and shows QR
+    const redirect = encodeURIComponent('/orders');
+    const url = `/checkout.html?amount=${encodeURIComponent(totalAmount)}&redirect=${redirect}`;
+    window.location.href = url;
   };
 
   if (cartList.length === 0) {
@@ -156,9 +164,9 @@ export default function Payment() {
       </div>
 
       <CartStickyBar
-        totalText={`Total: ${currency}${cartList.reduce((s,it)=>{const p=products.find(pr=>String(pr._id)===String(it._id)||String(pr.slug)===String(it._id));return s+(p? (Number(p.price)||0)*(Number(it.quantity)||0):0)},0).toLocaleString()}`}
-        buttonText="PLACE ORDER ON WHATSAPP"
-        onClick={onWhatsApp}
+        totalText={`Total: ${currency}${totalAmount.toLocaleString()}`}
+        buttonText="PAY SECURELY"
+        onClick={onPay}
       />
     </div>
   );

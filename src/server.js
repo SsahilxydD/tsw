@@ -18,6 +18,7 @@ app.use(express.json({ limit: '256kb' }));
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const PUBLIC_DIR = path.join(process.cwd(), 'public');
+const DIST_DIR = path.join(process.cwd(), 'dist');
 const QRS_DIR = path.join(PUBLIC_DIR, 'qrs');
 ensureDir(DATA_DIR);
 ensureDir(QRS_DIR);
@@ -47,9 +48,9 @@ async function makeQr(filePath, text) {
   await QRCode.toFile(filePath, text, { type: 'png', width: 512, margin: 1 });
 }
 
-// Static hosting for QR images and public assets
+// Static hosting for QR images and built SPA assets
 app.use('/qrs', express.static(QRS_DIR, { fallthrough: false }));
-app.use(express.static(PUBLIC_DIR));
+app.use(express.static(DIST_DIR));
 
 // Health
 app.get('/health', (_req, res) => res.json({ ok: true }));
@@ -275,6 +276,18 @@ app.post('/webhooks/sms', smsLimiter, async (req, res) => {
 
 // Start server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`UPI QR server listening on http://localhost:${PORT}`);
+const HOST = process.env.HOST || '0.0.0.0';
+app.listen(PORT, HOST, () => {
+  console.log(`UPI QR server listening on http://${HOST}:${PORT}`);
+});
+
+// SPA fallback to dist/index.html (after API routes)
+// Keep it after app.listen definition so all APIs above remain matched first
+app.get('*', (req, res, next) => {
+  // Do not interfere with API/static paths
+  const skip = req.path.startsWith('/qrs') || req.path.startsWith('/orders') || req.path.startsWith('/webhooks') || req.path.startsWith('/products') || req.path.startsWith('/health');
+  if (skip) return next();
+  const indexFile = path.join(DIST_DIR, 'index.html');
+  if (fs.existsSync(indexFile)) return res.sendFile(indexFile);
+  return next();
 });

@@ -12,17 +12,11 @@ Quick start
    UPI_ID=yourhandle@upi
    UPI_NAME=Your Store
 
-2) Install and run (Node 18+)
+2) Install and run (single command, Node 18+)
 
-   # Linux/macOS
-   npm install --omit=dev
-   npm run build   # harmless no-op, for CI/CD compatibility
-   npm run start:prod
-
-   # Windows PowerShell
-   npm install --omit=dev
-   npm run build   # harmless no-op
-   $env:NODE_ENV="production"; npm start
+   # On your VPS (Linux)
+   npm install
+   npm run build   # Builds frontend and starts the server on port 3000
 
 3) Create an order (amount in rupees)
 
@@ -40,19 +34,13 @@ Quick start
 
    Open http://localhost:3000/qrs/ORD-....png to view the QR.
 
-Production build (Docker)
-- This repo includes a production-ready Dockerfile.
+Production via Docker (optional)
+- If you prefer Docker instead: build and run as before, but it's optional.
 
-   docker build -t upi-qr .
-   docker run --rm -p 3000:3000 --env-file .env upi-qr
-
-   Then visit http://localhost:3000/health
-
-Pre-configured UPI (as per your request)
-- .env already contains:
-
-   UPI_ID=6355875881-2@ybl
-   UPI_NAME=Sahil Yadav
+Pre-configured UPI
+- .env contains your values:
+  UPI_ID=6355875881-2@ybl
+  UPI_NAME=Sahil Yadav
 
 4) Forward bank SMS to the webhook
 - Install any “SMS to Webhook” app on Android
