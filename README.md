@@ -93,6 +93,7 @@ Environment
 - UPI_NAME (required): display name
 - WEBHOOK_SECRET (recommended): shared secret for /webhooks/sms (header X-Webhook-Secret)
 - STRICT_UPI_ID_MATCH (optional): set to true to require your UPI_ID to be present in incoming SMS text
+ - ALLOW_RAW_AMOUNT (optional, default true): if false, only productId-based checkout is allowed
 
 Gmail option (outline)
 - If your bank sends emails for credits, you can poll Gmail via the Gmail API and POST the parsed messages to the same /webhooks/sms endpoint with a body containing a concatenated text, or build a /webhooks/email endpoint mirroring the SMS logic.
@@ -102,3 +103,35 @@ Customization
 - Adjust regexes in src/parsers/sms.js to match your bank’s SMS format precisely.
 - Change orderId format in src/server.js if needed.
 - Serve QR files behind auth or signed URLs in production.
+ - Add products in `data/products.json` to use productId-based checkout.
+
+Replace WhatsApp with Checkout
+- Option A: Amount-based link (keep simple). On your product page, link to:
+
+  /checkout.html?amount=799
+
+  The page creates an order, shows the QR, and auto-updates if partial payments happen.
+
+- Option B: Product-based (recommended, prevents client-side price tampering):
+  1) Add your products to `data/products.json`:
+
+     { "id": "SKU-001", "name": "T-Shirt", "amountPaise": 79900 }
+
+  2) Link to:
+
+     /checkout.html?productId=SKU-001
+
+  The server looks up price by productId and ignores client-side amount.
+
+Frontend behavior
+- `public/checkout.html` + `public/checkout.js` handle:
+  - Creating an order via `POST /orders` (amount or productId)
+  - Rendering returned QR (`currentQr`) and UPI link
+  - Polling `GET /orders/:id` every 2s and updating status
+  - When partial payment is detected, it swaps to the new remainder QR automatically
+  - When fully paid, it shows success and (optional) redirects if `?redirect=/thank-you` is set
+
+Server endpoints
+- `POST /orders` body: `{ productId }` or `{ amount }` (INR rupees)
+- `GET /orders/:id` returns full order state
+- `GET /products/:id` returns `{ id, name, amountPaise }`

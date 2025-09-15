@@ -1,0 +1,6 @@
+{
+  "products": [
+    { "id": "SKU-EXAMPLE-1", "name": "Example Product", "amountPaise": 79900 }
+  ]
+}
+

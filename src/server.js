@@ -10,6 +10,7 @@ const { FSDB, ensureDir } = require('./utils/fsdb');
 const { buildUpiLink } = require('./upi');
 const { extractAmountPaise, extractNote, containsUpiId } = require('./parsers/sms');
 const { sha256 } = require('./utils/hash');
+const { getProduct } = require('./products');
 
 const app = express();
 app.use(helmet());
@@ -46,8 +47,9 @@ async function makeQr(filePath, text) {
   await QRCode.toFile(filePath, text, { type: 'png', width: 512, margin: 1 });
 }
 
-// Static hosting for QR images
+// Static hosting for QR images and public assets
 app.use('/qrs', express.static(QRS_DIR, { fallthrough: false }));
+app.use(express.static(PUBLIC_DIR));
 
 // Health
 app.get('/health', (_req, res) => res.json({ ok: true }));
@@ -59,15 +61,24 @@ function assertPositiveInteger(name, v) {
 // Create order and generate QR
 app.post('/orders', async (req, res) => {
   try {
-    const { amount, amountPaise: amountPaiseIn, currency = 'INR', meta = {} } = req.body || {};
+    const { amount, amountPaise: amountPaiseIn, currency = 'INR', meta = {}, productId } = req.body || {};
     const upiId = process.env.UPI_ID;
     const upiName = process.env.UPI_NAME || 'Merchant';
     if (!upiId) return res.status(400).json({ error: 'Missing env UPI_ID' });
 
     let amountPaise;
-    if (typeof amountPaiseIn === 'number') amountPaise = Math.round(amountPaiseIn);
-    else if (typeof amount === 'number') amountPaise = Math.round(amount * 100);
-    else return res.status(400).json({ error: 'Provide amount (rupees) or amountPaise (integer)' });
+    let product = null;
+    if (productId) {
+      product = getProduct(productId);
+      if (!product) return res.status(400).json({ error: 'Invalid productId' });
+      amountPaise = Math.round((product.amountPaise != null ? product.amountPaise : product.amount * 100));
+    } else {
+      const allowRaw = String(process.env.ALLOW_RAW_AMOUNT || 'true').toLowerCase() === 'true';
+      if (!allowRaw) return res.status(400).json({ error: 'Raw amount orders disabled. Use productId.' });
+      if (typeof amountPaiseIn === 'number') amountPaise = Math.round(amountPaiseIn);
+      else if (typeof amount === 'number') amountPaise = Math.round(amount * 100);
+      else return res.status(400).json({ error: 'Provide amount (rupees) or amountPaise (integer) or productId' });
+    }
 
     if (currency !== 'INR') return res.status(400).json({ error: 'Only INR supported' });
     try { assertPositiveInteger('amountPaise', amountPaise); } catch (e) { return res.status(400).json({ error: e.message }); }
@@ -95,12 +106,13 @@ app.post('/orders', async (req, res) => {
       status: 'PENDING',
       createdAt: now,
       paidAt: null,
-      meta,
+      meta: { ...meta, productId: product ? product.id : meta.productId },
+      product: product ? { id: product.id, name: product.name, amountPaise: amountPaise } : null,
     };
     orders.push(order);
     saveOrders(orders);
 
-    res.json({ orderId, upiLink: order.currentUpiLink, qr: order.currentQr, status: order.status, remainingPaise: order.remainingPaise });
+    res.json({ orderId, upiLink: order.currentUpiLink, qr: order.currentQr, status: order.status, remainingPaise: order.remainingPaise, product: order.product });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Failed to create order' });
@@ -113,6 +125,14 @@ app.get('/orders/:id', (req, res) => {
   const order = orders.find((o) => o.id === req.params.id);
   if (!order) return res.status(404).json({ error: 'Not found' });
   res.json(order);
+});
+
+// Products API (read-only)
+app.get('/products/:id', (req, res) => {
+  const product = getProduct(req.params.id);
+  if (!product) return res.status(404).json({ error: 'Not found' });
+  const amountPaise = Math.round((product.amountPaise != null ? product.amountPaise : product.amount * 100));
+  res.json({ id: product.id, name: product.name, amountPaise });
 });
 
 // Rate-limit and protect SMS webhook

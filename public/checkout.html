@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UPI Checkout</title>
+  <link rel="stylesheet" href="/checkout.css" />
+</head>
+<body>
+  <div class="wrap">
+    <h1>Checkout</h1>
+    <div id="product" class="card hidden"></div>
+    <div id="order" class="card hidden">
+      <div class="row">
+        <div>
+          <div id="qrWrap" class="qr">
+            <img id="qr" alt="UPI QR" />
+          </div>
+          <a id="upiLink" class="btn" target="_blank" rel="noopener">Open in UPI App</a>
+        </div>
+        <div class="details">
+          <div><b>Order:</b> <span id="orderId"></span></div>
+          <div><b>Status:</b> <span id="status"></span></div>
+          <div><b>Total:</b> ₹<span id="total"></span></div>
+          <div><b>Paid:</b> ₹<span id="paid"></span></div>
+          <div><b>Remaining:</b> ₹<span id="remaining"></span></div>
+          <div id="hint" class="hint"></div>
+        </div>
+      </div>
+    </div>
+    <div id="done" class="card hidden success">
+      <h2>Payment received ✅</h2>
+      <p>Thank you! Your payment has been confirmed.</p>
+    </div>
+    <div id="error" class="card hidden error"></div>
+  </div>
+
+  <script src="/checkout.js" defer></script>
+</body>
+</html>
+
