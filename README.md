@@ -12,11 +12,14 @@ Quick start
    UPI_ID=yourhandle@upi
    UPI_NAME=Your Store
 
-2) Install and run (single command, Node 18+)
+2) Install and run
 
-   # On your VPS (Linux)
+   # Build only (exits cleanly)
    npm install
-   npm run build   # Builds frontend and starts the server on port 3000
+   npm run build
+
+   # Serve (runs Express on 0.0.0.0:3000)
+   npm run serve
 
 3) Create an order (amount in rupees)
 
@@ -35,7 +38,7 @@ Quick start
    Open http://localhost:3000/qrs/ORD-....png to view the QR.
 
 Production via Docker (optional)
-- If you prefer Docker instead: build and run as before, but it's optional.
+- Optional; Node server already serves built assets.
 
 Pre-configured UPI
 - .env contains your values:
@@ -123,3 +126,16 @@ Server endpoints
 - `POST /orders` body: `{ productId }` or `{ amount }` (INR rupees)
 - `GET /orders/:id` returns full order state
 - `GET /products/:id` returns `{ id, name, amountPaise }`
+
+Nginx (recommended, minimal)
+- Proxy APIs and QR images to Express and serve everything else normally:
+
+  location /orders { proxy_pass http://127.0.0.1:3000; }
+  location /webhooks { proxy_pass http://127.0.0.1:3000; }
+  location /qrs { proxy_pass http://127.0.0.1:3000; }
+  location /products { proxy_pass http://127.0.0.1:3000; }
+  location /health { proxy_pass http://127.0.0.1:3000; }
+
+PM2 (keep server alive)
+- pm2 start "npm run serve" --name tsw
+- pm2 save && pm2 startup
