@@ -5,7 +5,9 @@
   "description": "Minimal UPI QR order + SMS auto-verification server (Express)",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "start:prod": "NODE_ENV=production node src/server.js",
+    "build": "node -e \"console.log('No build step required for this server. Ready to run.');\""
   },
   "dependencies": {
     "dotenv": "^16.4.5",

@@ -14,8 +14,14 @@ Quick start
 
 2) Install and run (Node 18+)
 
+   # Linux/macOS
+   npm install --omit=dev
+   npm run build   # harmless no-op, for CI/CD compatibility
+   npm run start:prod
+
    # Windows PowerShell
    npm install --omit=dev
+   npm run build   # harmless no-op
    $env:NODE_ENV="production"; npm start
 
 3) Create an order (amount in rupees)
