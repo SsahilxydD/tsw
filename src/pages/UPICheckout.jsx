@@ -35,7 +35,8 @@ export default function UPICheckout() {
       setOrder({
         id: data.orderId,
         status: data.status,
-        total: data.product?.amountPaise ?? (Number(amountParam) * 100) || 0,
+        // Parenthesize to avoid mixing ?? with || per esbuild rule
+        total: data.product?.amountPaise ?? ((Number(amountParam) * 100) || 0),
         paid: 0,
         remaining: data.remainingPaise ?? 0,
         currentQr: data.qr || null,
@@ -128,4 +129,3 @@ export default function UPICheckout() {
     </div>
   );
 }
-
