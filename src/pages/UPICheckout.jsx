@@ -12,6 +12,7 @@ export default function UPICheckout() {
   const qs = useMemo(() => new URLSearchParams(window.location.search), []);
   const isIOS = useMemo(() => /iPad|iPhone|iPod/i.test(navigator.userAgent), []);
   const [showApps, setShowApps] = useState(false);
+  const [storeSuggest, setStoreSuggest] = useState(null); // { storeUrl, label }
   const amountParam = qs.get('amount');
   const productId = qs.get('productId');
   const metaRef = qs.get('ref') || qs.get('note') || null;
@@ -128,18 +129,21 @@ export default function UPICheckout() {
     ];
   }, [order?.currentUpiLink]);
 
-  const openWithScheme = (scheme, storeUrl) => {
+  const openWithScheme = (scheme, storeUrl, label) => {
     try {
-      const timer = setTimeout(() => {
-        if (!document.hidden) window.location.href = storeUrl;
-      }, 900);
-      window.location.href = scheme;
-      // If app opens, the page typically goes to background (document.hidden=true)
+      setStoreSuggest(null);
+      let wentBackground = false;
       const clear = () => { try { clearTimeout(timer); } catch {} };
+      const onVis = () => { if (document.hidden) { wentBackground = true; clear(); } };
+      window.addEventListener('visibilitychange', onVis, { once: true });
       window.addEventListener('pagehide', clear, { once: true });
-      window.addEventListener('visibilitychange', () => { if (document.hidden) clear(); }, { once: true });
+      window.addEventListener('blur', clear, { once: true });
+      const timer = setTimeout(() => {
+        if (!wentBackground) setStoreSuggest({ storeUrl, label });
+      }, 2200);
+      window.location.href = scheme;
     } catch {
-      window.location.href = storeUrl;
+      setStoreSuggest({ storeUrl, label });
     }
   };
 
@@ -204,12 +208,18 @@ export default function UPICheckout() {
                 <p className="text-sm text-gray-700 mb-2">Open with:</p>
                 <div className="flex flex-wrap gap-2">
                   {appDeepLinks.map((a) => (
-                    <button key={a.key} onClick={() => openWithScheme(a.scheme, a.storeUrl)} className="px-3 py-2 text-sm border rounded hover:bg-gray-50">
+                    <button key={a.key} onClick={() => openWithScheme(a.scheme, a.storeUrl, a.label)} className="px-3 py-2 text-sm border rounded hover:bg-gray-50">
                       {a.label}
                     </button>
                   ))}
                   <button onClick={() => onCopy(order.currentUpiLink)} className="px-3 py-2 text-sm border rounded">Copy UPI link</button>
                 </div>
+                {storeSuggest && (
+                  <div className="mt-2 p-2 border rounded bg-yellow-50 text-yellow-800 text-xs">
+                    If the app didn’t open, tap here to open {storeSuggest.label} in the App Store.
+                    <a className="ml-2 underline" href={storeSuggest.storeUrl} target="_blank" rel="noopener">Open App Store</a>
+                  </div>
+                )}
                 <p className="text-xs text-gray-500 mt-2">If nothing happens, open your UPI app and scan the QR above.</p>
               </div>
             )}
