@@ -247,8 +247,17 @@ app.post('/orders', async (req, res) => {
     orders.push(order);
     saveOrders(orders);
 
+    // set a secure HttpOnly cookie so a plain /orders browser nav can find the confirmation page
+    res.cookie('last_order_token', order.publicViewToken, {
+      httpOnly: true,
+      sameSite: 'Lax',
+      secure: true,     // assumes HTTPS via Nginx
+      path: '/',
+      maxAge: 7 * 24 * 3600 * 1000
+    });
+
     const expiresInMs = Math.max(0, new Date(expiresAt).getTime() - new Date(now).getTime());
-    const confirmationUrl = `/order/${order.publicViewToken}`; // <-- safe confirmation URL for customers
+    const confirmationUrl = `/order/${order.publicViewToken}`; // safe confirmation URL for customers
     res.json({
       orderId,
       upiLink: order.currentUpiLink,
@@ -259,8 +268,8 @@ app.post('/orders', async (req, res) => {
       expiresAt: order.expiresAt,
       serverNow: nowIso(),
       expiresInMs,
-      confirmationUrl,                // <-- added
-      publicViewToken: order.publicViewToken // <-- added
+      confirmationUrl,
+      publicViewToken: order.publicViewToken
     });
   } catch (e) {
     console.error(e);
@@ -268,7 +277,34 @@ app.post('/orders', async (req, res) => {
   }
 });
 
-// List orders (admin only)
+// --- intercept browser navigations to /orders and redirect customers to their confirmation page
+function getCookie(req, name) {
+  const raw = req.headers.cookie || '';
+  const arr = raw.split(';').map(s => s.trim()).filter(Boolean);
+  for (const kv of arr) {
+    const idx = kv.indexOf('=');
+    if (idx > -1) {
+      const k = decodeURIComponent(kv.slice(0, idx).trim());
+      const v = decodeURIComponent(kv.slice(idx + 1).trim());
+      if (k === name) return v;
+    }
+  }
+  return null;
+}
+
+app.get('/orders', (req, res, next) => {
+  const accept = String(req.headers.accept || '');
+  const wantsHtml = accept.includes('text/html');
+  const hasAuth = !!req.headers.authorization;
+  if (wantsHtml && !hasAuth) {
+    const token = getCookie(req, 'last_order_token');
+    if (token) return res.redirect(302, `/order/${token}`);
+    return res.redirect(302, '/');
+  }
+  return next();
+});
+
+// List orders (admin only JSON)
 app.get('/orders', requireAdminApi, (req, res) => {
   const orders = loadOrders();
   let changed = false;
@@ -371,7 +407,6 @@ function updateOrderForPartial(order, paidAmountPaise, upiId, upiName) {
   // Generate a new QR for the remaining amount
   const nextLink = buildUpiLink({ pa: upiId, pn: upiName, amountPaise: order.remainingPaise, orderId: order.id });
   const qrFile = path.join(QRS_DIR, `${order.id}-${order.remainingPaise}.png`);
-  // Synchronous write from caller to ensure await
   // Return info for caller to await generation
   return { nextLink, qrFile };
 }
@@ -610,7 +645,6 @@ app.listen(PORT, HOST, () => {
 });
 
 // SPA fallback to dist/index.html (after API routes)
-// Keep it after app.listen definition so all APIs above remain matched first
 app.get('*', (req, res, next) => {
   // Do not interfere with API/static paths
   const skip = req.path.startsWith('/qrs') || req.path.startsWith('/orders') || req.path.startsWith('/webhooks') || req.path.startsWith('/products') || req.path.startsWith('/health') || req.path.startsWith('/api/order') || req.path.startsWith('/order/');
