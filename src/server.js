@@ -13,6 +13,68 @@ const { sha256 } = require('./utils/hash');
 const { getProduct } = require('./products');
 
 const app = express();
+const crypto = require('crypto');
+
+const ADMIN_USER = 'thesolowardrobe@gmail.com';
+const ADMIN_PASS = 'Thesolowardrobe@14333';
+
+// constant-time compare to avoid timing attacks
+function safeEq(a, b) {
+  try {
+    const A = Buffer.from(String(a) ?? '');
+    const B = Buffer.from(String(b) ?? '');
+    if (A.length !== B.length) return false;
+    return crypto.timingSafeEqual(A, B);
+  } catch {
+    return false;
+  }
+}
+
+// identify any URL that has an "admin" path segment
+function isAdminPath(p) {
+  return String(p || '').split('/').filter(Boolean).includes('admin');
+}
+
+function challenge(res) {
+  res.setHeader('WWW-Authenticate', 'Basic realm="SoloAdmin", charset="UTF-8"');
+  // prevent caching of protected responses
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  return res.status(401).send('Auth required');
+}
+
+function adminBasicAuth(req, res, next) {
+  if (!isAdminPath(req.path)) return next();
+
+  const hdr = req.headers && req.headers.authorization;
+  if (!hdr || !hdr.startsWith('Basic ')) return challenge(res);
+
+  let user = '', pass = '';
+  try {
+    const decoded = Buffer.from(hdr.slice(6), 'base64').toString('utf8');
+    const idx = decoded.indexOf(':');
+    if (idx >= 0) {
+      user = decoded.slice(0, idx);
+      pass = decoded.slice(idx + 1);
+    }
+  } catch {
+    return challenge(res);
+  }
+
+  if (safeEq(user, ADMIN_USER) && safeEq(pass, ADMIN_PASS)) {
+    // don't cache admin pages
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    return next();
+  }
+  return challenge(res);
+}
+
+// register BEFORE any static middleware or SPA fallbacks
+app.use(adminBasicAuth);
+// --- END: Minimal Basic Auth for /admin ---
 app.use(helmet());
 app.use(express.json({ limit: '256kb' }));
 
