@@ -1,8 +1,7 @@
 import React, { useContext, useEffect, useMemo } from "react";
 import CartSteps from "../components/CartSteps";
 import { ShopContext } from "../context/ShopContext";
-import CartTotal from "../components/CartTotal";
-import CartStickyBar from "../components/CartStickyBar";
+// Removed CartTotal and StickyBar on this page to avoid conflicts
 
 export default function Payment() {
   const { products, currency, cartItems, address, navigate, getCartCount } = useContext(ShopContext);
@@ -112,7 +111,7 @@ export default function Payment() {
       <div className="mb-5">
         <CartSteps active="payment" />
       </div>
-      <div className="max-w-6xl mx-auto px-4">
+      <div className="max-w-6xl mx-auto px-4 overflow-x-hidden">
         <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
 
         <div className="grid sm:grid-cols-3 gap-6">
@@ -142,7 +141,7 @@ export default function Payment() {
                 <h3 className="text-sm font-semibold">Shipping Address</h3>
                 <button className="text-xs underline" onClick={() => navigate('/address')}>Edit</button>
               </div>
-              <div className="mt-2 text-sm text-gray-700 space-y-1">
+              <div className="mt-2 text-sm text-gray-700 space-y-1 break-words">
                 {address && (
                   <>
                     <p className="font-medium">{`${address.firstName || ''} ${address.lastName || ''}`.trim()}</p>
@@ -156,17 +155,23 @@ export default function Payment() {
                 )}
               </div>
             </div>
-
-            <CartTotal />
+            {/* Cart total intentionally removed on the payment page */}
           </div>
         </div>
       </div>
 
-      <CartStickyBar
-        totalText={`Total: ${currency}${totalAmount.toLocaleString()}`}
-        buttonText="PAY SECURELY"
-        onClick={onPay}
-      />
+      {/* Final action at the very end, above the footer */}
+      <div className="max-w-6xl mx-auto px-4 mt-8 mb-10">
+        <div className="border-t pt-6">
+          <button
+            type="button"
+            onClick={onPay}
+            className="w-full sm:w-auto px-6 py-3 rounded-md bg-black text-white text-sm tracking-wide pressable"
+          >
+            PAY SECURELY
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

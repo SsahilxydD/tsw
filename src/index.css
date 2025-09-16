@@ -4,6 +4,7 @@
 @tailwind utilities;
 
 * {
+  box-sizing: border-box;
   font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, 'Noto Sans', 'Helvetica Neue', sans-serif;
   font-feature-settings: 'liga','kern','pnum','tnum';
 }
@@ -12,7 +13,12 @@ html, body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  max-width: 100%;
+  overflow-x: hidden; /* prevent sideways scroll from any mis-sized child */
 }
+
+#root { max-width: 100%; overflow-x: hidden; }
+img { max-width: 100%; height: auto; }
 
 /* App-like touch behavior: remove tap highlight and prevent odd zoom/jank *//* Buttons/links behave like native apps (no double-tap zoom, faster taps) */
 button, [role="button"], a {
