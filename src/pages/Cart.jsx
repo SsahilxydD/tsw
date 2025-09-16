@@ -115,7 +115,7 @@ const Cart = () => {
                   loading='lazy'
                 />
                 <div className='min-w-0'>
-                  <p className='text-sm sm:text-base font-medium leading-snug break-words line-clamp-2 pb-0.5 min-h-[3rem]'>
+                  <p className='text-[15px] sm:text-base font-medium leading-5 sm:leading-6 break-words line-clamp-2 min-h-[2.6rem]'>
                     {productData?.name}
                   </p>
                   <div className='mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-600'>
@@ -127,7 +127,7 @@ const Cart = () => {
                   </div>
                   <div className='mt-2'>
                     <QuantityStepper
-                      size='sm'
+                      size='compact'
                       value={item.quantity}
                       min={1}
                       onChange={(q) => q <= 0 ? requestRemove(item._id, item.size) : updateQuantity(item._id, item.size, q)}
