@@ -41,6 +41,7 @@ export default function UPICheckout() {
   const [order, setOrder] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const [deadlineTs, setDeadlineTs] = useState(null); // absolute timestamp when this session expires (ms)
   const [timeLeft, setTimeLeft] = useState(0);
@@ -140,6 +141,7 @@ export default function UPICheckout() {
         remaining: data.remainingPaise ?? 0,
         currentQr: data.qr || null,
         currentUpiLink: data.upiLink || null,
+        publicViewToken: data.publicViewToken || null,
       };
       setOrder(created);
       writeOrderId(orderKey, created.id);
@@ -181,6 +183,7 @@ export default function UPICheckout() {
         remaining: o.remainingPaise,
         currentQr: o.currentQr,
         currentUpiLink: o.currentUpiLink,
+        publicViewToken: o.publicViewToken || prev?.publicViewToken || null,
       }));
       // Re-sync deadline on every poll (handles server-side regen/extension)
       if ((o.expiresAt && o.serverNow) || Number.isFinite(o.expiresInMs)) {
@@ -190,8 +193,8 @@ export default function UPICheckout() {
           setTimeLeft(left);
         }
       }
-      if (o.status === 'PAID' && redirect) {
-        setTimeout(() => { window.location.href = redirect; }, 1000);
+      if (o.status === 'PAID') {
+        setShowSuccess(true);
       }
     } catch {
       // ignore transient errors
@@ -310,6 +313,11 @@ export default function UPICheckout() {
     setOrder(null);
     removeOrderId(orderKey);
     // Keep `oid` in URL so refresh honors the expired state. It will be replaced on next create.
+  };
+
+  const onContinue = () => {
+    if (redirect) window.location.href = redirect;
+    else window.location.href = '/orders';
   };
 
   // ---- UPI helpers (unchanged visuals/behavior) ----
@@ -514,6 +522,46 @@ export default function UPICheckout() {
             {order.status === 'PAID' && (
               <p className="text-green-600 font-medium mt-2">Payment confirmed. Thank you!</p>
             )}
+          </div>
+        </div>
+      )}
+
+      {showSuccess && (
+        <div className="fixed inset-0 z-40 grid place-items-center bg-black/30 backdrop-blur-[1px] animate-fade-in">
+          <div className="relative">
+            <div className="pointer-events-none absolute inset-0 -z-10">
+              {Array.from({ length: 14 }).map((_, i) => (
+                <span key={i} className="confetti" style={{ '--i': i, '--c': i % 3 === 0 ? '#22c55e' : i % 3 === 1 ? '#06b6d4' : '#f59e0b' }} />
+              ))}
+            </div>
+            <div className="max-w-md w-[92vw] sm:w-[520px] rounded-2xl border bg-white shadow-2xl animate-swipe-in-up">
+              <div className="p-6 sm:p-8 text-center">
+                <div className="mx-auto w-16 h-16 rounded-full bg-emerald-500 text-white grid place-content-center shadow-lg animate-pop">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                </div>
+                <h2 className="mt-4 text-xl font-semibold">Payment Received</h2>
+                <p className="mt-1 text-gray-600">Thank you! Your order is confirmed.</p>
+                <div className="mt-5 grid grid-cols-2 gap-3 text-sm text-left">
+                  <div className="rounded-lg border bg-slate-50 p-3">
+                    <div className="text-xs text-gray-500">Order ID</div>
+                    <div className="font-mono text-xs break-all">{order?.id}</div>
+                  </div>
+                  <div className="rounded-lg border bg-slate-50 p-3">
+                    <div className="text-xs text-gray-500">Amount</div>
+                    <div className="font-semibold">₹{fmt(order?.total)}</div>
+                  </div>
+                  {order?.publicViewToken && (
+                    <div className="col-span-2 rounded-lg border bg-slate-50 p-3">
+                      <div className="text-xs text-gray-500">Receipt</div>
+                      <a className="underline" href={`/order/${order.publicViewToken}`} target="_blank" rel="noreferrer">Open confirmation page</a>
+                    </div>
+                  )}
+                </div>
+                <div className="mt-6 flex items-center justify-center gap-3">
+                  <button onClick={onContinue} className="px-5 py-2.5 rounded-lg bg-black text-white text-sm pressable">Continue</button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
