@@ -409,10 +409,10 @@ export default function Product() {
             >
               <span className="text-[15px] sm:text-base font-semibold tracking-wide">BUY NOW</span>
               <span className="flex items-center gap-2">
-                {/* Public logo links: GPay, PhonePe, Paytm */}
-                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Google_Pay_%28GPay%29_Logo_%282018-2020%29.svg/64px-Google_Pay_%28GPay%29_Logo_%282018-2020%29.svg.png" alt="GPay" className="h-5 w-5 rounded-full bg-white p-0.5" loading="lazy" />
-                <img src="https://upload.wikimedia.org/wikipedia/commons/f/f2/PhonePe_Logo.png" alt="PhonePe" className="h-5 w-5 rounded-full bg-white p-0.5 object-contain" loading="lazy" />
-                <img src="https://upload.wikimedia.org/wikipedia/commons/5/55/Paytm_logo.png" alt="Paytm" className="h-5 w-5 rounded-full bg-white p-0.5 object-contain" loading="lazy" />
+                {/* Local public icons: place files in /public */}
+                <img src="/gpay.png" alt="GPay" className="h-5 w-5 rounded-full bg-white p-0.5 object-contain" loading="lazy" />
+                <img src="/phonepe.png" alt="PhonePe" className="h-5 w-5 rounded-full bg-white p-0.5 object-contain" loading="lazy" />
+                <img src="/paytm.png" alt="Paytm" className="h-5 w-5 rounded-full bg-white p-0.5 object-contain" loading="lazy" />
                 <span aria-hidden className="ml-1 text-xl leading-none">›</span>
               </span>
             </button>
