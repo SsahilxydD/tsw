@@ -133,3 +133,10 @@ a.active hr {
 
 
 
+/* Utility: clamp text to 2 lines without plugin */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
