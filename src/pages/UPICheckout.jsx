@@ -131,28 +131,25 @@ export default function UPICheckout() {
         throw new Error(msg);
       }
       const data = await r.json();
-      // server returns these top-level fields for POST /orders
-      // { orderId, upiLink, qr, status, remainingPaise, product, expiresAt, serverNow }
-      const created = {
-        id: data.orderId,
-        status: data.status,
-        total: data.product?.amountPaise ?? ((Number(amountParam) * 100) || 0),
-        paid: 0,
-        remaining: data.remainingPaise ?? 0,
-        currentQr: data.qr || null,
-        currentUpiLink: data.upiLink || null,
-        publicViewToken: data.publicViewToken || null,
-      };
-      setOrder(created);
-      writeOrderId(orderKey, created.id);
-      setOidInUrl(created.id);
+      const newId = data.orderId;
+      // Load authoritative state from the server using the id we just created
+      const full = await fetchOrder(newId);
+      setOrder({
+        id: full.id,
+        status: full.status,
+        total: full.totalAmountPaise,
+        paid: full.paidPaise,
+        remaining: full.remainingPaise,
+        currentQr: full.currentQr,
+        currentUpiLink: full.currentUpiLink,
+        publicViewToken: full.publicViewToken || data.publicViewToken || null,
+      });
+      writeOrderId(orderKey, newId);
+      setOidInUrl(newId);
 
-      // compute and store absolute deadline; start showing time immediately
-      const { deadline, left } = computeDeadlineFromServer(data.expiresInMs, data.expiresAt, data.serverNow);
-      if (deadline != null) {
-        setDeadlineTs(deadline);
-        setTimeLeft(left);
-      }
+      // Use authoritative timing from the GET response
+      const { deadline, left } = computeDeadlineFromServer(full.expiresInMs, full.expiresAt, full.serverNow);
+      if (deadline != null) { setDeadlineTs(deadline); setTimeLeft(left); }
     } catch (e) {
       setError(e.message || 'Failed to create order');
     } finally {
@@ -163,7 +160,7 @@ export default function UPICheckout() {
   async function fetchOrder(id) {
     const r = await fetch(`/orders/${id}`, { cache: 'no-store' });
     if (!r.ok) throw new Error('Order not found');
-    return r.json(); // { ...order, serverNow }
+    return r.json(); // authoritative server fields
   }
 
   async function refresh() {
@@ -220,6 +217,7 @@ export default function UPICheckout() {
               remaining: o.remainingPaise,
               currentQr: o.currentQr,
               currentUpiLink: o.currentUpiLink,
+              publicViewToken: o.publicViewToken || null,
             });
             // Ensure persistence across tabs + URL for this context
             writeOrderId(orderKey, o.id);
@@ -229,6 +227,22 @@ export default function UPICheckout() {
               setDeadlineTs(deadline);
               setTimeLeft(left);
             }
+            setLoading(false);
+            return;
+          } else if (o && o.status === 'PAID') {
+            setOrder({
+              id: o.id,
+              status: o.status,
+              total: o.totalAmountPaise,
+              paid: o.paidPaise,
+              remaining: o.remainingPaise,
+              currentQr: o.currentQr,
+              currentUpiLink: o.currentUpiLink,
+              publicViewToken: o.publicViewToken || null,
+            });
+            writeOrderId(orderKey, o.id);
+            setOidInUrl(o.id);
+            setShowSuccess(true);
             setLoading(false);
             return;
           }
@@ -437,7 +451,7 @@ export default function UPICheckout() {
         <div className="grid sm:grid-cols-2 gap-6">
           <div className="rounded-md border bg-white/5 p-4 flex items-center justify-center min-h-[300px]">
             {order.currentQr ? (
-              <img src={order.currentQr} alt="UPI QR" className="w-56 h-56 sm:w-64 sm:h-64 object-contain" />
+              <img key={order.currentQr} src={order.currentQr} alt="UPI QR" className="w-56 h-56 sm:w-64 sm:h-64 object-contain" />
             ) : (
               <p className="text-gray-500">No QR available</p>
             )}

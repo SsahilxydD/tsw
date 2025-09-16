@@ -288,7 +288,13 @@ app.post('/admin/api/logout', (req, res) => {
 });
 
 // Static hosting for QR images and built SPA assets
-app.use('/qrs', express.static(QRS_DIR, { fallthrough: false }));
+// Ensure QR images are never cached so regenerated codes show immediately
+app.use('/qrs', express.static(QRS_DIR, {
+  fallthrough: false,
+  setHeaders(res) {
+    res.setHeader('Cache-Control', 'no-store');
+  }
+}));
 app.use(express.static(DIST_DIR));
 
 // Health
@@ -691,6 +697,37 @@ app.post('/webhooks/sms', smsLimiter, async (req, res) => {
 });
 
 // --- Customer-safe endpoints ---
+// Public: get minimal order details by numeric order id
+app.get('/orders/:id', (req, res) => {
+  const id = String(req.params.id || '');
+  const orders = loadOrders();
+  const order = orders.find(o => String(o.id) === id);
+  if (!order) return res.status(404).json({ error: 'Not found' });
+  if (ensureFreshStatus(order)) saveOrders(orders);
+  const serverNowVal = nowIso();
+  let expiresInMs = 0;
+  try {
+    if (order.expiresAt) {
+      const exp = new Date(order.expiresAt).getTime();
+      const srv = new Date(serverNowVal).getTime();
+      if (Number.isFinite(exp) && Number.isFinite(srv)) expiresInMs = Math.max(0, exp - srv);
+    }
+  } catch {}
+  return res.json({
+    id: order.id,
+    status: order.status,
+    totalAmountPaise: order.totalAmountPaise,
+    paidPaise: order.paidPaise,
+    remainingPaise: order.remainingPaise,
+    currentQr: order.currentQr,
+    currentUpiLink: order.currentUpiLink,
+    product: order.product || null,
+    expiresAt: order.expiresAt || null,
+    serverNow: serverNowVal,
+    expiresInMs,
+    publicViewToken: order.publicViewToken || null,
+  });
+});
 app.get('/api/order/:token', (req, res) => {
   const token = String(req.params.token || '');
   const orders = loadOrders();
