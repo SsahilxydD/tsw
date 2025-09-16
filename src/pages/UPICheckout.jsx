@@ -254,7 +254,7 @@ export default function UPICheckout() {
             )}
           </div>
           {/* Separate UPI app box placed below QR on larger screens */}
-          <div className="rounded-md border bg-white p-4 sm:col-span-2">
+          <div className="rounded-xl border bg-white p-4 sm:col-span-2 shadow-sm">
             {!isIOS ? (
               <div>
                 <p className="font-medium mb-2">Pay via UPI app</p>
@@ -267,38 +267,39 @@ export default function UPICheckout() {
             ) : (
               <div>
                 <p className="font-semibold mb-2">Pay via</p>
-                <button type="button" onClick={() => setShowApps(v => !v)} className="w-full flex items-center justify-between border rounded-md px-3 py-3 bg-white">
+                {/* Header row styled like a dropdown but always expanded */}
+                <div className="w-full flex items-center justify-between border rounded-lg px-3 py-3 bg-white shadow-sm">
                   <span className="flex items-center gap-2">
                     <span className="inline-grid h-5 w-5 place-content-center rounded border text-gray-500">₹</span>
                     <span className="font-medium">UPI payment</span>
                   </span>
                   <span className="ml-auto mr-2 text-sm font-semibold">₹{fmt(order.total)}</span>
-                  <span aria-hidden className={`text-gray-500 transition ${showApps ? 'rotate-180' : ''}`}>▾</span>
-                </button>
-                {showApps && (
-                  <div className="mt-3">
-                    <div className="grid grid-cols-3 gap-3">
-                      {appDeepLinks.filter(a=>['gpay','phonepe','paytm'].includes(a.key)).map((a) => (
-                        <button
-                          key={a.key}
-                          onClick={() => openWithScheme(a.scheme, a.storeUrl, a.label)}
-                          className="flex flex-col items-center gap-2"
-                        >
-                          <span className="h-14 w-16 grid place-content-center rounded-xl border shadow-sm bg-white">
-                            <img src={appIcons[a.key]} alt={a.label} className="h-8 object-contain"/>
-                          </span>
-                          <span className="text-[11px] text-gray-600">{a.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                    {storeSuggest && (
-                      <div className="mt-3 p-2 border rounded bg-yellow-50 text-yellow-800 text-xs">
-                        If the app didn't open, tap here to open {storeSuggest.label} in the App Store.
-                        <a className="ml-2 underline" href={storeSuggest.storeUrl} target="_blank" rel="noopener">Open App Store</a>
-                      </div>
-                    )}
+                  <span aria-hidden className="text-gray-500 transition rotate-180">▾</span>
+                </div>
+                {/* Always visible options (no dropdown) */}
+                <div className="mt-3">
+                  <div className="grid grid-cols-3 gap-3">
+                    {appDeepLinks.filter(a=>['gpay','phonepe','paytm'].includes(a.key)).map((a) => (
+                      <button
+                        key={a.key}
+                        onClick={() => openWithScheme(a.scheme, a.storeUrl, a.label)}
+                        className="flex flex-col items-center gap-2"
+                      >
+                        <span className="h-14 w-16 grid place-content-center rounded-xl border shadow-sm bg-white hover:shadow-md active:scale-[0.98] transition">
+                          <img src={appIcons[a.key]} alt={a.label} className="h-8 object-contain"/>
+                        </span>
+                        <span className="text-[11px] text-gray-600">{a.label}</span>
+                      </button>
+                    ))}
                   </div>
-                )}
+                  <div className="mt-4 text-center text-xs text-gray-500">Add UPI ID</div>
+                  {storeSuggest && (
+                    <div className="mt-3 p-2 border rounded bg-yellow-50 text-yellow-800 text-xs">
+                      If the app didn't open, tap here to open {storeSuggest.label} in the App Store.
+                      <a className="ml-2 underline" href={storeSuggest.storeUrl} target="_blank" rel="noopener">Open App Store</a>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
