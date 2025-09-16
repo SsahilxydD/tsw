@@ -857,7 +857,8 @@ app.get('/order/:token', (req, res) => {
 <title>Order Confirmation · Solo Wardrobe</title>
 <style>
   :root{color-scheme:light}
-  body{margin:0;font-family:Inter,Segoe UI,Roboto,Arial,sans-serif;background:#fff;color:#000;}
+  html,body{background:#fff !important;color:#000 !important;}
+  body{margin:0;font-family:Inter,Segoe UI,Roboto,Arial,sans-serif;}
   .wrap{max-width:780px;margin:40px auto;padding:24px;}
   .card{background:#fff;border:1px solid #000;border-radius:0;padding:32px;box-shadow:none;}
   .hero{display:flex;align-items:center;gap:16px;margin-bottom:24px;}
