@@ -148,20 +148,36 @@ a.active hr {
 /* ===== Glassmorphic button ===== */
 .btn-glass {
   position: relative;
-  background: rgba(255,255,255,0.12);
-  color: #0b0b0b;
-  border: 1px solid rgba(255,255,255,0.35);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-  backdrop-filter: blur(12px) saturate(140%);
-  -webkit-backdrop-filter: blur(12px) saturate(140%);
-  transition: background 160ms ease, box-shadow 160ms ease, transform 120ms ease, border 160ms ease;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.22);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  transition: background 160ms ease, box-shadow 160ms ease, transform 120ms ease, border 160ms ease, opacity 160ms ease;
 }
-.btn-glass:hover { background: rgba(255,255,255,0.18); box-shadow: 0 10px 28px rgba(0,0,0,0.18); }
+.btn-glass:hover { box-shadow: 0 12px 28px rgba(0,0,0,0.22); }
 .btn-glass:active { transform: translateY(0.5px) scale(0.995); }
 .btn-glass:disabled { opacity: .5; cursor: not-allowed; }
 .btn-glass::before {
   content: "";
   position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
   background: linear-gradient(to bottom, rgba(255,255,255,0.55), rgba(255,255,255,0.08));
-  mix-blend-mode: screen; opacity: .7;
+  mix-blend-mode: screen; opacity: .65;
+}
+
+/* Dark glass variant (notification-like) */
+.btn-glass-dark {
+  color: #fff;
+  background:
+    radial-gradient(120px 60px at 100% 0%, rgba(255,83,54,0.25), rgba(255,83,54,0.0) 60%),
+    linear-gradient( to right, rgba(17,24,39,0.62), rgba(15,23,42,0.52) ); /* slate-900 to slate-800 */
+  border-color: rgba(255,255,255,0.16);
+}
+.btn-glass-dark:hover { background:
+    radial-gradient(120px 60px at 100% 0%, rgba(255,83,54,0.30), rgba(255,83,54,0.0) 60%),
+    linear-gradient( to right, rgba(17,24,39,0.68), rgba(15,23,42,0.58) ); }
+.btn-glass-dark::after {
+  /* inner subtle stroke for glass edge */
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
 }

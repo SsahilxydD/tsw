@@ -386,7 +386,7 @@ export default function Product() {
             <button
               onClick={handleAdd}
               disabled={!canSubmit}
-              className={`w-full px-5 py-4 rounded-2xl btn-glass font-semibold pressable
+              className={`w-full px-5 py-4 rounded-2xl btn-glass btn-glass-dark font-semibold pressable
                 ${!canSubmit ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {added ? 'Added to cart' : 'Add to cart'}
