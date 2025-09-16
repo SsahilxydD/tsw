@@ -26,6 +26,7 @@ import Orders from "./pages/Orders";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import UPICheckout from "./pages/UPICheckout";
+import Admin from "./pages/Admin";
 
 export default function App() {
   const location = useLocation();
@@ -53,6 +54,7 @@ export default function App() {
           <Route path="/upi-checkout" element={<UPICheckout />} />
           <Route path="/orders" element={<Orders />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/admin" element={<Admin />} />
           {/* Fallback */}
           <Route path="*" element={<NotFound />} />
         </Routes>

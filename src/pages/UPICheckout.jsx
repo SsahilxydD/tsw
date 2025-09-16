@@ -53,10 +53,18 @@ export default function UPICheckout() {
         currentUpiLink: data.upiLink || null,
       };
       setOrder(created);
-      const now = Date.now();
-      const exp = now + 5 * 60 * 1000; // 5 minutes
-      setExpiresAt(exp);
-      setTimeLeft(exp - now);
+      // Use server-supplied expiry for timer sync
+      if (data.expiresAt && data.serverNow) {
+        const msLeft = new Date(data.expiresAt).getTime() - new Date(String(data.serverNow)).getTime();
+        const expMs = Date.now() + Math.max(0, msLeft);
+        setExpiresAt(expMs);
+        setTimeLeft(Math.max(0, msLeft));
+      } else {
+        const now = Date.now();
+        const exp = now + 5 * 60 * 1000;
+        setExpiresAt(exp);
+        setTimeLeft(exp - now);
+      }
     } catch (e) {
       setError(e.message || 'Failed to create order');
     } finally {
@@ -80,6 +88,12 @@ export default function UPICheckout() {
         currentQr: o.currentQr,
         currentUpiLink: o.currentUpiLink,
       }));
+      if (o.expiresAt && o.serverNow) {
+        const msLeft = new Date(o.expiresAt).getTime() - new Date(String(o.serverNow)).getTime();
+        const expMs = Date.now() + Math.max(0, msLeft);
+        setExpiresAt(expMs);
+        setTimeLeft(Math.max(0, msLeft));
+      }
       if (o.status === 'PAID' && redirect) {
         setTimeout(() => { window.location.href = redirect; }, 1000);
       }

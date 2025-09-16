@@ -25,6 +25,29 @@ ensureDir(QRS_DIR);
 
 const db = new FSDB(DATA_DIR);
 
+const ORDER_TTL_MIN = Number(process.env.ORDER_TTL_MIN || 5);
+
+function nowIso() { return new Date().toISOString(); }
+
+function addMinutes(iso, minutes) {
+  const d = iso ? new Date(iso) : new Date();
+  return new Date(d.getTime() + minutes * 60 * 1000).toISOString();
+}
+
+function ensureFreshStatus(order) {
+  if (!order) return false;
+  const now = new Date();
+  const exp = order.expiresAt ? new Date(order.expiresAt) : null;
+  if (order.status !== 'PAID' && exp && now > exp && order.status !== 'EXPIRED') {
+    order.status = 'EXPIRED';
+    order.currentUpiLink = null;
+    order.currentQr = null;
+    order.updatedAt = nowIso();
+    return true;
+  }
+  return false;
+}
+
 function loadOrders() {
   return db.read('orders', []);
 }
@@ -90,7 +113,8 @@ app.post('/orders', async (req, res) => {
     await makeQr(qrFile, upiLink);
 
     const orders = loadOrders();
-    const now = new Date().toISOString();
+    const now = nowIso();
+    const expiresAt = addMinutes(now, ORDER_TTL_MIN);
     const order = {
       id: orderId,
       totalAmountPaise: amountPaise,
@@ -106,6 +130,8 @@ app.post('/orders', async (req, res) => {
       ],
       status: 'PENDING',
       createdAt: now,
+      updatedAt: now,
+      expiresAt,
       paidAt: null,
       meta: { ...meta, productId: product ? product.id : meta.productId },
       product: product ? { id: product.id, name: product.name, amountPaise: amountPaise } : null,
@@ -113,19 +139,45 @@ app.post('/orders', async (req, res) => {
     orders.push(order);
     saveOrders(orders);
 
-    res.json({ orderId, upiLink: order.currentUpiLink, qr: order.currentQr, status: order.status, remainingPaise: order.remainingPaise, product: order.product });
+    res.json({
+      orderId,
+      upiLink: order.currentUpiLink,
+      qr: order.currentQr,
+      status: order.status,
+      remainingPaise: order.remainingPaise,
+      product: order.product,
+      expiresAt: order.expiresAt,
+      serverNow: nowIso(),
+    });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Failed to create order' });
   }
 });
 
-// Get order
+// List orders (basic admin)
+app.get('/orders', (req, res) => {
+  const orders = loadOrders();
+  let changed = false;
+  for (const o of orders) {
+    if (ensureFreshStatus(o)) changed = true;
+  }
+  if (changed) saveOrders(orders);
+  const limit = Math.max(1, Math.min(1000, Number(req.query.limit) || 200));
+  const out = orders
+    .slice()
+    .sort((a,b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+    .slice(0, limit);
+  res.json({ serverNow: nowIso(), orders: out });
+});
+
+// Get single order
 app.get('/orders/:id', (req, res) => {
   const orders = loadOrders();
   const order = orders.find((o) => o.id === req.params.id);
   if (!order) return res.status(404).json({ error: 'Not found' });
-  res.json(order);
+  if (ensureFreshStatus(order)) saveOrders(orders);
+  res.json({ ...order, serverNow: nowIso() });
 });
 
 // Products API (read-only)
@@ -166,6 +218,63 @@ function updateOrderForPartial(order, paidAmountPaise, upiId, upiName) {
   // Return info for caller to await generation
   return { nextLink, qrFile };
 }
+
+// Admin-lite actions (no auth yet)
+app.post('/orders/:id/expire', (req, res) => {
+  const orders = loadOrders();
+  const order = orders.find(o => o.id === req.params.id);
+  if (!order) return res.status(404).json({ error: 'Not found' });
+  if (order.status !== 'PAID') {
+    order.status = 'EXPIRED';
+    order.currentQr = null;
+    order.currentUpiLink = null;
+    order.updatedAt = nowIso();
+  }
+  saveOrders(orders);
+  res.json({ ok: true, order });
+});
+
+app.post('/orders/:id/mark-paid', (req, res) => {
+  const orders = loadOrders();
+  const order = orders.find(o => o.id === req.params.id);
+  if (!order) return res.status(404).json({ error: 'Not found' });
+  order.status = 'PAID';
+  order.paidPaise = order.totalAmountPaise;
+  order.remainingPaise = 0;
+  order.currentQr = null;
+  order.currentUpiLink = null;
+  order.paidAt = nowIso();
+  order.updatedAt = order.paidAt;
+  saveOrders(orders);
+  res.json({ ok: true, order });
+});
+
+app.post('/orders/:id/regenerate', async (req, res) => {
+  try {
+    const orders = loadOrders();
+    const order = orders.find(o => o.id === req.params.id);
+    if (!order) return res.status(404).json({ error: 'Not found' });
+    if (order.status === 'PAID') return res.status(400).json({ error: 'Already paid' });
+    const upiId = process.env.UPI_ID;
+    const upiName = process.env.UPI_NAME || 'Merchant';
+    const amountPaise = order.remainingPaise || order.totalAmountPaise;
+    const nextLink = buildUpiLink({ pa: upiId, pn: upiName, amountPaise, orderId: order.id });
+    const qrFile = path.join(QRS_DIR, `${order.id}-${amountPaise}.png`);
+    await makeQr(qrFile, nextLink);
+    order.currentUpiLink = nextLink;
+    order.currentQr = `/qrs/${path.basename(qrFile)}`;
+    const now = nowIso();
+    order.expiresAt = addMinutes(now, ORDER_TTL_MIN);
+    order.updatedAt = now;
+    order.status = order.paidPaise > 0 ? 'PARTIAL' : 'PENDING';
+    order.qrHistory.push({ amountPaise, upiLink: nextLink, qr: order.currentQr, createdAt: now });
+    saveOrders(orders);
+    res.json({ ok: true, order, serverNow: nowIso() });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Failed to regenerate' });
+  }
+});
 
 app.post('/webhooks/sms', smsLimiter, async (req, res) => {
   try {
