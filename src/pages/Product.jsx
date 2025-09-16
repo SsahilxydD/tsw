@@ -380,17 +380,20 @@ export default function Product() {
 
           
 
-          {/* CTA */}
-          <div className="mt-6 flex flex-wrap items-center gap-3">
-            <button
-              onClick={handleAdd}
-              disabled={!canSubmit}
-              className={`px-5 py-3 bg-black text-white text-sm rounded transition pressable
-                ${!canSubmit ? "opacity-50 cursor-not-allowed" : "hover:opacity-90 active:scale-95"}
-                ${added ? "ring-2 ring-black" : ""}`}
-            >
-              {added ? "Added" : "Add to cart"}
-            </button>
+          {/* CTA (replica style) */}
+          <div className="mt-6 space-y-3">
+            {/* Add to cart as minimal text button centered */}
+            <div className="text-center">
+              <button
+                onClick={handleAdd}
+                disabled={!canSubmit}
+                className={`text-[15px] font-semibold underline-offset-2 ${!canSubmit ? 'opacity-40 cursor-not-allowed' : 'hover:underline'}`}
+              >
+                {added ? 'Added to cart' : 'Add to cart'}
+              </button>
+            </div>
+
+            {/* Big rounded BUY NOW bar with UPI logos and chevron */}
             <button
               type="button"
               disabled={!canSubmit}
@@ -401,10 +404,17 @@ export default function Product() {
                 addToCart(pid, sizeToSend);
                 navigate('/address');
               }}
-              className={`px-4 py-3 border rounded text-sm pressable
-                ${!canSubmit ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50"}`}
+              className={`w-full px-5 py-4 rounded-2xl text-white bg-black flex items-center justify-between pressable active:scale-[0.99]
+                ${!canSubmit ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-95'}`}
             >
-              Buy now
+              <span className="text-[15px] sm:text-base font-semibold tracking-wide">BUY NOW</span>
+              <span className="flex items-center gap-2">
+                {/* Public logo links: GPay, PhonePe, Paytm */}
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Google_Pay_%28GPay%29_Logo_%282018-2020%29.svg/64px-Google_Pay_%28GPay%29_Logo_%282018-2020%29.svg.png" alt="GPay" className="h-5 w-5 rounded-full bg-white p-0.5" loading="lazy" />
+                <img src="https://upload.wikimedia.org/wikipedia/commons/f/f2/PhonePe_Logo.png" alt="PhonePe" className="h-5 w-5 rounded-full bg-white p-0.5 object-contain" loading="lazy" />
+                <img src="https://upload.wikimedia.org/wikipedia/commons/5/55/Paytm_logo.png" alt="Paytm" className="h-5 w-5 rounded-full bg-white p-0.5 object-contain" loading="lazy" />
+                <span aria-hidden className="ml-1 text-xl leading-none">›</span>
+              </span>
             </button>
           </div>
 
