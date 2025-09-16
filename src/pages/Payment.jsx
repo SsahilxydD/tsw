@@ -122,13 +122,23 @@ export default function Payment() {
                 ? (p.image[0] || '')
                 : (Array.isArray(p?.images) ? (p.images[0] || '') : (p?.image || ''));
               return (
-                <div key={idx} className="rounded-md border bg-white p-4 flex items-center gap-4">
-                  <img className="w-16 h-16 rounded-md object-cover border" src={cover} alt="" />
+                <div key={idx} className="rounded-md border bg-white p-4 sm:p-5 flex items-center gap-4 sm:gap-6 hover:shadow-md transition-all duration-200">
+                  <img className="w-20 h-20 rounded-md object-cover border" src={cover} alt="" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{p?.name}</p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {currency}{p?.price} {it.size && <span className="ml-2">Size: {String(it.size).replace(/^UK-/, '')}</span>} {it.quantity > 1 && <span className="ml-2">Qty: {it.quantity}</span>}
-                    </p>
+                    <p className="text-sm sm:text-base font-medium leading-snug break-words">{p?.name}</p>
+                    <div className="mt-2 flex items-center gap-2 flex-wrap text-xs text-gray-600">
+                      <span className="px-2 py-1 text-sm font-semibold border rounded-md bg-white">
+                        {currency}{p?.price}
+                      </span>
+                      {it.size && (
+                        <span className="px-2 py-1 text-xs border rounded-md bg-slate-50">
+                          Size: {String(it.size).replace(/^UK-/, '')}
+                        </span>
+                      )}
+                      {it.quantity > 1 && (
+                        <span className="px-2 py-1 text-xs border rounded-md bg-slate-50">Qty: {it.quantity}</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
