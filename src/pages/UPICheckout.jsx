@@ -8,6 +8,10 @@ export default function UPICheckout() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const timerRef = useRef(null);
+  const countdownRef = useRef(null);
+  const [expiresAt, setExpiresAt] = useState(null);
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [expired, setExpired] = useState(false);
 
   const qs = useMemo(() => new URLSearchParams(window.location.search), []);
   const isIOS = useMemo(() => /iPad|iPhone|iPod/i.test(navigator.userAgent), []);
@@ -22,6 +26,7 @@ export default function UPICheckout() {
   const createOrder = async () => {
     setLoading(true);
     setError('');
+    setExpired(false);
     try {
       const payload = { meta: {} };
       if (productId) payload.productId = productId;
@@ -35,7 +40,7 @@ export default function UPICheckout() {
         throw new Error(msg);
       }
       const data = await r.json();
-      setOrder({
+      const created = {
         id: data.orderId,
         status: data.status,
         // Parenthesize to avoid mixing ?? with || per esbuild rule
@@ -44,7 +49,12 @@ export default function UPICheckout() {
         remaining: data.remainingPaise ?? 0,
         currentQr: data.qr || null,
         currentUpiLink: data.upiLink || null,
-      });
+      };
+      setOrder(created);
+      const now = Date.now();
+      const exp = now + 5 * 60 * 1000; // 5 minutes
+      setExpiresAt(exp);
+      setTimeLeft(exp - now);
     } catch (e) {
       setError(e.message || 'Failed to create order');
     } finally {
@@ -85,6 +95,38 @@ export default function UPICheckout() {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [order?.id, pollMs]);
+
+  // Countdown towards expiry
+  useEffect(() => {
+    if (!order?.id || !expiresAt) return;
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    const update = () => {
+      const now = Date.now();
+      const left = Math.max(0, (expiresAt - now));
+      setTimeLeft(left);
+      if (left <= 0) {
+        clearInterval(countdownRef.current);
+        onExpire();
+      }
+    };
+    update();
+    countdownRef.current = setInterval(update, 1000);
+    return () => { if (countdownRef.current) clearInterval(countdownRef.current); };
+  }, [order?.id, expiresAt]);
+
+  useEffect(() => {
+    if (order?.status === 'PAID' && countdownRef.current) {
+      clearInterval(countdownRef.current);
+    }
+  }, [order?.status]);
+
+  const onExpire = () => {
+    try { if (timerRef.current) clearInterval(timerRef.current); } catch {}
+    setExpired(true);
+    setShowApps(false);
+    setStoreSuggest(null);
+    setOrder(null);
+  };
 
   function parseUpiParams(link) {
     try {
@@ -174,11 +216,29 @@ export default function UPICheckout() {
         </div>
       )}
 
+      {!!order && expiresAt && !expired && (
+        <div className="mb-4 rounded-md border bg-yellow-50 text-yellow-800 px-3 py-2 text-sm flex items-center justify-between">
+          <span>Complete payment within 5 minutes</span>
+          <span className="font-semibold tabular-nums">
+            {String(Math.floor(timeLeft/60000)).padStart(2,'0')}:{String(Math.floor((timeLeft%60000)/1000)).padStart(2,'0')}
+          </span>
+        </div>
+      )}
+
+      {expired && (
+        <div className="rounded-md border bg-red-50 text-red-800 p-3 mb-4">
+          This payment session expired. Generate a fresh QR to continue.
+          <div className="mt-2">
+            <button onClick={createOrder} className="px-4 py-2 rounded-md bg-black text-white text-sm">Create New QR</button>
+          </div>
+        </div>
+      )}
+
       {loading && (
         <p className="text-gray-500">Preparing your order…</p>
       )}
 
-      {!!order && (
+      {!!order && !expired && (
         <div className="grid sm:grid-cols-2 gap-6">
           <div className="rounded-md border bg-white/5 p-4 flex items-center justify-center min-h-[300px]">
             {order.currentQr ? (
