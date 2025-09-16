@@ -16,6 +16,68 @@ const app = express();
 app.use(helmet());
 app.use(express.json({ limit: '256kb' }));
 
+/* ===== Admin Basic Auth Guard (military-grade minimal) ===== */
+// Protect any route that contains an 'admin' path segment (e.g., /admin, /base_url/admin, /x/y/admin/z)
+const crypto = require('crypto');
+const ADMIN_USER = process.env.ADMIN_USER || 'thesolowardrobe@gmail.com';
+const ADMIN_PASS = process.env.ADMIN_PASS || 'Thesolowardrobe@14333';
+const ENFORCE_HTTPS = String(process.env.ENFORCE_HTTPS || 'false').toLowerCase() === 'true';
+
+if (ENFORCE_HTTPS) {
+  // Respect reverse proxies (e.g., Nginx). Only enable when you have TLS at the proxy.
+  app.set('trust proxy', true);
+  app.use((req, res, next) => {
+    const proto = req.headers['x-forwarded-proto'] || req.protocol;
+    if (proto !== 'https') return res.status(403).send('HTTPS required');
+    next();
+  });
+}
+
+function safeEqual(a, b) {
+  try {
+    const ab = Buffer.from(String(a));
+    const bb = Buffer.from(String(b));
+    if (ab.length !== bb.length) return false;
+    return crypto.timingSafeEqual(ab, bb);
+  } catch {
+    return false;
+  }
+}
+
+function adminGuard(req, res, next) {
+  try {
+    const segs = req.path.split('/').filter(Boolean);
+    const isAdminPath = segs.includes('admin');
+    if (!isAdminPath) return next();
+
+    const hdr = req.headers['authorization'];
+    if (!hdr || !hdr.startsWith('Basic ')) {
+      res.set('WWW-Authenticate', 'Basic realm="Solo Admin"');
+      return res.status(401).send('Auth required');
+    }
+    let user = '', pass = '';
+    try {
+      const decoded = Buffer.from(hdr.split(' ')[1], 'base64').toString('utf8');
+      const idx = decoded.indexOf(':');
+      user = idx >= 0 ? decoded.slice(0, idx) : '';
+      pass = idx >= 0 ? decoded.slice(idx + 1) : '';
+    } catch {}
+
+    if (safeEqual(user, ADMIN_USER) && safeEqual(pass, ADMIN_PASS)) {
+      res.setHeader('Cache-Control', 'no-store');
+      return next();
+    }
+    res.set('WWW-Authenticate', 'Basic realm="Solo Admin"');
+    return res.status(401).send('Auth required');
+  } catch (e) {
+    return res.status(401).send('Auth required');
+  }
+}
+
+// Register before static and other routes
+app.use(adminGuard);
+/* =========================================================== */
+
 const DATA_DIR = path.join(process.cwd(), 'data');
 const PUBLIC_DIR = path.join(process.cwd(), 'public');
 const DIST_DIR = path.join(process.cwd(), 'dist');
@@ -70,37 +132,6 @@ function genOrderId() {
 async function makeQr(filePath, text) {
   await QRCode.toFile(filePath, text, { type: 'png', width: 512, margin: 1 });
 }
-
-/* ---------- ADDED: Basic Auth for /admin (minimal & isolated) ---------- */
-const ADMIN_USER = process.env.ADMIN_USER || 'thesolowardrobe@gmail.com';
-const ADMIN_PASS = process.env.ADMIN_PASS || 'Thesolowardrobe@14333';
-
-function adminUnauthorized(res) {
-  res.set('WWW-Authenticate', 'Basic realm="Solo Admin"');
-  return res.status(401).send('Auth required');
-}
-
-function adminBasicAuth(req, res, next) {
-  const hdr = req.headers['authorization'];
-  if (!hdr || !hdr.startsWith('Basic ')) return adminUnauthorized(res);
-  try {
-    const decoded = Buffer.from(hdr.split(' ')[1], 'base64').toString('utf8');
-    const idx = decoded.indexOf(':');
-    const user = idx >= 0 ? decoded.slice(0, idx) : '';
-    const pass = idx >= 0 ? decoded.slice(idx + 1) : '';
-    if (user === ADMIN_USER && pass === ADMIN_PASS) return next();
-  } catch (_) { /* ignore */ }
-  return adminUnauthorized(res);
-}
-
-// Protect /admin and /admin/* BEFORE static middleware to ensure gating
-app.get(['/admin', '/admin/*'], adminBasicAuth, (req, res) => {
-  const indexFile = path.join(DIST_DIR, 'index.html');
-  if (fs.existsSync(indexFile)) return res.sendFile(indexFile);
-  // If you ship a physical /dist/admin/index.html later, this will still serve SPA index
-  return res.status(404).send('Admin not found');
-});
-/* ---------------------------------------------------------------------- */
 
 // Static hosting for QR images and built SPA assets
 app.use('/qrs', express.static(QRS_DIR, { fallthrough: false }));
@@ -213,7 +244,7 @@ app.get('/orders/:id', async (req, res) => {
   try {
     if (order.status !== 'PAID' && Array.isArray(order.pendingVerifications) && order.pendingVerifications.length) {
       const payments = loadPayments();
-      const norm = (s) => String(s || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+      const norm = (s) => String(s).replace(/[^A-Za-z0-9]/g, '').toUpperCase();
       const findPaymentFor = (utr) => payments.find((p) => p.utr && norm(p.utr) === norm(utr) && !p.matched);
       const idx = order.pendingVerifications.findIndex((pv) => !!findPaymentFor(pv.utr));
       if (idx >= 0) {
