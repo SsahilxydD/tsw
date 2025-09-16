@@ -181,6 +181,8 @@ ensureDir(QRS_DIR);
 const db = new FSDB(DATA_DIR);
 
 const ORDER_TTL_MIN = Number(process.env.ORDER_TTL_MIN || 5);
+// Grace window for pruning unpaid/abandoned orders (in minutes)
+const PRUNE_GRACE_MIN = Math.max(10, Number(process.env.PRUNE_GRACE_MIN || 15));
 
 function nowIso() { return new Date().toISOString(); }
 
@@ -201,6 +203,40 @@ function ensureFreshStatus(order) {
     return true;
   }
   return false;
+}
+
+// Delete long-stale unpaid orders and their QR images.
+function pruneOldUnpaidOrders(orders) {
+  try {
+    const nowMs = Date.now();
+    const cutoffMs = (ORDER_TTL_MIN + PRUNE_GRACE_MIN) * 60 * 1000;
+    const keep = [];
+    for (const o of orders) {
+      let createdMs = 0;
+      try { createdMs = new Date(o.createdAt).getTime(); } catch {}
+      const isStale = o && o.status !== 'PAID' && Number.isFinite(createdMs) && (nowMs - createdMs) > cutoffMs;
+      if (isStale) {
+        try {
+          const maybeDelete = (rel) => {
+            try {
+              const p = String(rel || '').startsWith('/qrs/') ? path.join(QRS_DIR, path.basename(rel)) : null;
+              if (p && fs.existsSync(p)) fs.unlinkSync(p);
+            } catch {}
+          };
+          maybeDelete(o?.currentQr);
+          if (Array.isArray(o?.qrHistory)) {
+            for (const h of o.qrHistory) maybeDelete(h?.qr);
+          }
+        } catch {}
+        // drop from result -> effectively delete
+      } else {
+        keep.push(o);
+      }
+    }
+    return keep;
+  } catch {
+    return orders;
+  }
 }
 
 function loadOrders() {
@@ -430,6 +466,8 @@ app.post('/orders', async (req, res) => {
     };
     orders.push(order);
     saveOrders(orders);
+    // Opportunistic cleanup of long-stale unpaid orders
+    try { saveOrders(pruneOldUnpaidOrders(loadOrders())); } catch {}
 
     // Optional: cookie helps redirect old flows, harmless to keep
     res.cookie?.('last_order_token', order.publicViewToken, {
@@ -763,13 +801,18 @@ app.get('/orders/:id', (req, res) => {
     expiresAt: order.expiresAt || null,
     serverNow: serverNowVal,
     expiresInMs,
+    confirmationUrl: order.publicViewToken ? `/order/${order.publicViewToken}` : null,
   });
 });
+// Public read of an order by receipt token — only for PAID orders
 app.get('/api/order/:token', (req, res) => {
   const token = String(req.params.token || '');
   const orders = loadOrders();
   const order = orders.find(o => o.publicViewToken === token);
-  if (!order) return res.status(404).json({ error: 'Not found' });
+  if (!order || order.status !== 'PAID') {
+    // Do not leak unpaid/cancelled order metadata via public token
+    return res.status(404).json({ error: 'Not found' });
+  }
   res.setHeader('Cache-Control', 'no-store');
   return res.json({ order: sanitizeOrder(order) });
 });
@@ -778,7 +821,8 @@ app.get('/order/:token', (req, res) => {
   const token = String(req.params.token || '');
   const orders = loadOrders();
   const order = orders.find(o => o.publicViewToken === token);
-  if (!order) return res.status(404).send('<h1>Not found</h1>');
+  // Only show receipt for fully paid orders. Everything else is not found.
+  if (!order || order.status !== 'PAID') return res.status(404).send('<h1>Not found</h1>');
   const s = sanitizeOrder(order);
   const fmtRs = n => `₹${(Number(n||0)/100).toFixed(2)}`;
   const fmtDate = (iso) => iso ? new Date(iso).toLocaleString() : '—';
@@ -876,6 +920,10 @@ const HOST = process.env.HOST || '0.0.0.0';
 app.listen(PORT, HOST, () => {
   console.log(`UPI QR server listening on http://${HOST}:${PORT}`);
 });
+// Background prune as a safety net
+setInterval(() => {
+  try { saveOrders(pruneOldUnpaidOrders(loadOrders())); } catch {}
+}, Math.max(5 * 60 * 1000, (ORDER_TTL_MIN + PRUNE_GRACE_MIN) * 60 * 1000));
 
 // SPA fallback to dist/index.html (after API routes)
 app.get('*', (req, res, next) => {

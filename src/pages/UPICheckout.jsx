@@ -152,6 +152,7 @@ export default function UPICheckout() {
         currentQr: full.currentQr,
         currentUpiLink: full.currentUpiLink,
         publicViewToken: full.publicViewToken || data.publicViewToken || null,
+        confirmationUrl: full.confirmationUrl || (full.publicViewToken ? `/order/${full.publicViewToken}` : null),
         dispatchBy: full.dispatchBy || null,
         product: full.product || null,
         customer: full.customer || null,
@@ -196,6 +197,7 @@ export default function UPICheckout() {
         currentQr: o.currentQr,
         currentUpiLink: o.currentUpiLink,
         publicViewToken: o.publicViewToken || prev?.publicViewToken || null,
+        confirmationUrl: o.confirmationUrl || prev?.confirmationUrl || (o.publicViewToken ? `/order/${o.publicViewToken}` : null),
         dispatchBy: o.dispatchBy || prev?.dispatchBy || null,
         product: o.product || prev?.product || null,
         customer: o.customer || prev?.customer || null,
@@ -239,6 +241,7 @@ export default function UPICheckout() {
               currentQr: o.currentQr,
               currentUpiLink: o.currentUpiLink,
               publicViewToken: o.publicViewToken || null,
+              confirmationUrl: o.confirmationUrl || (o.publicViewToken ? `/order/${o.publicViewToken}` : null),
               dispatchBy: o.dispatchBy || null,
               product: o.product || null,
               customer: o.customer || null,
@@ -266,6 +269,7 @@ export default function UPICheckout() {
               currentQr: o.currentQr,
               currentUpiLink: o.currentUpiLink,
               publicViewToken: o.publicViewToken || null,
+              confirmationUrl: o.confirmationUrl || (o.publicViewToken ? `/order/${o.publicViewToken}` : null),
               dispatchBy: o.dispatchBy || null,
               product: o.product || null,
               customer: o.customer || null,
@@ -704,8 +708,8 @@ export default function UPICheckout() {
 
               <div className="mt-8 flex flex-wrap gap-3">
                 <button onClick={onContinue} className="px-5 py-2.5 rounded-full bg-white text-slate-900 text-sm font-semibold shadow-sm hover:-translate-y-0.5 transition">Continue</button>
-                {order?.publicViewToken && (
-                  <a className="px-5 py-2.5 rounded-full border border-white/30 text-sm font-semibold text-slate-100 hover:-translate-y-0.5 transition" href={`/order/${order.publicViewToken}`} target="_blank" rel="noreferrer">View receipt</a>
+                {order?.publicViewToken && order?.status === 'PAID' && (
+                  <a className="px-5 py-2.5 rounded-full border border-white/30 text-sm font-semibold text-slate-100 hover:-translate-y-0.5 transition" href={order?.confirmationUrl || `/order/${order.publicViewToken}`} target="_blank" rel="noreferrer">View receipt</a>
                 )}
                 <a className="px-5 py-2.5 rounded-full border border-emerald-400/60 text-sm font-semibold text-emerald-300 hover:-translate-y-0.5 transition" href={whatsappLink} target="_blank" rel="noreferrer">WhatsApp support</a>
               </div>
