@@ -133,6 +133,51 @@ async function makeQr(filePath, text) {
   await QRCode.toFile(filePath, text, { type: 'png', width: 512, margin: 1 });
 }
 
+// --- PUBLIC ORDER VIEW (safe) + ADMIN API GUARD HELPERS ---
+function genViewToken() {
+  return crypto.randomBytes(18).toString('base64url');
+}
+function sanitizeOrder(o) {
+  if (!o) return null;
+  const dispatchBase = o.paidAt || o.createdAt;
+  const dispatchBy = dispatchBase ? new Date(new Date(dispatchBase).getTime() + 2*24*60*60*1000).toISOString() : null;
+  return {
+    id: o.id,
+    status: o.status,
+    currency: o.currency,
+    totalAmountPaise: o.totalAmountPaise,
+    paidPaise: o.paidPaise,
+    remainingPaise: o.remainingPaise,
+    product: o.product ? { id: o.product.id, name: o.product.name, amountPaise: o.product.amountPaise } : null,
+    createdAt: o.createdAt,
+    paidAt: o.paidAt || null,
+    dispatchBy
+  };
+}
+function parseBasicAuth(req) {
+  const hdr = req.headers && req.headers.authorization;
+  if (!hdr || !hdr.startsWith('Basic ')) return null;
+  try {
+    const decoded = Buffer.from(hdr.slice(6), 'base64').toString('utf8');
+    const idx = decoded.indexOf(':');
+    if (idx < 0) return null;
+    return { user: decoded.slice(0, idx), pass: decoded.slice(idx + 1) };
+  } catch { return null; }
+}
+function requireAdminApi(req, res, next) {
+  const creds = parseBasicAuth(req);
+  if (creds && safeEq(creds.user, ADMIN_USER) && safeEq(creds.pass, ADMIN_PASS)) {
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    return next();
+  }
+  res.setHeader('WWW-Authenticate', 'Basic realm="SoloAdmin-API", charset="UTF-8"');
+  res.setHeader('Cache-Control', 'no-store');
+  return res.status(401).send('Auth required');
+}
+// --- END HELPERS ---
+
 // Static hosting for QR images and built SPA assets
 app.use('/qrs', express.static(QRS_DIR, { fallthrough: false }));
 app.use(express.static(DIST_DIR));
@@ -197,11 +242,13 @@ app.post('/orders', async (req, res) => {
       paidAt: null,
       meta: { ...meta, productId: product ? product.id : meta.productId },
       product: product ? { id: product.id, name: product.name, amountPaise: amountPaise } : null,
+      publicViewToken: genViewToken(), // <-- add public view token
     };
     orders.push(order);
     saveOrders(orders);
 
     const expiresInMs = Math.max(0, new Date(expiresAt).getTime() - new Date(now).getTime());
+    const confirmationUrl = `/order/${order.publicViewToken}`; // <-- safe confirmation URL for customers
     res.json({
       orderId,
       upiLink: order.currentUpiLink,
@@ -212,6 +259,8 @@ app.post('/orders', async (req, res) => {
       expiresAt: order.expiresAt,
       serverNow: nowIso(),
       expiresInMs,
+      confirmationUrl,                // <-- added
+      publicViewToken: order.publicViewToken // <-- added
     });
   } catch (e) {
     console.error(e);
@@ -219,8 +268,8 @@ app.post('/orders', async (req, res) => {
   }
 });
 
-// List orders (basic admin)
-app.get('/orders', (req, res) => {
+// List orders (admin only)
+app.get('/orders', requireAdminApi, (req, res) => {
   const orders = loadOrders();
   let changed = false;
   for (const o of orders) {
@@ -230,13 +279,13 @@ app.get('/orders', (req, res) => {
   const limit = Math.max(1, Math.min(1000, Number(req.query.limit) || 200));
   const out = orders
     .slice()
-    .sort((a,b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+    .sort((a,b) => String(b.createdAt).toLocaleString().localeCompare(String(a.createdAt)))
     .slice(0, limit);
   res.json({ serverNow: nowIso(), orders: out });
 });
 
-// Get single order
-app.get('/orders/:id', async (req, res) => {
+// Get single order (admin only)
+app.get('/orders/:id', requireAdminApi, async (req, res) => {
   const orders = loadOrders();
   const order = orders.find((o) => o.id === req.params.id);
   if (!order) return res.status(404).json({ error: 'Not found' });
@@ -327,8 +376,8 @@ function updateOrderForPartial(order, paidAmountPaise, upiId, upiName) {
   return { nextLink, qrFile };
 }
 
-// Admin-lite actions (no auth yet)
-app.post('/orders/:id/expire', (req, res) => {
+// Admin-lite actions (now admin-only)
+app.post('/orders/:id/expire', requireAdminApi, (req, res) => {
   const orders = loadOrders();
   const order = orders.find(o => o.id === req.params.id);
   if (!order) return res.status(404).json({ error: 'Not found' });
@@ -342,7 +391,7 @@ app.post('/orders/:id/expire', (req, res) => {
   res.json({ ok: true, order });
 });
 
-app.post('/orders/:id/mark-paid', (req, res) => {
+app.post('/orders/:id/mark-paid', requireAdminApi, (req, res) => {
   const orders = loadOrders();
   const order = orders.find(o => o.id === req.params.id);
   if (!order) return res.status(404).json({ error: 'Not found' });
@@ -357,7 +406,7 @@ app.post('/orders/:id/mark-paid', (req, res) => {
   res.json({ ok: true, order });
 });
 
-app.post('/orders/:id/regenerate', async (req, res) => {
+app.post('/orders/:id/regenerate', requireAdminApi, async (req, res) => {
   try {
     const orders = loadOrders();
     const order = orders.find(o => o.id === req.params.id);
@@ -498,6 +547,61 @@ app.post('/webhooks/sms', smsLimiter, async (req, res) => {
   }
 });
 
+// --- Customer-safe endpoints ---
+app.get('/api/order/:token', (req, res) => {
+  const token = String(req.params.token || '');
+  const orders = loadOrders();
+  const order = orders.find(o => o.publicViewToken === token);
+  if (!order) return res.status(404).json({ error: 'Not found' });
+  res.setHeader('Cache-Control', 'no-store');
+  return res.json({ order: sanitizeOrder(order) });
+});
+
+app.get('/order/:token', (req, res) => {
+  const token = String(req.params.token || '');
+  const orders = loadOrders();
+  const order = orders.find(o => o.publicViewToken === token);
+  if (!order) return res.status(404).send('<h1>Not found</h1>');
+  const s = sanitizeOrder(order);
+  const fmtRs = n => `₹${(Number(n||0)/100).toFixed(2)}`;
+  res.setHeader('Cache-Control', 'no-store');
+  res.status(200).send(`<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Order Confirmation · Solo Wardrobe</title>
+<style>
+  body{margin:0;font-family:system-ui,Segoe UI,Roboto,Inter,Arial,sans-serif;background:#0b0d12;color:#e5e7eb}
+  .wrap{max-width:720px;margin:40px auto;padding:20px}
+  .card{background:#121520;border:1px solid #1e2230;border-radius:14px;padding:20px}
+  .muted{color:#94a3b8}
+  h1{font-size:20px;margin:0 0 8px}
+  .row{display:flex;flex-wrap:wrap;gap:14px}
+  .pill{background:#0f121a;border:1px solid #1f273a;padding:8px 10px;border-radius:999px;font-size:12px}
+  .kv{display:grid;grid-template-columns:140px 1fr;gap:8px;font-size:14px;margin:10px 0}
+  a.btn{display:inline-block;margin-top:16px;padding:10px 14px;background:#6ee7b7;color:#0b0d12;border-radius:10px;text-decoration:none;font-weight:600}
+</style>
+</head>
+<body><div class="wrap">
+  <div class="card">
+    <h1>Thank you! Your order is confirmed.</h1>
+    <div class="muted">We’ll dispatch your product within <strong>2 days</strong>.</div>
+    <div class="row" style="margin:14px 0 6px;">
+      <span class="pill">Order ID: ${s.id}</span>
+      <span class="pill">Status: ${s.status}</span>
+      ${s.product ? `<span class="pill">${s.product.name}</span>` : ``}
+    </div>
+    <div class="kv"><div>Total</div><div>${fmtRs(s.totalAmountPaise)}</div></div>
+    <div class="kv"><div>Paid</div><div>${fmtRs(s.paidPaise)}</div></div>
+    <div class="kv"><div>Remaining</div><div>${fmtRs(s.remainingPaise)}</div></div>
+    <div class="kv"><div>Created</div><div>${new Date(s.createdAt).toLocaleString()}</div></div>
+    ${s.paidAt ? `<div class="kv"><div>Paid At</div><div>${new Date(s.paidAt).toLocaleString()}</div></div>` : ``}
+    ${s.dispatchBy ? `<div class="kv"><div>Dispatch By</div><div>${new Date(s.dispatchBy).toLocaleString()}</div></div>` : ``}
+    <a class="btn" href="/">Back to store</a>
+  </div>
+</div></body></html>`);
+});
+// --- End customer-safe endpoints ---
+
 // Start server
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -509,7 +613,7 @@ app.listen(PORT, HOST, () => {
 // Keep it after app.listen definition so all APIs above remain matched first
 app.get('*', (req, res, next) => {
   // Do not interfere with API/static paths
-  const skip = req.path.startsWith('/qrs') || req.path.startsWith('/orders') || req.path.startsWith('/webhooks') || req.path.startsWith('/products') || req.path.startsWith('/health');
+  const skip = req.path.startsWith('/qrs') || req.path.startsWith('/orders') || req.path.startsWith('/webhooks') || req.path.startsWith('/products') || req.path.startsWith('/health') || req.path.startsWith('/api/order') || req.path.startsWith('/order/');
   if (skip) return next();
   const indexFile = path.join(DIST_DIR, 'index.html');
   if (fs.existsSync(indexFile)) return res.sendFile(indexFile);
