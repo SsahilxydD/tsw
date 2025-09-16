@@ -12,17 +12,17 @@ function mmss(ms) {
 }
 
 // Convert server expiry + serverNow to a local absolute deadline (ms since epoch)
+// Strictly server-driven: if inputs are missing/invalid, return null (no client fallback)
 function computeDeadlineTs(expiresAt, serverNow) {
   try {
     const exp = new Date(expiresAt).getTime();
-    const srv = serverNow ? new Date(String(serverNow)).getTime() : Date.now();
+    const srv = new Date(String(serverNow)).getTime();
     if (Number.isFinite(exp) && Number.isFinite(srv)) {
       const delta = Math.max(0, exp - srv);
       return Date.now() + delta;
     }
   } catch {}
-  // Fallback: 5 minutes from now (should not happen if server sends fields)
-  return Date.now() + 5 * 60 * 1000;
+  return null;
 }
 
 export default function UPICheckout() {
@@ -99,7 +99,7 @@ export default function UPICheckout() {
       // compute and store absolute deadline; start showing time immediately
       const dl = computeDeadlineTs(data.expiresAt, data.serverNow);
       setDeadlineTs(dl);
-      setTimeLeft(Math.max(0, dl - Date.now()));
+      if (dl != null) setTimeLeft(Math.max(0, dl - Date.now()));
     } catch (e) {
       setError(e.message || 'Failed to create order');
     } finally {
@@ -128,10 +128,10 @@ export default function UPICheckout() {
         currentUpiLink: o.currentUpiLink,
       }));
       // Re-sync deadline on every poll (handles server-side regen/extension)
-      if (o.expiresAt) {
+      if (o.expiresAt && o.serverNow) {
         const dl = computeDeadlineTs(o.expiresAt, o.serverNow);
         setDeadlineTs(dl);
-        setTimeLeft(Math.max(0, dl - Date.now()));
+        if (dl != null) setTimeLeft(Math.max(0, dl - Date.now()));
       }
       if (o.status === 'PAID' && redirect) {
         setTimeout(() => { window.location.href = redirect; }, 1000);
@@ -163,7 +163,7 @@ export default function UPICheckout() {
             });
             const dl = computeDeadlineTs(o.expiresAt, o.serverNow);
             setDeadlineTs(dl);
-            setTimeLeft(Math.max(0, dl - Date.now()));
+            if (dl != null) setTimeLeft(Math.max(0, dl - Date.now()));
             setLoading(false);
             return;
           }
