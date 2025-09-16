@@ -17,6 +17,8 @@ export default function UPICheckout() {
   const isIOS = useMemo(() => /iPad|iPhone|iPod/i.test(navigator.userAgent), []);
   const [showApps, setShowApps] = useState(false);
   const [storeSuggest, setStoreSuggest] = useState(null); // { storeUrl, label }
+  const [upiId, setUpiId] = useState('');
+  const [upiStatus, setUpiStatus] = useState('idle'); // idle | ok | error
   const amountParam = qs.get('amount');
   const productId = qs.get('productId');
   const metaRef = qs.get('ref') || qs.get('note') || null;
@@ -177,6 +179,14 @@ export default function UPICheckout() {
     paytm: '/paytm.png',
   }), []);
 
+  const verifyUpiId = () => {
+    const v = String(upiId || '').trim();
+    // Very permissive VPA format validation: local-part@handle
+    const ok = /^[A-Za-z0-9._-]{2,}@[A-Za-z][A-Za-z0-9._-]{2,}$/.test(v);
+    setUpiStatus(ok ? 'ok' : 'error');
+    try { if (ok) localStorage.setItem('user_upi_id', v); } catch {}
+  };
+
   const openWithScheme = (scheme, storeUrl, label) => {
     try {
       setStoreSuggest(null);
@@ -295,6 +305,31 @@ export default function UPICheckout() {
                   )}
                 </div>
                 <div className="mt-4 text-center text-xs text-gray-500">Add UPI ID</div>
+                <div className="mt-2 grid sm:grid-cols-[1fr_auto] gap-2">
+                  <input
+                    type="text"
+                    inputMode="email"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    placeholder="yourname@bank"
+                    value={upiId}
+                    onChange={(e) => { setUpiId(e.target.value); setUpiStatus('idle'); }}
+                    className="h-10 px-3 rounded-md border focus-ring"
+                  />
+                  <button
+                    type="button"
+                    onClick={verifyUpiId}
+                    className="h-10 px-4 rounded-md bg-black text-white text-sm pressable"
+                  >
+                    Verify UPI ID
+                  </button>
+                </div>
+                {upiStatus === 'ok' && (
+                  <p className="mt-1 text-xs text-green-600">Looks good. You can proceed with your UPI app.</p>
+                )}
+                {upiStatus === 'error' && (
+                  <p className="mt-1 text-xs text-red-600">Enter a valid UPI ID like name@bank.</p>
+                )}
                 {isIOS && storeSuggest && (
                   <div className="mt-3 p-2 border rounded bg-yellow-50 text-yellow-800 text-xs">
                     If the app didn't open, tap here to open {storeSuggest.label} in the App Store.
