@@ -98,8 +98,10 @@ export default function UPICheckout() {
 
       // compute and store absolute deadline; start showing time immediately
       const dl = computeDeadlineTs(data.expiresAt, data.serverNow);
-      setDeadlineTs(dl);
-      if (dl != null) setTimeLeft(Math.max(0, dl - Date.now()));
+      if (dl != null) {
+        setDeadlineTs(dl);
+        setTimeLeft(Math.max(0, dl - Date.now()));
+      }
     } catch (e) {
       setError(e.message || 'Failed to create order');
     } finally {
@@ -130,8 +132,10 @@ export default function UPICheckout() {
       // Re-sync deadline on every poll (handles server-side regen/extension)
       if (o.expiresAt && o.serverNow) {
         const dl = computeDeadlineTs(o.expiresAt, o.serverNow);
-        setDeadlineTs(dl);
-        if (dl != null) setTimeLeft(Math.max(0, dl - Date.now()));
+        if (dl != null) {
+          setDeadlineTs(dl);
+          setTimeLeft(Math.max(0, dl - Date.now()));
+        }
       }
       if (o.status === 'PAID' && redirect) {
         setTimeout(() => { window.location.href = redirect; }, 1000);
@@ -162,8 +166,10 @@ export default function UPICheckout() {
               currentUpiLink: o.currentUpiLink,
             });
             const dl = computeDeadlineTs(o.expiresAt, o.serverNow);
-            setDeadlineTs(dl);
-            if (dl != null) setTimeLeft(Math.max(0, dl - Date.now()));
+            if (dl != null) {
+              setDeadlineTs(dl);
+              setTimeLeft(Math.max(0, dl - Date.now()));
+            }
             setLoading(false);
             return;
           }
