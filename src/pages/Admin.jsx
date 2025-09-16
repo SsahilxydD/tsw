@@ -1,31 +1,8 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 
 function fmtRs(paise) { return `₹${(Math.max(0, Number(paise)||0)/100).toFixed(2)}`; }
 
-/* Guard: verify session and drive to login if missing */
-function useAdminGuard() {
-  const navigate = useNavigate();
-  React.useEffect(() => {
-    let alive = true;
-    fetch('/api/admin/session', { credentials: 'include', cache: 'no-store' })
-      .then(r => {
-        if (!alive) return;
-        if (r.status === 401) {
-          navigate('/admin/login?ret=/admin', { replace: true });
-        }
-      })
-      .catch(() => {
-        // If the check itself fails, be safe and send to login
-        navigate('/admin/login?ret=/admin', { replace: true });
-      });
-    return () => { alive = false; };
-  }, [navigate]);
-}
-
 export default function Admin() {
-  useAdminGuard();
-
   const [orders, setOrders] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [serverNow, setServerNow] = React.useState(null);
@@ -34,11 +11,7 @@ export default function Admin() {
   const fetchOrders = async () => {
     setError('');
     try {
-      const r = await fetch('/orders?limit=300', { cache: 'no-store', credentials: 'include' });
-      if (r.status === 401) {
-        window.location.assign('/admin/login?ret=/admin');
-        return;
-      }
+      const r = await fetch('/orders?limit=300', { cache: 'no-store' });
       if (!r.ok) throw new Error(`Failed (${r.status})`);
       const j = await r.json();
       setOrders(Array.isArray(j.orders) ? j.orders : []);
@@ -55,11 +28,7 @@ export default function Admin() {
 
   const action = async (id, path) => {
     try {
-      const r = await fetch(`/orders/${id}/${path}`, { method: 'POST', credentials: 'include' });
-      if (r.status === 401) {
-        window.location.assign('/admin/login?ret=/admin');
-        return;
-      }
+      const r = await fetch(`/orders/${id}/${path}`, { method: 'POST' });
       if (!r.ok) throw new Error(`Failed (${r.status})`);
       await fetchOrders();
     } catch (e) { setError(e.message || 'Action failed'); }
@@ -126,3 +95,4 @@ export default function Admin() {
     </div>
   );
 }
+
