@@ -393,29 +393,36 @@ export default function Product() {
               </button>
             </div>
 
-            {/* Big rounded BUY NOW bar with UPI logos and chevron */}
-            <button
-              type="button"
-              disabled={!canSubmit}
-              onClick={() => {
-                if (!canSubmit) return;
-                const sizeToSend = hasSizes ? selectedSize : 'std';
-                const pid = String(product._id ?? product.slug);
-                addToCart(pid, sizeToSend);
-                navigate('/address');
-              }}
-              className={`w-full px-5 py-4 rounded-2xl text-white bg-black flex items-center justify-between pressable active:scale-[0.99]
-                ${!canSubmit ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-95'}`}
-            >
-              <span className="text-[15px] sm:text-base font-semibold tracking-wide">BUY NOW</span>
-              <span className="flex items-center gap-2">
-                {/* Local public icons: place files in /public */}
-                <img src="/gpay.png" alt="GPay" className="h-5 w-5 rounded-full bg-white p-0.5 object-contain" loading="lazy" />
-                <img src="/phonepe.png" alt="PhonePe" className="h-5 w-5 rounded-full bg-white p-0.5 object-contain" loading="lazy" />
-                <img src="/paytm.png" alt="Paytm" className="h-5 w-5 rounded-full bg-white p-0.5 object-contain" loading="lazy" />
-                <span aria-hidden className="ml-1 text-xl leading-none">›</span>
-              </span>
-            </button>
+            {/* Big rounded BUY NOW bar with glassmorphic underlay for depth */}
+            <div className="relative">
+              {/* Glass underlay (same footprint) */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 shadow-md translate-y-[2px]"
+              />
+              <button
+                type="button"
+                disabled={!canSubmit}
+                onClick={() => {
+                  if (!canSubmit) return;
+                  const sizeToSend = hasSizes ? selectedSize : 'std';
+                  const pid = String(product._id ?? product.slug);
+                  addToCart(pid, sizeToSend);
+                  navigate('/address');
+                }}
+                className={`relative z-10 w-full px-5 py-4 rounded-2xl text-white bg-black flex items-center justify-between pressable active:scale-[0.99]
+                  ${!canSubmit ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-95'}`}
+              >
+                <span className="text-[15px] sm:text-base font-semibold tracking-wide">BUY NOW</span>
+                <span className="flex items-center gap-2">
+                  {/* Local public icons: place files in /public */}
+                  <img src="/gpay.png" alt="GPay" className="h-5 w-5 rounded-full bg-white p-0.5 object-contain" loading="lazy" />
+                  <img src="/phonepe.png" alt="PhonePe" className="h-5 w-5 rounded-full bg-white p-0.5 object-contain" loading="lazy" />
+                  <img src="/paytm.png" alt="Paytm" className="h-5 w-5 rounded-full bg-white p-0.5 object-contain" loading="lazy" />
+                  <span aria-hidden className="ml-1 text-xl leading-none">›</span>
+                </span>
+              </button>
+            </div>
           </div>
 
           {/* Meta */}
