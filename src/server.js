@@ -29,6 +29,7 @@ const ADMIN_SESSION_SECRET = process.env.ADMIN_SESSION_SECRET || process.env.SES
 const ADMIN_SESSION_COOKIE = 'solo_admin_session';
 const ADMIN_SESSION_TTL_MS = Math.max(5 * 60 * 1000, Number(process.env.ADMIN_SESSION_TTL_MS || 12 * 60 * 60 * 1000));
 const isProduction = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
+const SUPPORT_WHATSAPP = process.env.SUPPORT_WHATSAPP || '+919933778870';
 if (!process.env.ADMIN_SESSION_SECRET && !process.env.SESSION_SECRET) {
   console.warn('[admin] Using fallback admin session secret. Set ADMIN_SESSION_SECRET for production.');
 }
@@ -55,6 +56,15 @@ function fromBase64Url(str) {
   const pad = normalized.length % 4;
   const padded = normalized + (pad ? '='.repeat(4 - pad) : '');
   return Buffer.from(padded, 'base64');
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function parseCookies(req) {
@@ -224,6 +234,27 @@ function sanitizeOrder(o) {
   if (!o) return null;
   const dispatchBase = o.paidAt || o.createdAt;
   const dispatchBy = dispatchBase ? new Date(new Date(dispatchBase).getTime() + 2*24*60*60*1000).toISOString() : null;
+  const safe = (v) => {
+    const out = v == null ? '' : String(v).trim();
+    return out.length ? out : null;
+  };
+  const addr = o?.meta && typeof o.meta === 'object' ? o.meta.address : null;
+  const address = addr && typeof addr === 'object'
+    ? {
+        name: safe(`${addr.firstName || ''} ${addr.lastName || ''}`),
+        line1: safe(addr.address1),
+        line2: safe(addr.address2),
+        locality: safe(addr.locality || addr.landmark),
+        district: safe(addr.district || addr.city),
+        state: safe(addr.state),
+        zip: safe(addr.zip),
+        country: safe(addr.country),
+        phone: safe(addr.phone),
+      }
+    : null;
+  const customerName = safe(o?.customer?.name) || address?.name;
+  const customerPhone = safe(o?.customer?.phone) || address?.phone;
+  const customerEmail = safe(o?.customer?.email) || safe(addr?.email);
   return {
     id: o.id,
     status: o.status,
@@ -234,7 +265,16 @@ function sanitizeOrder(o) {
     product: o.product ? { id: o.product.id, name: o.product.name, amountPaise: o.product.amountPaise } : null,
     createdAt: o.createdAt,
     paidAt: o.paidAt || null,
-    dispatchBy
+    dispatchBy,
+    currentQr: o.currentQr || null,
+    currentUpiLink: o.currentUpiLink || null,
+    publicViewToken: o.publicViewToken || null,
+    customer: {
+      name: customerName,
+      phone: customerPhone,
+      email: customerEmail,
+    },
+    address,
   };
 }
 function requireAdminApi(req, res, next) {
@@ -705,6 +745,7 @@ app.get('/orders/:id', (req, res) => {
   if (!order) return res.status(404).json({ error: 'Not found' });
   if (ensureFreshStatus(order)) saveOrders(orders);
   const serverNowVal = nowIso();
+  const safeOrder = sanitizeOrder(order);
   let expiresInMs = 0;
   try {
     if (order.expiresAt) {
@@ -714,18 +755,10 @@ app.get('/orders/:id', (req, res) => {
     }
   } catch {}
   return res.json({
-    id: order.id,
-    status: order.status,
-    totalAmountPaise: order.totalAmountPaise,
-    paidPaise: order.paidPaise,
-    remainingPaise: order.remainingPaise,
-    currentQr: order.currentQr,
-    currentUpiLink: order.currentUpiLink,
-    product: order.product || null,
+    ...safeOrder,
     expiresAt: order.expiresAt || null,
     serverNow: serverNowVal,
     expiresInMs,
-    publicViewToken: order.publicViewToken || null,
   });
 });
 app.get('/api/order/:token', (req, res) => {
@@ -744,41 +777,93 @@ app.get('/order/:token', (req, res) => {
   if (!order) return res.status(404).send('<h1>Not found</h1>');
   const s = sanitizeOrder(order);
   const fmtRs = n => `₹${(Number(n||0)/100).toFixed(2)}`;
+  const fmtDate = (iso) => iso ? new Date(iso).toLocaleString() : '—';
+  const addressLines = [];
+  if (s.address?.line1) addressLines.push(escapeHtml(s.address.line1));
+  if (s.address?.line2) addressLines.push(escapeHtml(s.address.line2));
+  const localityParts = [s.address?.locality, s.address?.district, s.address?.state].filter(Boolean).map(escapeHtml);
+  if (localityParts.length) addressLines.push(localityParts.join(', '));
+  if (s.address?.zip || s.address?.country) {
+    const tail = [s.address?.zip, s.address?.country].filter(Boolean).map(escapeHtml).join(', ');
+    if (tail) addressLines.push(tail);
+  }
+  const contactLines = [];
+  if (s.customer?.phone) contactLines.push(`Phone: ${escapeHtml(s.customer.phone)}`);
+  if (s.customer?.email) contactLines.push(`Email: ${escapeHtml(s.customer.email)}`);
+  const whatsappDigits = SUPPORT_WHATSAPP.replace(/[^0-9]/g, '') || '919933778870';
+  const whatsappUrl = `https://wa.me/${whatsappDigits}?text=${encodeURIComponent(`Hello Solo Wardrobe Team, I have a question about order ${s.id}`)}`;
+  const policies = [
+    { title: 'Easy Exchange Policy', subtitle: 'We offer hassle free exchange policy' },
+    { title: '7 Days Return Policy', subtitle: 'We provide 7 days free return policy' },
+    { title: 'Best customer support', subtitle: 'We provide 24/7 customer support' },
+    { title: 'Same Day Dispatch', subtitle: 'Order by 2 pm, ships today' },
+  ];
+  const policyMarkup = policies.map(p => `<li><strong>${escapeHtml(p.title)}</strong><span>${escapeHtml(p.subtitle)}</span></li>`).join('');
+  const addressBlock = addressLines.length ? `<div class="section"><h3>Shipping Address</h3><div class="text-block">${addressLines.map(l => `<p>${l}</p>`).join('')}</div></div>` : '';
+  const contactBlock = contactLines.length ? `<div class="section"><h3>Contact</h3><div class="text-block">${contactLines.map(l => `<p>${l}</p>`).join('')}</div></div>` : '';
   res.setHeader('Cache-Control', 'no-store');
   res.status(200).send(`<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Order Confirmation · Solo Wardrobe</title>
 <style>
-  body{margin:0;font-family:system-ui,Segoe UI,Roboto,Inter,Arial,sans-serif;background:#0b0d12;color:#e5e7eb}
-  .wrap{max-width:720px;margin:40px auto;padding:20px}
-  .card{background:#121520;border:1px solid #1e2230;border-radius:14px;padding:20px}
-  .muted{color:#94a3b8}
-  h1{font-size:20px;margin:0 0 8px}
-  .row{display:flex;flex-wrap:wrap;gap:14px}
-  .pill{background:#0f121a;border:1px solid #1f273a;padding:8px 10px;border-radius:999px;font-size:12px}
-  .kv{display:grid;grid-template-columns:140px 1fr;gap:8px;font-size:14px;margin:10px 0}
-  a.btn{display:inline-block;margin-top:16px;padding:10px 14px;background:#6ee7b7;color:#0b0d12;border-radius:10px;text-decoration:none;font-weight:600}
+  :root{color-scheme:dark light}
+  body{margin:0;font-family:Inter,Segoe UI,Roboto,Arial,sans-serif;background:radial-gradient(circle at top,#0e1220,#05060c);color:#e5e7eb;}
+  .wrap{max-width:780px;margin:40px auto;padding:24px;}
+  .card{background:rgba(15,18,30,0.9);border:1px solid rgba(255,255,255,0.06);border-radius:22px;padding:32px;box-shadow:0 30px 80px rgba(0,0,0,0.45);backdrop-filter:blur(12px);}
+  .hero{display:flex;align-items:center;gap:16px;margin-bottom:24px;}
+  .check{width:54px;height:54px;border-radius:50%;background:#22c55e;display:grid;place-content-center;color:#04130a;box-shadow:0 12px 30px rgba(34,197,94,0.35);}
+  h1{margin:0;font-size:24px;font-weight:600;letter-spacing:-0.01em;}
+  .muted{color:#a1accb;font-size:14px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:18px;margin:26px 0;}
+  .chip{padding:10px 14px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);font-size:13px;color:#cbd5f5;}
+  .section{margin-top:28px;border-top:1px solid rgba(255,255,255,0.05);padding-top:22px;}
+  .section h3{margin:0 0 12px;font-size:16px;font-weight:600;color:#f8fafc;}
+  .text-block p{margin:4px 0;font-size:14px;color:#cbd5f5;}
+  .policy-list{list-style:none;padding:0;margin:12px 0 0;display:grid;gap:12px;}
+  .policy-list li{padding:14px 16px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.05);}
+  .policy-list strong{display:block;font-weight:600;color:#f8fafc;margin-bottom:4px;font-size:14px;}
+  .policy-list span{color:#a1accb;font-size:13px;}
+  .actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:32px;}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 18px;border-radius:999px;font-weight:600;font-size:14px;text-decoration:none;transition:transform .18s ease,opacity .18s ease;}
+  .btn-primary{background:#f8fafc;color:#05060c;}
+  .btn-outline{background:transparent;color:#f8fafc;border:1px solid rgba(255,255,255,0.35);}
+  .btn:hover{transform:translateY(-1px);}
+  .note{margin-top:24px;font-size:12px;color:#7c8aab;line-height:1.5;}
+  @media(max-width:640px){.card{padding:24px;border-radius:18px;}.hero{flex-direction:column;align-items:flex-start;}.actions{flex-direction:column;align-items:stretch;}}
 </style>
 </head>
-<body><div class="wrap">
-  <div class="card">
-    <h1>Thank you! Your order is confirmed.</h1>
-    <div class="muted">We’ll dispatch your product within <strong>2 days</strong>.</div>
-    <div class="row" style="margin:14px 0 6px;">
-      <span class="pill">Order ID: ${s.id}</span>
-      <span class="pill">Status: ${s.status}</span>
-      ${s.product ? `<span class="pill">${s.product.name}</span>` : ``}
+<body><div class="wrap"><div class="card">
+  <div class="hero">
+    <div class="check">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
     </div>
-    <div class="kv"><div>Total</div><div>${fmtRs(s.totalAmountPaise)}</div></div>
-    <div class="kv"><div>Paid</div><div>${fmtRs(s.paidPaise)}</div></div>
-    <div class="kv"><div>Remaining</div><div>${fmtRs(s.remainingPaise)}</div></div>
-    <div class="kv"><div>Created</div><div>${new Date(s.createdAt).toLocaleString()}</div></div>
-    ${s.paidAt ? `<div class="kv"><div>Paid At</div><div>${new Date(s.paidAt).toLocaleString()}</div></div>` : ``}
-    ${s.dispatchBy ? `<div class="kv"><div>Dispatch By</div><div>${new Date(s.dispatchBy).toLocaleString()}</div></div>` : ``}
-    <a class="btn" href="/">Back to store</a>
+    <div>
+      <h1>Payment received — thank you!</h1>
+      <div class="muted">Order ${escapeHtml(s.id)} is confirmed. We’ll keep you posted as it moves.</div>
+    </div>
   </div>
-</div></body></html>`);
+  <div class="grid">
+    <div class="chip">Status<br><strong>${escapeHtml(s.status || '')}</strong></div>
+    <div class="chip">Total<br><strong>${fmtRs(s.totalAmountPaise)}</strong></div>
+    <div class="chip">Paid<br><strong>${fmtRs(s.paidPaise)}</strong></div>
+    <div class="chip">Placed<br><strong>${fmtDate(s.createdAt)}</strong></div>
+    ${s.paidAt ? `<div class="chip">Paid At<br><strong>${fmtDate(s.paidAt)}</strong></div>` : ''}
+    ${s.dispatchBy ? `<div class="chip">Dispatch ETA<br><strong>${fmtDate(s.dispatchBy)}</strong></div>` : ''}
+    ${s.product ? `<div class="chip">Product<br><strong>${escapeHtml(s.product.name)}</strong></div>` : ''}
+  </div>
+  ${addressBlock}
+  ${contactBlock}
+  <div class="section">
+    <h3>Our promises to you</h3>
+    <ul class="policy-list">${policyMarkup}</ul>
+  </div>
+  <div class="actions">
+    <a class="btn btn-primary" href="${escapeHtml(whatsappUrl)}" target="_blank" rel="noreferrer">Chat on WhatsApp</a>
+    <a class="btn btn-outline" href="/">Back to store</a>
+  </div>
+  <div class="note">Need help? WhatsApp us at <strong>${escapeHtml(SUPPORT_WHATSAPP)}</strong> or reply to your order confirmation email. Policies above mirror what you saw on our home page.</div>
+</div></div></body></html>`);
 });
 
 // Start server

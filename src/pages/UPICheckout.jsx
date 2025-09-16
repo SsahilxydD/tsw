@@ -3,6 +3,15 @@ import Title from '../components/Title';
 
 const fmt = (p) => (Math.max(0, Number(p) || 0) / 100).toFixed(2);
 
+const RECEIPT_POLICIES = [
+  { title: 'Easy Exchange Policy', subtitle: 'We offer hassle free exchange policy' },
+  { title: '7 Days Return Policy', subtitle: 'We provide 7 days free return policy' },
+  { title: 'Best customer support', subtitle: 'We provide 24/7 customer support' },
+  { title: 'Same Day Dispatch', subtitle: 'Order by 2 pm, ships today' },
+];
+
+const SUPPORT_WHATSAPP = '+919933778870';
+
 // Robust MM:SS formatter that never yields NaN
 function mmss(ms) {
   const safe = Math.max(0, Number.isFinite(ms) ? ms : 0);
@@ -143,6 +152,12 @@ export default function UPICheckout() {
         currentQr: full.currentQr,
         currentUpiLink: full.currentUpiLink,
         publicViewToken: full.publicViewToken || data.publicViewToken || null,
+        dispatchBy: full.dispatchBy || null,
+        product: full.product || null,
+        customer: full.customer || null,
+        address: full.address || null,
+        createdAt: full.createdAt || null,
+        paidAt: full.paidAt || null,
       });
       writeOrderId(orderKey, newId);
       setOidInUrl(newId);
@@ -181,6 +196,12 @@ export default function UPICheckout() {
         currentQr: o.currentQr,
         currentUpiLink: o.currentUpiLink,
         publicViewToken: o.publicViewToken || prev?.publicViewToken || null,
+        dispatchBy: o.dispatchBy || prev?.dispatchBy || null,
+        product: o.product || prev?.product || null,
+        customer: o.customer || prev?.customer || null,
+        address: o.address || prev?.address || null,
+        createdAt: o.createdAt || prev?.createdAt || null,
+        paidAt: o.paidAt || prev?.paidAt || null,
       }));
       // Re-sync deadline on every poll (handles server-side regen/extension)
       if ((o.expiresAt && o.serverNow) || Number.isFinite(o.expiresInMs)) {
@@ -218,6 +239,12 @@ export default function UPICheckout() {
               currentQr: o.currentQr,
               currentUpiLink: o.currentUpiLink,
               publicViewToken: o.publicViewToken || null,
+              dispatchBy: o.dispatchBy || null,
+              product: o.product || null,
+              customer: o.customer || null,
+              address: o.address || null,
+              createdAt: o.createdAt || null,
+              paidAt: o.paidAt || null,
             });
             // Ensure persistence across tabs + URL for this context
             writeOrderId(orderKey, o.id);
@@ -239,6 +266,12 @@ export default function UPICheckout() {
               currentQr: o.currentQr,
               currentUpiLink: o.currentUpiLink,
               publicViewToken: o.publicViewToken || null,
+              dispatchBy: o.dispatchBy || null,
+              product: o.product || null,
+              customer: o.customer || null,
+              address: o.address || null,
+              createdAt: o.createdAt || null,
+              paidAt: o.paidAt || null,
             });
             writeOrderId(orderKey, o.id);
             setOidInUrl(o.id);
@@ -367,6 +400,36 @@ export default function UPICheckout() {
     phonepe: '/phonepe.png',
     paytm: '/paytm.png',
   }), []);
+
+  const receiptAddressLines = useMemo(() => {
+    const lines = [];
+    if (!order?.address) return lines;
+    const { line1, line2, locality, district, state, zip, country } = order.address;
+    if (line1) lines.push(line1);
+    if (line2) lines.push(line2);
+    const localityParts = [locality, district, state].filter(Boolean).join(', ');
+    if (localityParts) lines.push(localityParts);
+    const tail = [zip, country].filter(Boolean).join(', ');
+    if (tail) lines.push(tail);
+    return lines;
+  }, [order?.address]);
+
+  const receiptContactLines = useMemo(() => {
+    const lines = [];
+    const name = order?.customer?.name || order?.address?.name;
+    if (name) lines.push(name);
+    const phone = order?.customer?.phone || order?.address?.phone;
+    if (phone) lines.push(`Phone: ${phone}`);
+    const email = order?.customer?.email;
+    if (email) lines.push(`Email: ${email}`);
+    return lines;
+  }, [order?.customer, order?.address]);
+
+  const whatsappLink = useMemo(() => {
+    const digits = SUPPORT_WHATSAPP.replace(/[^0-9]/g, '') || '919933778870';
+    const message = encodeURIComponent(`Hello Solo Wardrobe Team, I have a question about order ${order?.id || ''}`.trim());
+    return `https://wa.me/${digits}?text=${message}`;
+  }, [order?.id]);
 
   const openWithScheme = (scheme, storeUrl, label) => {
     try {
@@ -541,40 +604,113 @@ export default function UPICheckout() {
       )}
 
       {showSuccess && (
-        <div className="fixed inset-0 z-40 grid place-items-center bg-black/30 backdrop-blur-[1px] animate-fade-in">
-          <div className="relative">
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="relative w-full max-w-3xl">
             <div className="pointer-events-none absolute inset-0 -z-10">
-              {Array.from({ length: 14 }).map((_, i) => (
+              {Array.from({ length: 20 }).map((_, i) => (
                 <span key={i} className="confetti" style={{ '--i': i, '--c': i % 3 === 0 ? '#22c55e' : i % 3 === 1 ? '#06b6d4' : '#f59e0b' }} />
               ))}
             </div>
-            <div className="max-w-md w-[92vw] sm:w-[520px] rounded-2xl border bg-white shadow-2xl animate-swipe-in-up">
-              <div className="p-6 sm:p-8 text-center">
-                <div className="mx-auto w-16 h-16 rounded-full bg-emerald-500 text-white grid place-content-center shadow-lg animate-pop">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+            <div className="animate-swipe-in-up rounded-3xl border border-white/10 bg-slate-900/95 text-slate-100 shadow-2xl backdrop-blur px-6 py-8 sm:px-10">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-emerald-500 text-emerald-950 grid place-content-center shadow-lg animate-pop">
+                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
                 </div>
-                <h2 className="mt-4 text-xl font-semibold">Payment Received</h2>
-                <p className="mt-1 text-gray-600">Thank you! Your order is confirmed.</p>
-                <div className="mt-5 grid grid-cols-2 gap-3 text-sm text-left">
-                  <div className="rounded-lg border bg-slate-50 p-3">
-                    <div className="text-xs text-gray-500">Order ID</div>
-                    <div className="font-mono text-xs break-all">{order?.id}</div>
+                <div>
+                  <h2 className="text-2xl font-semibold tracking-tight">Payment received — thank you!</h2>
+                  <p className="text-sm text-slate-300">Order {order?.id} is confirmed. We’ll keep you posted until it ships.</p>
+                </div>
+              </div>
+
+              <div className="mt-6 grid gap-3 sm:grid-cols-3 text-sm">
+                <div className="rounded-xl border border-white/10 bg-slate-800/60 p-4">
+                  <div className="text-xs uppercase tracking-wide text-slate-400">Order ID</div>
+                  <div className="mt-1 font-mono text-xs break-all text-slate-100">{order?.id}</div>
+                  <button type="button" onClick={() => order?.id && onCopy(order.id)} className="mt-2 text-xs underline text-slate-300">Copy</button>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-slate-800/60 p-4">
+                  <div className="text-xs uppercase tracking-wide text-slate-400">Total</div>
+                  <div className="mt-1 text-base font-semibold">₹{fmt(order?.total)}</div>
+                  <p className="text-xs text-slate-400">Paid: ₹{fmt(order?.paid)}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-slate-800/60 p-4">
+                  <div className="text-xs uppercase tracking-wide text-slate-400">Status</div>
+                  <div className="mt-1 text-base font-semibold">{order?.status}</div>
+                  {order?.dispatchBy && <p className="text-xs text-slate-400">Dispatch ETA: {new Date(order.dispatchBy).toLocaleString()}</p>}
+                </div>
+                {order?.createdAt && (
+                  <div className="rounded-xl border border-white/10 bg-slate-800/60 p-4">
+                    <div className="text-xs uppercase tracking-wide text-slate-400">Placed</div>
+                    <div className="mt-1 text-sm text-slate-100">{new Date(order.createdAt).toLocaleString()}</div>
                   </div>
-                  <div className="rounded-lg border bg-slate-50 p-3">
-                    <div className="text-xs text-gray-500">Amount</div>
-                    <div className="font-semibold">₹{fmt(order?.total)}</div>
+                )}
+                {order?.paidAt && (
+                  <div className="rounded-xl border border-white/10 bg-slate-800/60 p-4">
+                    <div className="text-xs uppercase tracking-wide text-slate-400">Paid At</div>
+                    <div className="mt-1 text-sm text-slate-100">{new Date(order.paidAt).toLocaleString()}</div>
                   </div>
-                  {order?.publicViewToken && (
-                    <div className="col-span-2 rounded-lg border bg-slate-50 p-3">
-                      <div className="text-xs text-gray-500">Receipt</div>
-                      <a className="underline" href={`/order/${order.publicViewToken}`} target="_blank" rel="noreferrer">Open confirmation page</a>
+                )}
+                {order?.remaining > 0 && (
+                  <div className="rounded-xl border border-white/10 bg-amber-500/10 p-4">
+                    <div className="text-xs uppercase tracking-wide text-amber-200">Amount Due</div>
+                    <div className="mt-1 text-sm text-amber-100">₹{fmt(order.remaining)}</div>
+                    <p className="text-xs text-amber-200/80">Complete the remaining amount to finish your purchase.</p>
+                  </div>
+                )}
+                {order?.product?.name && (
+                  <div className="rounded-xl border border-white/10 bg-slate-800/60 p-4 sm:col-span-3">
+                    <div className="text-xs uppercase tracking-wide text-slate-400">Product</div>
+                    <div className="mt-1 font-medium">{order.product.name}</div>
+                  </div>
+                )}
+              </div>
+
+              {(receiptContactLines.length > 0 || receiptAddressLines.length > 0) && (
+                <div className="mt-6 grid gap-4 sm:grid-cols-2 text-sm">
+                  {receiptContactLines.length > 0 && (
+                    <div className="rounded-2xl border border-white/10 bg-slate-800/60 p-4">
+                      <h3 className="text-sm font-semibold text-slate-100 mb-2">Contact</h3>
+                      <ul className="space-y-1 text-slate-300">
+                        {receiptContactLines.map((line, idx) => (
+                          <li key={idx}>{line}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {receiptAddressLines.length > 0 && (
+                    <div className="rounded-2xl border border-white/10 bg-slate-800/60 p-4">
+                      <h3 className="text-sm font-semibold text-slate-100 mb-2">Shipping Address</h3>
+                      <ul className="space-y-1 text-slate-300">
+                        {receiptAddressLines.map((line, idx) => (
+                          <li key={idx}>{line}</li>
+                        ))}
+                      </ul>
                     </div>
                   )}
                 </div>
-                <div className="mt-6 flex items-center justify-center gap-3">
-                  <button onClick={onContinue} className="px-5 py-2.5 rounded-lg bg-black text-white text-sm pressable">Continue</button>
-                </div>
+              )}
+
+              <div className="mt-8">
+                <h3 className="text-sm font-semibold text-slate-200 uppercase tracking-wide">Our policies</h3>
+                <ul className="mt-3 grid gap-3 sm:grid-cols-2">
+                  {RECEIPT_POLICIES.map((p) => (
+                    <li key={p.title} className="rounded-2xl border border-white/10 bg-slate-800/60 p-4">
+                      <div className="font-medium text-slate-100">{p.title}</div>
+                      <div className="text-xs text-slate-400 mt-1">{p.subtitle}</div>
+                    </li>
+                  ))}
+                </ul>
               </div>
+
+              <div className="mt-8 flex flex-wrap gap-3">
+                <button onClick={onContinue} className="px-5 py-2.5 rounded-full bg-white text-slate-900 text-sm font-semibold shadow-sm hover:-translate-y-0.5 transition">Continue</button>
+                {order?.publicViewToken && (
+                  <a className="px-5 py-2.5 rounded-full border border-white/30 text-sm font-semibold text-slate-100 hover:-translate-y-0.5 transition" href={`/order/${order.publicViewToken}`} target="_blank" rel="noreferrer">View receipt</a>
+                )}
+                <a className="px-5 py-2.5 rounded-full border border-emerald-400/60 text-sm font-semibold text-emerald-300 hover:-translate-y-0.5 transition" href={whatsappLink} target="_blank" rel="noreferrer">WhatsApp support</a>
+              </div>
+
+              <p className="mt-4 text-xs text-slate-400">Need help? Message us on WhatsApp at <strong className="text-slate-200">{SUPPORT_WHATSAPP}</strong> or reply to your confirmation email.</p>
             </div>
           </div>
         </div>
