@@ -159,6 +159,10 @@ export default function UPICheckout() {
     if (!order?.id) return;
     try {
       const o = await fetchOrder(order.id);
+      if (o.status === 'EXPIRED') {
+        onExpire();
+        return;
+      }
       setOrder(prev => ({
         ...(prev || {}),
         id: o.id,
@@ -250,6 +254,19 @@ export default function UPICheckout() {
     try { const saved = localStorage.getItem('user_upi_id'); if (saved) setUpiId(saved); } catch {}
   }, []);
 
+  // Cross-tab hardening: if another tab clears this order id, mark expired here too
+  useEffect(() => {
+    const onStorage = (e) => {
+      try {
+        if (!e) return;
+        if (e.key !== orderKey) return;
+        if (!e.newValue) setExpired(true);
+      } catch {}
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [orderKey]);
+
   // One-second countdown that always renders a value
   useEffect(() => {
     if (!deadlineTs) return;
@@ -277,6 +294,8 @@ export default function UPICheckout() {
   const onExpire = () => {
     try { if (timerRef.current) clearInterval(timerRef.current); } catch {}
     setExpired(true);
+    setDeadlineTs(null);
+    setTimeLeft(0);
     setShowApps(false);
     setStoreSuggest(null);
     setOrder(null);
@@ -381,9 +400,9 @@ export default function UPICheckout() {
 
       {expired && (
         <div className="rounded-md border bg-red-50 text-red-800 p-3 mb-4">
-          This payment session expired. Generate a fresh QR to continue.
+          This payment session expired. Please return to your cart to place a new order.
           <div className="mt-2">
-            <button onClick={createOrder} className="px-4 py-2 rounded-md bg-black text-white text-sm">Create New QR</button>
+            <a href="/cart" className="px-4 py-2 inline-block rounded-md bg-black text-white text-sm">Go to Cart</a>
           </div>
         </div>
       )}
