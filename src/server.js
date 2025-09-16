@@ -461,8 +461,12 @@ app.post('/orders', async (req, res) => {
   }
 });
 
-// HARD-REMOVE any public GET /orders (always 404)
-app.get('/orders', (_req, res) => res.status(404).send('Not found'));
+// SPA `/orders` route (customer order history placeholder)
+app.get('/orders', (req, res) => {
+  const indexFile = path.join(DIST_DIR, 'index.html');
+  if (fs.existsSync(indexFile)) return res.sendFile(indexFile);
+  return res.status(200).send('Orders page');
+});
 
 // ===== Admin API moved under /admin/api/* so /orders is gone =====
 
