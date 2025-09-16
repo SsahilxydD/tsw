@@ -115,7 +115,7 @@ const Cart = () => {
                   loading='lazy'
                 />
                 <div className='min-w-0'>
-                  <p className='text-sm sm:text-base font-medium leading-snug break-words line-clamp-2 min-h-[2.75rem]'>
+                  <p className='text-sm sm:text-base font-medium leading-snug break-words line-clamp-2 pb-0.5 min-h-[3rem]'>
                     {productData?.name}
                   </p>
                   <div className='mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-600'>

@@ -139,4 +139,8 @@ a.active hr {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  /* Avoid cropped descenders due to rounding on some devices */
+  padding-bottom: 2px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
