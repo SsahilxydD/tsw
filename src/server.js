@@ -5,9 +5,6 @@ const express = require('express');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const QRCode = require('qrcode');
-const cookieParser = require('cookie-parser');
-const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
 
 const { FSDB, ensureDir } = require('./utils/fsdb');
 const { buildUpiLink } = require('./upi');
@@ -16,29 +13,18 @@ const { sha256 } = require('./utils/hash');
 const { getProduct } = require('./products');
 
 const app = express();
-app.use(helmet({
-  contentSecurityPolicy: {
-    useDefaults: true,
-    directives: {
-      "default-src": ["'self'"],
-      "img-src": ["'self'", "data:"],
-      "style-src": ["'self'", "'unsafe-inline'"], // inline styles on login page
-      "script-src": ["'self'"]
-    }
-  }
-}));
+app.use(helmet());
 app.use(express.json({ limit: '256kb' }));
-app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
 
-/* ======================= Admin Auth System ======================== */
+/* ===== Admin Basic Auth Guard (military-grade minimal) ===== */
+// Protect any route that contains an 'admin' path segment (e.g., /admin, /base_url/admin, /x/y/admin/z)
+const crypto = require('crypto');
 const ADMIN_USER = process.env.ADMIN_USER || 'thesolowardrobe@gmail.com';
 const ADMIN_PASS = process.env.ADMIN_PASS || 'Thesolowardrobe@14333';
-const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || 'change-me-super-secret-and-long';
-const ADMIN_SESSION_TTL_HOURS = Number(process.env.ADMIN_SESSION_TTL_HOURS || 12);
 const ENFORCE_HTTPS = String(process.env.ENFORCE_HTTPS || 'false').toLowerCase() === 'true';
 
 if (ENFORCE_HTTPS) {
+  // Respect reverse proxies (e.g., Nginx). Only enable when you have TLS at the proxy.
   app.set('trust proxy', true);
   app.use((req, res, next) => {
     const proto = req.headers['x-forwarded-proto'] || req.protocol;
@@ -47,206 +33,50 @@ if (ENFORCE_HTTPS) {
   });
 }
 
-// In-memory brute-force guard (per IP + per user). Restart clears state.
-const LOGIN_WINDOW_MS = 10 * 60 * 1000; // 10 min window
-const MAX_ATTEMPTS = 5;                 // 5 attempts per window
-const LOCK_MS = 30 * 60 * 1000;         // 30 min lockout
-const attemptsByKey = new Map();        // key: ip|user -> {count, firstAt, lockUntil}
-
-function key(ip, user) { return `${ip}|${(user || '').toLowerCase()}`; }
-function now() { return Date.now(); }
-function isLocked(ip, user) {
-  const k = key(ip, user);
-  const rec = attemptsByKey.get(k);
-  return rec && rec.lockUntil && rec.lockUntil > now();
-}
-function incAttempt(ip, user) {
-  const k = key(ip, user);
-  const t = now();
-  const rec = attemptsByKey.get(k) || { count: 0, firstAt: t, lockUntil: 0 };
-  // reset window if expired
-  if (t - rec.firstAt > LOGIN_WINDOW_MS) {
-    rec.count = 0; rec.firstAt = t; rec.lockUntil = 0;
-  }
-  rec.count++;
-  if (rec.count >= MAX_ATTEMPTS) {
-    rec.lockUntil = t + LOCK_MS;
-  }
-  attemptsByKey.set(k, rec);
-  return rec;
-}
-function clearAttempts(ip, user) {
-  attemptsByKey.delete(key(ip, user));
-}
 function safeEqual(a, b) {
   try {
     const ab = Buffer.from(String(a));
     const bb = Buffer.from(String(b));
     if (ab.length !== bb.length) return false;
     return crypto.timingSafeEqual(ab, bb);
-  } catch { return false; }
+  } catch {
+    return false;
+  }
 }
 
-// CSRF (double-submit cookie): set cookie on GET /admin/login and expect same value in hidden field on POST
-function newCsrf() { return crypto.randomBytes(32).toString('hex'); }
-
-// Tight rate limit on login endpoint
-const loginLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000,
-  max: 20,
-  standardHeaders: true,
-  legacyHeaders: false
-});
-
-// Build minimal but elegant login HTML (server-rendered so we can embed CSRF)
-function renderLoginPage(csrfToken, message) {
-  const msg = message ? `<div class="msg">${message}</div>` : '';
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Solo Admin · Sign in</title>
-<style>
-  :root { --bg:#0b0d12; --card:#121520; --muted:#98a2b3; --text:#e5e7eb; --accent:#6ee7b7; --danger:#fda4af; }
-  *{box-sizing:border-box} body{margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif; background:linear-gradient(180deg,#0b0d12,#0b0d12 40%,#10131b); color:var(--text);
-    display:grid; place-items:center; min-height:100vh; }
-  .card{width:100%; max-width:380px; background:var(--card); border:1px solid #1e2230; padding:26px; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,.35)}
-  h1{margin:0 0 8px; font-size:20px}
-  p.sub{margin:0 0 18px; color:var(--muted); font-size:13px}
-  label{display:block; font-size:13px; color:#cbd5e1; margin:12px 0 6px}
-  input{width:100%; padding:12px 12px; border-radius:10px; border:1px solid #2a3042; background:#0f121a; color:var(--text); outline:none}
-  input:focus{border-color:#334155; box-shadow:0 0 0 3px rgba(102,126,234,.18)}
-  button{width:100%; margin-top:16px; padding:12px 14px; background:var(--accent); color:#0b0d12; border:none; border-radius:10px; font-weight:600; cursor:pointer}
-  button:active{transform:translateY(1px)}
-  .msg{margin:8px 0 0; color:var(--danger); font-size:12px}
-  .foot{margin-top:16px; text-align:center; color:var(--muted); font-size:12px}
-</style>
-</head>
-<body>
-  <form class="card" method="POST" action="/admin/login" autocomplete="off">
-    <h1>Sign in to Admin</h1>
-    <p class="sub">Access is restricted. All attempts are logged.</p>
-    <input type="hidden" name="csrf" value="${csrfToken}">
-    <label>Email</label>
-    <input name="username" type="email" required placeholder="you@example.com" autofocus>
-    <label>Password</label>
-    <input name="password" type="password" required placeholder="••••••••">
-    <button type="submit">Sign in</button>
-    ${msg}
-    <div class="foot">Protected area · Solo Wardrobe</div>
-  </form>
-</body>
-</html>`;
-}
-
-// Session helpers
-function issueSession(res, username) {
-  const expSec = Math.floor(Date.now() / 1000) + ADMIN_SESSION_TTL_HOURS * 3600;
-  const token = jwt.sign({ sub: String(username), exp: expSec }, ADMIN_JWT_SECRET, { algorithm: 'HS256' });
-  res.cookie('admin_session', token, {
-    httpOnly: true,
-    secure: ENFORCE_HTTPS, // set true when behind TLS proxy
-    sameSite: 'strict',
-    maxAge: ADMIN_SESSION_TTL_HOURS * 3600 * 1000,
-    path: '/'
-  });
-}
-function clearSession(res) {
-  res.cookie('admin_session', '', { httpOnly: true, secure: ENFORCE_HTTPS, sameSite: 'strict', expires: new Date(0), path: '/' });
-}
-function verifySession(req) {
-  const raw = req.cookies && req.cookies.admin_session;
-  if (!raw) return null;
+function adminGuard(req, res, next) {
   try {
-    const payload = jwt.verify(raw, ADMIN_JWT_SECRET, { algorithms: ['HS256'] });
-    return payload && payload.sub ? String(payload.sub) : null;
-  } catch { return null; }
+    const segs = req.path.split('/').filter(Boolean);
+    const isAdminPath = segs.includes('admin');
+    if (!isAdminPath) return next();
+
+    const hdr = req.headers['authorization'];
+    if (!hdr || !hdr.startsWith('Basic ')) {
+      res.set('WWW-Authenticate', 'Basic realm="Solo Admin"');
+      return res.status(401).send('Auth required');
+    }
+    let user = '', pass = '';
+    try {
+      const decoded = Buffer.from(hdr.split(' ')[1], 'base64').toString('utf8');
+      const idx = decoded.indexOf(':');
+      user = idx >= 0 ? decoded.slice(0, idx) : '';
+      pass = idx >= 0 ? decoded.slice(idx + 1) : '';
+    } catch {}
+
+    if (safeEqual(user, ADMIN_USER) && safeEqual(pass, ADMIN_PASS)) {
+      res.setHeader('Cache-Control', 'no-store');
+      return next();
+    }
+    res.set('WWW-Authenticate', 'Basic realm="Solo Admin"');
+    return res.status(401).send('Auth required');
+  } catch (e) {
+    return res.status(401).send('Auth required');
+  }
 }
 
-// UI guard: any path segment 'admin' (except /admin/login, /admin/logout) requires a valid session
-function containsAdminSegment(p) {
-  const segs = String(p || '').split('/').filter(Boolean);
-  return segs.includes('admin');
-}
-function isLoginPath(p) {
-  return p === '/admin/login' || p === '/admin/logout';
-}
-
-app.get('/admin/login', (req, res) => {
-  const csrf = newCsrf();
-  res.cookie('admin_csrf', csrf, {
-    httpOnly: true, // not readable by JS
-    secure: ENFORCE_HTTPS,
-    sameSite: 'strict',
-    path: '/admin'
-  });
-  res.setHeader('Cache-Control', 'no-store');
-  return res.status(200).send(renderLoginPage(csrf));
-});
-
-app.post('/admin/login', loginLimiter, (req, res) => {
-  const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || 'unknown';
-  const username = String(req.body?.username || '');
-  const password = String(req.body?.password || '');
-  const csrfBody = String(req.body?.csrf || '');
-  const csrfCookie = String(req.cookies?.admin_csrf || '');
-
-  if (isLocked(ip, username)) {
-    return res.status(429).send(renderLoginPage(newCsrf(), 'Too many attempts. Try again later.'));
-  }
-
-  // CSRF double-submit check (timing-safe)
-  if (!csrfBody || !safeEqual(csrfBody, csrfCookie)) {
-    incAttempt(ip, username);
-    return res.status(400).send(renderLoginPage(newCsrf(), 'Invalid request. Please try again.'));
-  }
-
-  const userOk = safeEqual(username, ADMIN_USER);
-  const passOk = safeEqual(password, ADMIN_PASS);
-
-  if (userOk && passOk) {
-    clearAttempts(ip, username);
-    issueSession(res, username);
-    res.setHeader('Cache-Control', 'no-store');
-    return res.redirect('/admin');
-  }
-
-  const rec = incAttempt(ip, username);
-  const left = Math.max(0, MAX_ATTEMPTS - rec.count);
-  const msg = rec.lockUntil && rec.lockUntil > now()
-    ? 'Account temporarily locked due to failed attempts.'
-    : `Invalid credentials. ${left} attempt(s) remaining.`;
-  return res.status(401).send(renderLoginPage(newCsrf(), msg));
-});
-
-app.get('/admin/logout', (req, res) => {
-  clearSession(res);
-  res.setHeader('Cache-Control', 'no-store');
-  return res.redirect('/admin/login');
-});
-
-// Route-level guard registered BEFORE static/SPA
-app.use((req, res, next) => {
-  if (!containsAdminSegment(req.path) || isLoginPath(req.path)) return next();
-  const sub = verifySession(req);
-  if (sub) {
-    res.setHeader('Cache-Control', 'no-store');
-    req.adminUser = sub;
-    return next();
-  }
-  return res.redirect('/admin/login');
-});
-
-// API guard for sensitive endpoints (/orders*)
-function requireAdminAPI(req, res, next) {
-  const sub = verifySession(req);
-  if (!sub) return res.status(401).json({ error: 'Auth required' });
-  req.adminUser = sub;
-  res.setHeader('Cache-Control', 'no-store');
-  next();
-}
-/* ===================== End Admin Auth System ===================== */
+// Register before static and other routes
+app.use(adminGuard);
+/* =========================================================== */
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const PUBLIC_DIR = path.join(process.cwd(), 'public');
@@ -268,9 +98,9 @@ function addMinutes(iso, minutes) {
 
 function ensureFreshStatus(order) {
   if (!order) return false;
-  const nowD = new Date();
+  const now = new Date();
   const exp = order.expiresAt ? new Date(order.expiresAt) : null;
-  if (order.status !== 'PAID' && exp && nowD > exp && order.status !== 'EXPIRED') {
+  if (order.status !== 'PAID' && exp && now > exp && order.status !== 'EXPIRED') {
     order.status = 'EXPIRED';
     order.currentUpiLink = null;
     order.currentQr = null;
@@ -280,10 +110,18 @@ function ensureFreshStatus(order) {
   return false;
 }
 
-function loadOrders() { return db.read('orders', []); }
-function saveOrders(orders) { db.write('orders', orders); }
-function loadPayments() { return db.read('payments', []); }
-function savePayments(payments) { db.write('payments', payments); }
+function loadOrders() {
+  return db.read('orders', []);
+}
+function saveOrders(orders) {
+  db.write('orders', orders);
+}
+function loadPayments() {
+  return db.read('payments', []);
+}
+function savePayments(payments) {
+  db.write('payments', payments);
+}
 
 function genOrderId() {
   const ts = new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14);
@@ -306,18 +144,99 @@ function assertPositiveInteger(name, v) {
   if (!Number.isFinite(v) || v <= 0) throw new Error(`${name} must be > 0`);
 }
 
-// ====== Protected Admin APIs ======
-app.get('/orders', requireAdminAPI, (req, res) => {
+// Create order and generate QR
+app.post('/orders', async (req, res) => {
+  try {
+    const { amount, amountPaise: amountPaiseIn, currency = 'INR', meta = {}, productId } = req.body || {};
+    const upiId = process.env.UPI_ID;
+    const upiName = process.env.UPI_NAME || 'Merchant';
+    if (!upiId) return res.status(400).json({ error: 'Missing env UPI_ID' });
+
+    let amountPaise;
+    let product = null;
+    if (productId) {
+      product = getProduct(productId);
+      if (!product) return res.status(400).json({ error: 'Invalid productId' });
+      amountPaise = Math.round((product.amountPaise != null ? product.amountPaise : product.amount * 100));
+    } else {
+      const allowRaw = String(process.env.ALLOW_RAW_AMOUNT || 'true').toLowerCase() === 'true';
+      if (!allowRaw) return res.status(400).json({ error: 'Raw amount orders disabled. Use productId.' });
+      if (typeof amountPaiseIn === 'number') amountPaise = Math.round(amountPaiseIn);
+      else if (typeof amount === 'number') amountPaise = Math.round(amount * 100);
+      else return res.status(400).json({ error: 'Provide amount (rupees) or amountPaise (integer) or productId' });
+    }
+
+    if (currency !== 'INR') return res.status(400).json({ error: 'Only INR supported' });
+    try { assertPositiveInteger('amountPaise', amountPaise); } catch (e) { return res.status(400).json({ error: e.message }); }
+
+    const orderId = genOrderId();
+    const upiLink = buildUpiLink({ pa: upiId, pn: upiName, amountPaise, orderId });
+    const qrFile = path.join(QRS_DIR, `${orderId}-${amountPaise}.png`);
+    await makeQr(qrFile, upiLink);
+
+    const orders = loadOrders();
+    const now = nowIso();
+    const expiresAt = addMinutes(now, ORDER_TTL_MIN);
+    const order = {
+      id: orderId,
+      totalAmountPaise: amountPaise,
+      paidPaise: 0,
+      remainingPaise: amountPaise,
+      currency,
+      upiLink, // legacy
+      qrPath: `/qrs/${orderId}-${amountPaise}.png`, // legacy
+      currentUpiLink: upiLink,
+      currentQr: `/qrs/${orderId}-${amountPaise}.png`,
+      qrHistory: [
+        { amountPaise, upiLink, qr: `/qrs/${orderId}-${amountPaise}.png`, createdAt: now }
+      ],
+      status: 'PENDING',
+      createdAt: now,
+      updatedAt: now,
+      expiresAt,
+      paidAt: null,
+      meta: { ...meta, productId: product ? product.id : meta.productId },
+      product: product ? { id: product.id, name: product.name, amountPaise: amountPaise } : null,
+    };
+    orders.push(order);
+    saveOrders(orders);
+
+    const expiresInMs = Math.max(0, new Date(expiresAt).getTime() - new Date(now).getTime());
+    res.json({
+      orderId,
+      upiLink: order.currentUpiLink,
+      qr: order.currentQr,
+      status: order.status,
+      remainingPaise: order.remainingPaise,
+      product: order.product,
+      expiresAt: order.expiresAt,
+      serverNow: nowIso(),
+      expiresInMs,
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Failed to create order' });
+  }
+});
+
+// List orders (basic admin)
+app.get('/orders', (req, res) => {
   const orders = loadOrders();
   let changed = false;
-  for (const o of orders) if (ensureFreshStatus(o)) changed = true;
+  for (const o of orders) {
+    if (ensureFreshStatus(o)) changed = true;
+  }
   if (changed) saveOrders(orders);
   const limit = Math.max(1, Math.min(1000, Number(req.query.limit) || 200));
-  const out = orders.slice().sort((a,b) => String(b.createdAt).localeCompare(String(a.createdAt))).slice(0, limit);
+  const out = orders
+    .slice()
+    .sort((a,b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+    .slice(0, limit);
   res.json({ serverNow: nowIso(), orders: out });
 });
 
-app.get('/orders/:id', requireAdminAPI, async (req, res) => {
+// Get single order
+app.get('/orders/:id', async (req, res) => {
   const orders = loadOrders();
   const order = orders.find((o) => o.id === req.params.id);
   if (!order) return res.status(404).json({ error: 'Not found' });
@@ -325,7 +244,7 @@ app.get('/orders/:id', requireAdminAPI, async (req, res) => {
   try {
     if (order.status !== 'PAID' && Array.isArray(order.pendingVerifications) && order.pendingVerifications.length) {
       const payments = loadPayments();
-      const norm = (s) => String(s || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+      const norm = (s) => String(s).replace(/[^A-Za-z0-9]/g, '').toUpperCase();
       const findPaymentFor = (utr) => payments.find((p) => p.utr && norm(p.utr) === norm(utr) && !p.matched);
       const idx = order.pendingVerifications.findIndex((pv) => !!findPaymentFor(pv.utr));
       if (idx >= 0) {
@@ -344,8 +263,8 @@ app.get('/orders/:id', requireAdminAPI, async (req, res) => {
               await makeQr(result.qrFile, result.nextLink);
               order.currentUpiLink = result.nextLink;
               order.currentQr = `/qrs/${path.basename(result.qrFile)}`;
-              const n = nowIso();
-              order.qrHistory.push({ amountPaise: order.remainingPaise, upiLink: result.nextLink, qr: order.currentQr, createdAt: n });
+              const now = nowIso();
+              order.qrHistory.push({ amountPaise: order.remainingPaise, upiLink: result.nextLink, qr: order.currentQr, createdAt: now });
               order.upiLink = order.currentUpiLink;
               order.qrPath = order.currentQr;
             }
@@ -369,7 +288,47 @@ app.get('/orders/:id', requireAdminAPI, async (req, res) => {
   res.json({ ...order, serverNow: serverNowVal, expiresInMs });
 });
 
-app.post('/orders/:id/expire', requireAdminAPI, (req, res) => {
+// Products API (read-only)
+app.get('/products/:id', (req, res) => {
+  const product = getProduct(req.params.id);
+  if (!product) return res.status(404).json({ error: 'Not found' });
+  const amountPaise = Math.round((product.amountPaise != null ? product.amountPaise : product.amount * 100));
+  res.json({ id: product.id, name: product.name, amountPaise });
+});
+
+// Rate-limit and protect SMS webhook
+const smsLimiter = rateLimit({ windowMs: 60_000, max: 30, standardHeaders: true, legacyHeaders: false });
+
+function requireWebhookSecret(req) {
+  const secret = process.env.WEBHOOK_SECRET;
+  if (!secret) return true; // not set -> allow
+  const provided = req.headers['x-webhook-secret'] || req.query.secret || (req.body && req.body.secret);
+  return String(provided) === String(secret);
+}
+
+function updateOrderForPartial(order, paidAmountPaise, upiId, upiName) {
+  const now = new Date().toISOString();
+  order.paidPaise += paidAmountPaise;
+  if (order.paidPaise < 0) order.paidPaise = 0;
+  order.remainingPaise = Math.max(0, order.totalAmountPaise - order.paidPaise);
+  if (order.remainingPaise === 0) {
+    order.status = 'PAID';
+    order.paidAt = now;
+    order.currentUpiLink = null;
+    order.currentQr = null;
+    return;
+  }
+  order.status = order.paidPaise > 0 ? 'PARTIAL' : 'PENDING';
+  // Generate a new QR for the remaining amount
+  const nextLink = buildUpiLink({ pa: upiId, pn: upiName, amountPaise: order.remainingPaise, orderId: order.id });
+  const qrFile = path.join(QRS_DIR, `${order.id}-${order.remainingPaise}.png`);
+  // Synchronous write from caller to ensure await
+  // Return info for caller to await generation
+  return { nextLink, qrFile };
+}
+
+// Admin-lite actions (no auth yet)
+app.post('/orders/:id/expire', (req, res) => {
   const orders = loadOrders();
   const order = orders.find(o => o.id === req.params.id);
   if (!order) return res.status(404).json({ error: 'Not found' });
@@ -383,7 +342,7 @@ app.post('/orders/:id/expire', requireAdminAPI, (req, res) => {
   res.json({ ok: true, order });
 });
 
-app.post('/orders/:id/mark-paid', requireAdminAPI, (req, res) => {
+app.post('/orders/:id/mark-paid', (req, res) => {
   const orders = loadOrders();
   const order = orders.find(o => o.id === req.params.id);
   if (!order) return res.status(404).json({ error: 'Not found' });
@@ -398,7 +357,7 @@ app.post('/orders/:id/mark-paid', requireAdminAPI, (req, res) => {
   res.json({ ok: true, order });
 });
 
-app.post('/orders/:id/regenerate', requireAdminAPI, async (req, res) => {
+app.post('/orders/:id/regenerate', async (req, res) => {
   try {
     const orders = loadOrders();
     const order = orders.find(o => o.id === req.params.id);
@@ -412,11 +371,11 @@ app.post('/orders/:id/regenerate', requireAdminAPI, async (req, res) => {
     await makeQr(qrFile, nextLink);
     order.currentUpiLink = nextLink;
     order.currentQr = `/qrs/${path.basename(qrFile)}`;
-    const n = nowIso();
-    order.expiresAt = addMinutes(n, ORDER_TTL_MIN);
-    order.updatedAt = n;
+    const now = nowIso();
+    order.expiresAt = addMinutes(now, ORDER_TTL_MIN);
+    order.updatedAt = now;
     order.status = order.paidPaise > 0 ? 'PARTIAL' : 'PENDING';
-    order.qrHistory.push({ amountPaise, upiLink: nextLink, qr: order.currentQr, createdAt: n });
+    order.qrHistory.push({ amountPaise, upiLink: nextLink, qr: order.currentQr, createdAt: now });
     saveOrders(orders);
     res.json({ ok: true, order, serverNow: nowIso() });
   } catch (e) {
@@ -424,16 +383,10 @@ app.post('/orders/:id/regenerate', requireAdminAPI, async (req, res) => {
     res.status(500).json({ error: 'Failed to regenerate' });
   }
 });
-// ====== End Protected Admin APIs ======
 
-app.post('/webhooks/sms', rateLimit({ windowMs: 60_000, max: 30, standardHeaders: true, legacyHeaders: false }), async (req, res) => {
+app.post('/webhooks/sms', smsLimiter, async (req, res) => {
   try {
-    const secret = process.env.WEBHOOK_SECRET;
-    if (secret) {
-      const provided = req.headers['x-webhook-secret'] || req.query.secret || (req.body && req.body.secret);
-      if (String(provided) !== String(secret)) return res.status(401).json({ error: 'Unauthorized' });
-    }
-
+    if (!requireWebhookSecret(req)) return res.status(401).json({ error: 'Unauthorized' });
     const { text, from } = req.body || {};
     if (!text || typeof text !== 'string') return res.status(400).json({ error: 'Missing text' });
 
@@ -472,6 +425,7 @@ app.post('/webhooks/sms', rateLimit({ windowMs: 60_000, max: 30, standardHeaders
       matchedOrder = orders.find((o) => note.toUpperCase().includes(o.id.toUpperCase()));
       if (!matchedOrder) matchedOrder = orders.find((o) => o.id.toUpperCase() === note.toUpperCase());
     }
+    // If no note-based match, try orders that have pending UTR matching this SMS
     if (!matchedOrder && utr) {
       const norm = (s) => String(s || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
       matchedOrder = orders.find((o) => Array.isArray(o.pendingVerifications) && o.pendingVerifications.some((pv) => norm(pv.utr) === norm(utr)));
@@ -479,18 +433,22 @@ app.post('/webhooks/sms', rateLimit({ windowMs: 60_000, max: 30, standardHeaders
 
     const upiOk = containsUpiId(text, upiId);
     if (strictUpi && !upiOk) {
-      payments.push(payment); savePayments(payments);
+      payments.push(payment);
+      savePayments(payments);
       return res.json({ ok: true, matched: false, reason: 'UPI_ID not found in SMS' });
     }
 
     if (!matchedOrder || amountPaise == null) {
-      payments.push(payment); savePayments(payments);
+      payments.push(payment);
+      savePayments(payments);
       return res.json({ ok: true, matched: false });
     }
 
     if (duplicate) {
+      // Duplicate SMS text; still store for audit, but don't re-apply
       if (matchedOrder) payment.orderId = matchedOrder.id;
-      payments.push(payment); savePayments(payments);
+      payments.push(payment);
+      savePayments(payments);
       return res.json({ ok: true, matched: false, duplicate: true });
     }
 
@@ -498,26 +456,29 @@ app.post('/webhooks/sms', rateLimit({ windowMs: 60_000, max: 30, standardHeaders
 
     const remainingBefore = matchedOrder.remainingPaise ?? matchedOrder.totalAmountPaise - (matchedOrder.paidPaise || 0);
     if (amountPaise <= 0) {
-      payments.push(payment); savePayments(payments);
+      payments.push(payment);
+      savePayments(payments);
       return res.json({ ok: true, matched: false, reason: 'Non-positive amount' });
     }
 
+    // Apply payment
     const result = updateOrderForPartial(matchedOrder, amountPaise, upiId, upiName);
     payment.matched = true;
 
+    // If a new QR is needed, create it now and update order fields
     if (matchedOrder.status !== 'PAID' && result) {
       await makeQr(result.qrFile, result.nextLink);
       matchedOrder.currentUpiLink = result.nextLink;
       matchedOrder.currentQr = `/qrs/${path.basename(result.qrFile)}`;
-      const n = new Date().toISOString();
-      matchedOrder.qrHistory.push({ amountPaise: matchedOrder.remainingPaise, upiLink: result.nextLink, qr: matchedOrder.currentQr, createdAt: n });
-      matchedOrder.upiLink = matchedOrder.currentUpiLink;
-      matchedOrder.qrPath = matchedOrder.currentQr;
+      const now = new Date().toISOString();
+      matchedOrder.qrHistory.push({ amountPaise: matchedOrder.remainingPaise, upiLink: result.nextLink, qr: matchedOrder.currentQr, createdAt: now });
+      matchedOrder.upiLink = matchedOrder.currentUpiLink; // legacy sync
+      matchedOrder.qrPath = matchedOrder.currentQr; // legacy sync
     }
 
-    const orders2 = loadOrders(); // ensure persistence consistency
     saveOrders(orders);
-    payments.push(payment); savePayments(payments);
+    payments.push(payment);
+    savePayments(payments);
 
     const response = {
       ok: true,
@@ -537,24 +498,6 @@ app.post('/webhooks/sms', rateLimit({ windowMs: 60_000, max: 30, standardHeaders
   }
 });
 
-function updateOrderForPartial(order, paidAmountPaise, upiId, upiName) {
-  const n = new Date().toISOString();
-  order.paidPaise = (order.paidPaise || 0) + paidAmountPaise;
-  if (order.paidPaise < 0) order.paidPaise = 0;
-  order.remainingPaise = Math.max(0, order.totalAmountPaise - order.paidPaise);
-  if (order.remainingPaise === 0) {
-    order.status = 'PAID';
-    order.paidAt = n;
-    order.currentUpiLink = null;
-    order.currentQr = null;
-    return;
-  }
-  order.status = order.paidPaise > 0 ? 'PARTIAL' : 'PENDING';
-  const nextLink = buildUpiLink({ pa: upiId, pn: upiName, amountPaise: order.remainingPaise, orderId: order.id });
-  const qrFile = path.join(QRS_DIR, `${order.id}-${order.remainingPaise}.png`);
-  return { nextLink, qrFile };
-}
-
 // Start server
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -565,15 +508,9 @@ app.listen(PORT, HOST, () => {
 // SPA fallback to dist/index.html (after API routes)
 // Keep it after app.listen definition so all APIs above remain matched first
 app.get('*', (req, res, next) => {
-  const skip = req.path.startsWith('/qrs')
-    || req.path.startsWith('/orders')
-    || req.path.startsWith('/webhooks')
-    || req.path.startsWith('/products')
-    || req.path.startsWith('/health')
-    || req.path === '/admin/login'
-    || req.path === '/admin/logout';
+  // Do not interfere with API/static paths
+  const skip = req.path.startsWith('/qrs') || req.path.startsWith('/orders') || req.path.startsWith('/webhooks') || req.path.startsWith('/products') || req.path.startsWith('/health');
   if (skip) return next();
-  const DIST_DIR = path.join(process.cwd(), 'dist');
   const indexFile = path.join(DIST_DIR, 'index.html');
   if (fs.existsSync(indexFile)) return res.sendFile(indexFile);
   return next();
