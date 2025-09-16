@@ -170,12 +170,12 @@ a.active hr {
   color: #fff;
   background: linear-gradient(
     to bottom,
-    rgba(31,41,55,0.58), /* slate-800 */
-    rgba(17,24,39,0.48)  /* slate-900 */
+    rgba(55,65,81,0.38), /* slate-700 */
+    rgba(31,41,55,0.30)  /* slate-800 */
   );
-  border-color: rgba(255,255,255,0.16);
+  border-color: rgba(255,255,255,0.12);
 }
-.btn-glass-dark:hover { background: linear-gradient( to bottom, rgba(31,41,55,0.64), rgba(17,24,39,0.54) ); }
+.btn-glass-dark:hover { background: linear-gradient( to bottom, rgba(55,65,81,0.44), rgba(31,41,55,0.36) ); }
 .btn-glass-dark::after {
   /* inner subtle stroke for glass edge */
   content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
