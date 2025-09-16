@@ -98,6 +98,11 @@ export default function UPICheckout() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [order?.id, pollMs]);
 
+  // Prefill saved UPI ID once
+  useEffect(() => {
+    try { const saved = localStorage.getItem('user_upi_id'); if (saved) setUpiId(saved); } catch {}
+  }, []);
+
   // Countdown towards expiry
   useEffect(() => {
     if (!order?.id || !expiresAt) return;
@@ -179,12 +184,28 @@ export default function UPICheckout() {
     paytm: '/paytm.png',
   }), []);
 
+  const launchPayment = () => {
+    if (!order?.currentUpiLink) return;
+    if (isIOS) {
+      const prefs = ['gpay','phonepe','paytm'];
+      const first = appDeepLinks.find(a => prefs.includes(a.key)) || appDeepLinks[0];
+      if (first) openWithScheme(first.scheme, first.storeUrl, first.label);
+    } else {
+      // Android and desktop: generic UPI intent triggers system app picker
+      window.location.href = order.currentUpiLink;
+    }
+  };
+
   const verifyUpiId = () => {
     const v = String(upiId || '').trim();
     // Very permissive VPA format validation: local-part@handle
     const ok = /^[A-Za-z0-9._-]{2,}@[A-Za-z][A-Za-z0-9._-]{2,}$/.test(v);
     setUpiStatus(ok ? 'ok' : 'error');
     try { if (ok) localStorage.setItem('user_upi_id', v); } catch {}
+    if (ok) {
+      // Immediately launch into payment flow with preferred path
+      launchPayment();
+    }
   };
 
   const openWithScheme = (scheme, storeUrl, label) => {
@@ -325,7 +346,7 @@ export default function UPICheckout() {
                   </button>
                 </div>
                 {upiStatus === 'ok' && (
-                  <p className="mt-1 text-xs text-green-600">Looks good. You can proceed with your UPI app.</p>
+                  <p className="mt-1 text-xs text-green-600">UPI ID looks good. Opening your UPI app…</p>
                 )}
                 {upiStatus === 'error' && (
                   <p className="mt-1 text-xs text-red-600">Enter a valid UPI ID like name@bank.</p>
