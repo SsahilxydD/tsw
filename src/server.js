@@ -139,6 +139,7 @@ app.post('/orders', async (req, res) => {
     orders.push(order);
     saveOrders(orders);
 
+    const expiresInMs = Math.max(0, new Date(expiresAt).getTime() - new Date(now).getTime());
     res.json({
       orderId,
       upiLink: order.currentUpiLink,
@@ -148,6 +149,7 @@ app.post('/orders', async (req, res) => {
       product: order.product,
       expiresAt: order.expiresAt,
       serverNow: nowIso(),
+      expiresInMs,
     });
   } catch (e) {
     console.error(e);
@@ -177,7 +179,16 @@ app.get('/orders/:id', (req, res) => {
   const order = orders.find((o) => o.id === req.params.id);
   if (!order) return res.status(404).json({ error: 'Not found' });
   if (ensureFreshStatus(order)) saveOrders(orders);
-  res.json({ ...order, serverNow: nowIso() });
+  const serverNowVal = nowIso();
+  let expiresInMs = 0;
+  try {
+    if (order.expiresAt) {
+      const exp = new Date(order.expiresAt).getTime();
+      const srv = new Date(serverNowVal).getTime();
+      if (Number.isFinite(exp) && Number.isFinite(srv)) expiresInMs = Math.max(0, exp - srv);
+    }
+  } catch {}
+  res.json({ ...order, serverNow: serverNowVal, expiresInMs });
 });
 
 // Products API (read-only)

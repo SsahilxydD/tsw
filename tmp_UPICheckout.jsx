@@ -25,18 +25,6 @@ function computeDeadlineTs(expiresAt, serverNow) {
   return null;
 }
 
-// Prefer server-provided remaining milliseconds when available
-function computeDeadlineFromServer(expiresInMs, expiresAt, serverNow) {
-  const eim = Number(expiresInMs);
-  if (Number.isFinite(eim)) {
-    const left = Math.max(0, eim);
-    return { deadline: Date.now() + left, left };
-  }
-  const dl = computeDeadlineTs(expiresAt, serverNow);
-  if (dl != null) return { deadline: dl, left: Math.max(0, dl - Date.now()) };
-  return { deadline: null, left: 0 };
-}
-
 export default function UPICheckout() {
   const [order, setOrder] = useState(null);
   const [error, setError] = useState('');
@@ -109,10 +97,10 @@ export default function UPICheckout() {
       try { sessionStorage.setItem(orderKey, created.id); } catch {}
 
       // compute and store absolute deadline; start showing time immediately
-      const { deadline, left } = computeDeadlineFromServer(data.expiresInMs, data.expiresAt, data.serverNow);
-      if (deadline != null) {
-        setDeadlineTs(deadline);
-        setTimeLeft(left);
+      const dl = computeDeadlineTs(data.expiresAt, data.serverNow);
+      if (dl != null) {
+        setDeadlineTs(dl);
+        setTimeLeft(Math.max(0, dl - Date.now()));
       }
     } catch (e) {
       setError(e.message || 'Failed to create order');
@@ -142,11 +130,11 @@ export default function UPICheckout() {
         currentUpiLink: o.currentUpiLink,
       }));
       // Re-sync deadline on every poll (handles server-side regen/extension)
-      if ((o.expiresAt && o.serverNow) || Number.isFinite(o.expiresInMs)) {
-        const { deadline, left } = computeDeadlineFromServer(o.expiresInMs, o.expiresAt, o.serverNow);
-        if (deadline != null) {
-          setDeadlineTs(deadline);
-          setTimeLeft(left);
+      if (o.expiresAt && o.serverNow) {
+        const dl = computeDeadlineTs(o.expiresAt, o.serverNow);
+        if (dl != null) {
+          setDeadlineTs(dl);
+          setTimeLeft(Math.max(0, dl - Date.now()));
         }
       }
       if (o.status === 'PAID' && redirect) {
@@ -177,10 +165,10 @@ export default function UPICheckout() {
               currentQr: o.currentQr,
               currentUpiLink: o.currentUpiLink,
             });
-            const { deadline, left } = computeDeadlineFromServer(o.expiresInMs, o.expiresAt, o.serverNow);
-            if (deadline != null) {
-              setDeadlineTs(deadline);
-              setTimeLeft(left);
+            const dl = computeDeadlineTs(o.expiresAt, o.serverNow);
+            if (dl != null) {
+              setDeadlineTs(dl);
+              setTimeLeft(Math.max(0, dl - Date.now()));
             }
             setLoading(false);
             return;
