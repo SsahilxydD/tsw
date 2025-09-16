@@ -55,6 +55,7 @@ export default function UPICheckout() {
   const [storeSuggest, setStoreSuggest] = useState(null); // { storeUrl, label }
   const [upiId, setUpiId] = useState('');
   const [upiStatus, setUpiStatus] = useState('idle'); // idle | ok | error
+  const [copiedOrderId, setCopiedOrderId] = useState(false);
 
   const amountParam = qs.get('amount');
   const productId = qs.get('productId');
@@ -353,8 +354,15 @@ export default function UPICheckout() {
     }
   };
 
-  const launchPayment = () => {
+  const launchPayment = async () => {
     if (!order?.currentUpiLink) return;
+    try {
+      if (order?.id && navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(order.id);
+        setCopiedOrderId(true);
+        setTimeout(() => setCopiedOrderId(false), 2500);
+      }
+    } catch {}
     if (isIOS) {
       const prefs = ['gpay', 'phonepe', 'paytm'];
       const first = appDeepLinks.find(a => prefs.includes(a.key)) || appDeepLinks[0];
@@ -422,6 +430,10 @@ export default function UPICheckout() {
           <div className="rounded-xl border bg-white p-4 sm:col-span-2 shadow-sm">
             <div>
               <p className="font-semibold mb-2">Pay via</p>
+              <div className="mb-3 text-xs p-2 rounded border bg-blue-50 text-blue-800">
+                Tip: We copied your Order ID to the clipboard. In your UPI app, paste it into the “Add note/message” field before paying so we can auto-verify instantly.
+                {copiedOrderId && <span className="ml-2 text-[11px] text-green-600">Order ID copied</span>}
+              </div>
               <div className="w-full flex items-center justify-between border rounded-lg px-3 py-3 bg-white shadow-sm">
                 <span className="flex items-center gap-2">
                   <span className="inline-grid h-5 w-5 place-content-center rounded border text-gray-500">₹</span>
@@ -480,7 +492,10 @@ export default function UPICheckout() {
           </div>
 
           <div className="rounded-md border bg-white p-4 space-y-2">
-            <p><b>Order:</b> {order.id}</p>
+            <p>
+              <b>Order:</b> {order.id}
+              <button type="button" onClick={() => onCopy(order.id)} className="ml-2 px-2 py-0.5 text-xs border rounded">Copy</button>
+            </p>
             <p><b>Status:</b> {order.status}</p>
             <p><b>Total:</b> ₹{fmt(order.total)}</p>
             <p><b>Paid:</b> ₹{fmt(order.paid)}</p>
