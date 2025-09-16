@@ -25,6 +25,17 @@ export default function UPICheckout() {
   const redirect = qs.get('redirect');
   const pollMs = Math.max(1500, Math.min(5000, Number(qs.get('pollMs')) || 2000));
 
+  // Persist order id per checkout context to avoid creating a new order on refresh.
+  // Use sessionStorage so a new browser session starts fresh. Key encodes product/amount and redirect.
+  const orderKey = useMemo(() => {
+    const keyParts = [
+      productId ? `product:${productId}` : `amount:${amountParam || ''}`,
+      metaRef ? `ref:${metaRef}` : '',
+      redirect ? `redir:${redirect}` : '',
+    ].filter(Boolean).join('|');
+    return `upi_checkout_order/${keyParts}`;
+  }, [productId, amountParam, metaRef, redirect]);
+
   const createOrder = async () => {
     setLoading(true);
     setError('');
@@ -53,6 +64,8 @@ export default function UPICheckout() {
         currentUpiLink: data.upiLink || null,
       };
       setOrder(created);
+      // remember this order id for refresh
+      try { sessionStorage.setItem(orderKey, created.id); } catch {}
       // Use server-supplied expiry for timer sync
       if (data.expiresAt && data.serverNow) {
         const msLeft = new Date(data.expiresAt).getTime() - new Date(String(data.serverNow)).getTime();
@@ -100,8 +113,52 @@ export default function UPICheckout() {
     } catch {}
   };
 
+  // Initialize: try to restore prior order from sessionStorage; otherwise create one.
+  const initOrder = async () => {
+    setLoading(true);
+    setError('');
+    setExpired(false);
+    try {
+      let existingId = null;
+      try { existingId = sessionStorage.getItem(orderKey) || null; } catch {}
+      if (existingId) {
+        const r = await fetch(`/orders/${existingId}`, { cache: 'no-store' });
+        if (r.ok) {
+          const o = await r.json();
+          if (o && o.id && (o.status === 'PENDING' || o.status === 'PARTIAL')) {
+            setOrder((prev) => ({
+              ...(prev || {}),
+              id: o.id,
+              status: o.status,
+              total: o.totalAmountPaise,
+              paid: o.paidPaise,
+              remaining: o.remainingPaise,
+              currentQr: o.currentQr,
+              currentUpiLink: o.currentUpiLink,
+            }));
+            if (o.expiresAt && o.serverNow) {
+              const msLeft = new Date(o.expiresAt).getTime() - new Date(String(o.serverNow)).getTime();
+              const expMs = Date.now() + Math.max(0, msLeft);
+              setExpiresAt(expMs);
+              setTimeLeft(Math.max(0, msLeft));
+            }
+            setLoading(false);
+            return;
+          }
+        }
+        // Not usable -> clear
+        try { sessionStorage.removeItem(orderKey); } catch {}
+      }
+      // Fall back to creating a new order
+      await createOrder();
+    } catch (e) {
+      setError(e?.message || 'Failed to initialize order');
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    createOrder();
+    initOrder();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -138,8 +195,9 @@ export default function UPICheckout() {
   useEffect(() => {
     if (order?.status === 'PAID' && countdownRef.current) {
       clearInterval(countdownRef.current);
+      try { sessionStorage.removeItem(orderKey); } catch {}
     }
-  }, [order?.status]);
+  }, [order?.status, orderKey]);
 
   const onExpire = () => {
     try { if (timerRef.current) clearInterval(timerRef.current); } catch {}
@@ -147,6 +205,7 @@ export default function UPICheckout() {
     setShowApps(false);
     setStoreSuggest(null);
     setOrder(null);
+    try { sessionStorage.removeItem(orderKey); } catch {}
   };
 
   function parseUpiParams(link) {
