@@ -27,7 +27,6 @@ import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import UPICheckout from "./pages/UPICheckout";
 import Admin from "./pages/Admin";
-import OrderReceipt from "./pages/OrderReceipt";
 
 export default function App() {
   const location = useLocation();
@@ -53,7 +52,6 @@ export default function App() {
           <Route path="/cart" element={<Cart />} />
           <Route path="/place-order" element={<PlaceOrder />} />
           <Route path="/upi-checkout" element={<UPICheckout />} />
-          <Route path="/order/:token" element={<OrderReceipt />} />
           <Route path="/orders" element={<Orders />} />
           <Route path="/login" element={<Login />} />
           <Route path="/admin" element={<Admin />} />

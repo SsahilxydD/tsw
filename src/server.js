@@ -376,6 +376,10 @@ app.use(express.static(DIST_DIR));
 // Health
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
+// Disable public receipt endpoints entirely
+app.use('/api/order', (req, res) => res.status(404).json({ error: 'Not found' }));
+app.use('/order', (req, res) => res.status(404).send('<h1>Not found</h1>'));
+
 function assertPositiveInteger(name, v) {
   if (!Number.isFinite(v) || v <= 0) throw new Error(`${name} must be > 0`);
 }
@@ -479,20 +483,18 @@ app.post('/orders', async (req, res) => {
     });
 
     const expiresInMs = Math.max(0, new Date(expiresAt).getTime() - new Date(now).getTime());
-    const confirmationUrl = `/order/${order.publicViewToken}`;
-    res.json({
-      orderId,
-      upiLink: order.currentUpiLink,
-      qr: order.currentQr,
-      status: order.status,
-      remainingPaise: order.remainingPaise,
-      product: order.product,
-      expiresAt: order.expiresAt,
-      serverNow: nowIso(),
-      expiresInMs,
-      confirmationUrl,
-      publicViewToken: order.publicViewToken
-    });
+      res.json({
+        orderId,
+        upiLink: order.currentUpiLink,
+        qr: order.currentQr,
+        status: order.status,
+        remainingPaise: order.remainingPaise,
+        product: order.product,
+        expiresAt: order.expiresAt,
+        serverNow: nowIso(),
+        expiresInMs,
+        publicViewToken: order.publicViewToken
+      });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Failed to create order' });
@@ -801,7 +803,6 @@ app.get('/orders/:id', (req, res) => {
     expiresAt: order.expiresAt || null,
     serverNow: serverNowVal,
     expiresInMs,
-    confirmationUrl: order.publicViewToken ? `/order/${order.publicViewToken}` : null,
   });
 });
 // Public read of an order by receipt token — only for PAID orders
@@ -933,8 +934,6 @@ app.get('*', (req, res, next) => {
     req.path.startsWith('/webhooks') ||
     req.path.startsWith('/products') ||
     req.path.startsWith('/health') ||
-    req.path.startsWith('/api/order') ||
-    req.path.startsWith('/order/') ||
     req.path.startsWith('/admin/api/');
   if (skip) return next();
   const indexFile = path.join(DIST_DIR, 'index.html');
