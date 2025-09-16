@@ -86,7 +86,8 @@ const Cart = () => {
           </div>
         </div>
 
-        <div className='space-y-4 max-h-[50vh] overflow-auto pr-1'>
+        {/* Item list: full-height, no inner scroll to avoid glitches */}
+        <div className='space-y-4 overflow-x-hidden'>
           {cartData.map((item, index) => {
             const productData = products.find((product) => product._id === item._id);
             const cover = Array.isArray(productData?.image)
@@ -95,46 +96,63 @@ const Cart = () => {
 
           const k = keyFor(item);
           const isLeaving = leaving.has(k);
+          const unit = Number(productData?.price) || 0;
+          const lineTotal = unit * (Number(item.quantity) || 0);
+          const sizeLabel = isFootwearProduct(productData)
+            ? String(toUKLabel(item.size) || item.size).replace(/^UK-/, '')
+            : item.size;
+
           return (
             <div
               key={k}
-              className={`rounded-md border bg-white p-4 sm:p-5 text-gray-700 flex items-center gap-4 sm:gap-6 hover:shadow-md transition-all duration-200 ${isLeaving ? 'animate-cart-leave pointer-events-none' : 'animate-soft-reveal'}`}
+              className={`rounded-md border bg-white p-4 sm:p-5 text-gray-800 hover:shadow-md transition-all duration-200 ${isLeaving ? 'animate-cart-leave pointer-events-none' : 'animate-soft-reveal'}`}
             >
-              <img className='w-20 h-20 rounded-md object-cover border' src={cover} alt="" />
-              <div className='flex-1 min-w-0'>
-                <p className='text-sm sm:text-base font-medium truncate'>{productData?.name}</p>
-                <div className='mt-2 flex items-start gap-3 flex-wrap'>
-                  <div className='flex flex-col gap-1 w-fit'>
+              <div className='grid grid-cols-[80px_1fr_auto] sm:grid-cols-[96px_1fr_auto] items-center gap-4 sm:gap-6'>
+                <img
+                  className='w-20 h-20 sm:w-24 sm:h-24 rounded-md object-cover border'
+                  src={cover}
+                  alt={productData?.name || 'Product'}
+                  loading='lazy'
+                />
+                <div className='min-w-0'>
+                  <p className='text-sm sm:text-base font-medium leading-snug break-words'>{productData?.name}</p>
+                  <div className='mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-600'>
                     {item.size && (
-                      <div className='px-2 py-1 text-xs border rounded-md bg-slate-50 w-fit'>
-                        {isFootwearProduct(productData)
-                          ? String(toUKLabel(item.size) || item.size).replace(/^UK-/, '')
-                          : item.size}
-                      </div>
+                      <span className='px-2 py-1 border rounded-md bg-slate-50'>Size: {sizeLabel}</span>
                     )}
-                    <div className='px-2 py-1 text-sm font-semibold border rounded-md bg-white w-fit'>
-                      {currency}{productData?.price}
-                    </div>
+                    <span className='px-2 py-1 border rounded-md bg-white font-semibold'>{currency}{unit}</span>
+                    <span className='px-2 py-1 border rounded-md bg-slate-50'>Qty: {item.quantity}</span>
+                    <span className='ml-auto hidden sm:inline px-2 py-1 rounded-md bg-gray-50 border font-medium'>
+                      {currency}{lineTotal}
+                    </span>
                   </div>
                 </div>
-                <div className='mt-3 hidden sm:flex items-center gap-6 text-xs text-gray-500'>
-                  <button className='underline pressable' onClick={() => requestRemove(item._id, item.size)}>Remove</button>
-                  <button className='underline opacity-50 cursor-not-allowed' title='Coming soon'>Move to wishlist</button>
+                <div className='flex flex-col items-end gap-2'>
+                  <QuantityStepper
+                    value={item.quantity}
+                    min={1}
+                    onChange={(q) => q <= 0 ? requestRemove(item._id, item.size) : updateQuantity(item._id, item.size, q)}
+                  />
+                  <button
+                    type='button'
+                    onClick={() => requestRemove(item._id, item.size)}
+                    className='hidden sm:inline text-xs text-gray-500 underline pressable'
+                  >
+                    Remove
+                  </button>
                 </div>
               </div>
-              <div className='flex items-center gap-3 shrink-0'>
-                <QuantityStepper
-                  value={item.quantity}
-                  min={1}
-                  onChange={(q) => q <= 0 ? requestRemove(item._id, item.size) : updateQuantity(item._id, item.size, q)}
-                />
+              {/* Mobile subtotal + remove */}
+              <div className='mt-3 sm:hidden flex items-center justify-between text-sm'>
+                <span className='text-gray-600'>Subtotal</span>
+                <span className='font-semibold'>{currency}{lineTotal}</span>
                 <button
                   type='button'
                   aria-label='Remove item'
                   onClick={() => requestRemove(item._id, item.size)}
-                  className='p-2 rounded hover:bg-gray-100 active:scale-95 transition sm:hidden pressable'
+                  className='ml-3 p-2 rounded hover:bg-gray-100 active:scale-95 transition pressable'
                 >
-                  <img className='w-5 sm:w-5' src={assets.bin_icon} alt='' />
+                  <img className='w-5' src={assets.bin_icon} alt='' />
                 </button>
               </div>
             </div>
