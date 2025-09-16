@@ -47,4 +47,19 @@ function containsUpiId(text, upiId) {
   }
 }
 
-module.exports = { extractAmountPaise, extractNote, containsUpiId };
+// Extract a UPI Transaction ID / UTR / RRN from arbitrary SMS text
+// Attempts to find common patterns across major banks/PSPs
+function extractUtr(text) {
+  try {
+    const t = String(text || '');
+    // 1) Explicit labels (UTR/RRN/Txn ID/UPI Ref)
+    const labeled = /(UTR|RRN|TXN\s*ID|TRANSACTION\s*ID|UPI\s*(?:REF(?:ERENCE)?|TXN\s*ID|REF\.?))\s*[:#\-]*\s*([A-Z0-9\-]{8,32})/i.exec(t);
+    if (labeled && labeled[2]) return labeled[2].replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    // 2) 12+ contiguous digits often used as RRN (allow 10-16 to be safe)
+    const digits = /\b([0-9]{10,16})\b/.exec(t);
+    if (digits && digits[1]) return digits[1];
+  } catch {}
+  return null;
+}
+
+module.exports = { extractAmountPaise, extractNote, containsUpiId, extractUtr };

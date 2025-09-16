@@ -11,6 +11,7 @@ function buildUpiLink({ pa, pn, amountPaise, orderId }) {
     am: formatRupees(amountPaise),
     cu: 'INR',
     tn: String(orderId || '').slice(0, 35),
+    tr: String(orderId || '').slice(0, 35),
   };
   return 'upi://pay?' + querystring.stringify(params);
 }

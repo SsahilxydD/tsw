@@ -8,7 +8,7 @@ const QRCode = require('qrcode');
 
 const { FSDB, ensureDir } = require('./utils/fsdb');
 const { buildUpiLink } = require('./upi');
-const { extractAmountPaise, extractNote, containsUpiId } = require('./parsers/sms');
+const { extractAmountPaise, extractNote, containsUpiId, extractUtr } = require('./parsers/sms');
 const { sha256 } = require('./utils/hash');
 const { getProduct } = require('./products');
 
@@ -70,6 +70,37 @@ function genOrderId() {
 async function makeQr(filePath, text) {
   await QRCode.toFile(filePath, text, { type: 'png', width: 512, margin: 1 });
 }
+
+/* ---------- ADDED: Basic Auth for /admin (minimal & isolated) ---------- */
+const ADMIN_USER = process.env.ADMIN_USER || 'thesolowardrobe@gmail.com';
+const ADMIN_PASS = process.env.ADMIN_PASS || 'Thesolowardrobe@14333';
+
+function adminUnauthorized(res) {
+  res.set('WWW-Authenticate', 'Basic realm="Solo Admin"');
+  return res.status(401).send('Auth required');
+}
+
+function adminBasicAuth(req, res, next) {
+  const hdr = req.headers['authorization'];
+  if (!hdr || !hdr.startsWith('Basic ')) return adminUnauthorized(res);
+  try {
+    const decoded = Buffer.from(hdr.split(' ')[1], 'base64').toString('utf8');
+    const idx = decoded.indexOf(':');
+    const user = idx >= 0 ? decoded.slice(0, idx) : '';
+    const pass = idx >= 0 ? decoded.slice(idx + 1) : '';
+    if (user === ADMIN_USER && pass === ADMIN_PASS) return next();
+  } catch (_) { /* ignore */ }
+  return adminUnauthorized(res);
+}
+
+// Protect /admin and /admin/* BEFORE static middleware to ensure gating
+app.get(['/admin', '/admin/*'], adminBasicAuth, (req, res) => {
+  const indexFile = path.join(DIST_DIR, 'index.html');
+  if (fs.existsSync(indexFile)) return res.sendFile(indexFile);
+  // If you ship a physical /dist/admin/index.html later, this will still serve SPA index
+  return res.status(404).send('Admin not found');
+});
+/* ---------------------------------------------------------------------- */
 
 // Static hosting for QR images and built SPA assets
 app.use('/qrs', express.static(QRS_DIR, { fallthrough: false }));
@@ -174,11 +205,46 @@ app.get('/orders', (req, res) => {
 });
 
 // Get single order
-app.get('/orders/:id', (req, res) => {
+app.get('/orders/:id', async (req, res) => {
   const orders = loadOrders();
   const order = orders.find((o) => o.id === req.params.id);
   if (!order) return res.status(404).json({ error: 'Not found' });
   if (ensureFreshStatus(order)) saveOrders(orders);
+  try {
+    if (order.status !== 'PAID' && Array.isArray(order.pendingVerifications) && order.pendingVerifications.length) {
+      const payments = loadPayments();
+      const norm = (s) => String(s || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+      const findPaymentFor = (utr) => payments.find((p) => p.utr && norm(p.utr) === norm(utr) && !p.matched);
+      const idx = order.pendingVerifications.findIndex((pv) => !!findPaymentFor(pv.utr));
+      if (idx >= 0) {
+        const pv = order.pendingVerifications[idx];
+        const pay = findPaymentFor(pv.utr);
+        if (pay) {
+          const upiId = process.env.UPI_ID;
+          const upiName = process.env.UPI_NAME || 'Merchant';
+          const amountPaise = pay.amountPaise || pv.amountPaise || 0;
+          if (amountPaise > 0) {
+            const result = updateOrderForPartial(order, amountPaise, upiId, upiName);
+            pay.matched = true;
+            pay.orderId = order.id;
+            savePayments(payments);
+            if (order.status !== 'PAID' && result) {
+              await makeQr(result.qrFile, result.nextLink);
+              order.currentUpiLink = result.nextLink;
+              order.currentQr = `/qrs/${path.basename(result.qrFile)}`;
+              const now = nowIso();
+              order.qrHistory.push({ amountPaise: order.remainingPaise, upiLink: result.nextLink, qr: order.currentQr, createdAt: now });
+              order.upiLink = order.currentUpiLink;
+              order.qrPath = order.currentQr;
+            }
+            order.updatedAt = nowIso();
+            order.pendingVerifications.splice(idx, 1);
+            saveOrders(orders);
+          }
+        }
+      }
+    }
+  } catch {}
   const serverNowVal = nowIso();
   let expiresInMs = 0;
   try {
@@ -302,6 +368,7 @@ app.post('/webhooks/sms', smsLimiter, async (req, res) => {
 
     const amountPaise = extractAmountPaise(text);
     const note = extractNote(text, candidates);
+    const utr = extractUtr(text);
 
     const payments = loadPayments();
     const checksum = sha256(`${from || ''}::${text}`);
@@ -312,6 +379,7 @@ app.post('/webhooks/sms', smsLimiter, async (req, res) => {
       orderId: null,
       amountPaise: amountPaise ?? null,
       note: note ?? null,
+      utr: utr || null,
       source: 'SMS',
       raw: text,
       from: from || null,
@@ -325,6 +393,11 @@ app.post('/webhooks/sms', smsLimiter, async (req, res) => {
     if (note) {
       matchedOrder = orders.find((o) => note.toUpperCase().includes(o.id.toUpperCase()));
       if (!matchedOrder) matchedOrder = orders.find((o) => o.id.toUpperCase() === note.toUpperCase());
+    }
+    // If no note-based match, try orders that have pending UTR matching this SMS
+    if (!matchedOrder && utr) {
+      const norm = (s) => String(s || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+      matchedOrder = orders.find((o) => Array.isArray(o.pendingVerifications) && o.pendingVerifications.some((pv) => norm(pv.utr) === norm(utr)));
     }
 
     const upiOk = containsUpiId(text, upiId);
@@ -341,8 +414,8 @@ app.post('/webhooks/sms', smsLimiter, async (req, res) => {
     }
 
     if (duplicate) {
-      // Do not double-apply
-      payment.orderId = matchedOrder.id;
+      // Duplicate SMS text; still store for audit, but don't re-apply
+      if (matchedOrder) payment.orderId = matchedOrder.id;
       payments.push(payment);
       savePayments(payments);
       return res.json({ ok: true, matched: false, duplicate: true });
