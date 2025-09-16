@@ -171,6 +171,12 @@ export default function UPICheckout() {
     ];
   }, [order?.currentUpiLink]);
 
+  const appIcons = useMemo(() => ({
+    gpay: '/gpay.png',
+    phonepe: '/phonepe.png',
+    paytm: '/paytm.png',
+  }), []);
+
   const openWithScheme = (scheme, storeUrl, label) => {
     try {
       setStoreSuggest(null);
@@ -249,30 +255,50 @@ export default function UPICheckout() {
           </div>
           {/* Separate UPI app box placed below QR on larger screens */}
           <div className="rounded-md border bg-white p-4 sm:col-span-2">
-            <p className="font-medium mb-2">Pay via UPI app</p>
-            {order.currentUpiLink ? (
-              <button onClick={onOpenUpi} className="inline-block px-4 py-2 rounded-md bg-black text-white text-sm">Open UPI App</button>
+            {!isIOS ? (
+              <div>
+                <p className="font-medium mb-2">Pay via UPI app</p>
+                {order.currentUpiLink ? (
+                  <button onClick={onOpenUpi} className="inline-block px-4 py-2 rounded-md bg-black text-white text-sm">Open UPI App</button>
+                ) : (
+                  <p className="text-sm text-gray-600">UPI link unavailable</p>
+                )}
+              </div>
             ) : (
-              <p className="text-sm text-gray-600">UPI link unavailable</p>
-            )}
-            {isIOS && showApps && (
-              <div className="mt-3 border-t pt-3">
-                <p className="text-sm text-gray-700 mb-2">Open with:</p>
-                <div className="flex flex-wrap gap-2">
-                  {appDeepLinks.map((a) => (
-                    <button key={a.key} onClick={() => openWithScheme(a.scheme, a.storeUrl, a.label)} className="px-3 py-2 text-sm border rounded hover:bg-gray-50">
-                      {a.label}
-                    </button>
-                  ))}
-                  <button onClick={() => onCopy(order.currentUpiLink)} className="px-3 py-2 text-sm border rounded">Copy UPI link</button>
-                </div>
-                {storeSuggest && (
-                  <div className="mt-2 p-2 border rounded bg-yellow-50 text-yellow-800 text-xs">
-                    If the app didn't open, tap here to open {storeSuggest.label} in the App Store.
-                    <a className="ml-2 underline" href={storeSuggest.storeUrl} target="_blank" rel="noopener">Open App Store</a>
+              <div>
+                <p className="font-semibold mb-2">Pay via</p>
+                <button type="button" onClick={() => setShowApps(v => !v)} className="w-full flex items-center justify-between border rounded-md px-3 py-3 bg-white">
+                  <span className="flex items-center gap-2">
+                    <span className="inline-grid h-5 w-5 place-content-center rounded border text-gray-500">₹</span>
+                    <span className="font-medium">UPI payment</span>
+                  </span>
+                  <span className="ml-auto mr-2 text-sm font-semibold">₹{fmt(order.total)}</span>
+                  <span aria-hidden className={`text-gray-500 transition ${showApps ? 'rotate-180' : ''}`}>▾</span>
+                </button>
+                {showApps && (
+                  <div className="mt-3">
+                    <div className="grid grid-cols-3 gap-3">
+                      {appDeepLinks.filter(a=>['gpay','phonepe','paytm'].includes(a.key)).map((a) => (
+                        <button
+                          key={a.key}
+                          onClick={() => openWithScheme(a.scheme, a.storeUrl, a.label)}
+                          className="flex flex-col items-center gap-2"
+                        >
+                          <span className="h-14 w-16 grid place-content-center rounded-xl border shadow-sm bg-white">
+                            <img src={appIcons[a.key]} alt={a.label} className="h-8 object-contain"/>
+                          </span>
+                          <span className="text-[11px] text-gray-600">{a.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                    {storeSuggest && (
+                      <div className="mt-3 p-2 border rounded bg-yellow-50 text-yellow-800 text-xs">
+                        If the app didn't open, tap here to open {storeSuggest.label} in the App Store.
+                        <a className="ml-2 underline" href={storeSuggest.storeUrl} target="_blank" rel="noopener">Open App Store</a>
+                      </div>
+                    )}
                   </div>
                 )}
-                <p className="text-xs text-gray-500 mt-2">If nothing happens, open your UPI app and scan the QR above.</p>
               </div>
             )}
           </div>
