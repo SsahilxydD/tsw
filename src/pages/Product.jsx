@@ -382,17 +382,17 @@ export default function Product() {
 
           {/* CTA (replica style) */}
           <div className="mt-6 space-y-3">
-            {/* Add to cart as glassmorphic white button */}
+            {/* Add to cart: flat rectangle with thin black border */}
             <button
               onClick={handleAdd}
               disabled={!canSubmit}
-              className={`w-full h-14 px-5 rounded-2xl btn-glass btn-glass-dark font-semibold pressable flex items-center justify-center text-[15px] sm:text-base tracking-wide
+              className={`w-full h-14 px-5 rounded-none border border-black bg-white text-black font-semibold pressable flex items-center justify-center text-[15px] sm:text-base tracking-wide
                 ${!canSubmit ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {added ? 'Added to cart' : 'Add to cart'}
             </button>
 
-            {/* Big rounded BUY NOW bar (original solid style) */}
+            {/* BUY NOW: flat solid rectangle (no radius) */}
             <button
               type="button"
               disabled={!canSubmit}
@@ -403,7 +403,7 @@ export default function Product() {
                 addToCart(pid, sizeToSend);
                 navigate('/address');
               }}
-              className={`w-full px-5 py-4 rounded-2xl text-white bg-black flex items-center justify-between pressable active:scale-[0.99]
+              className={`w-full h-14 px-5 rounded-none text-white bg-black flex items-center justify-between pressable active:scale-[0.99]
                 ${!canSubmit ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-95'}`}
             >
               <span className="text-[15px] sm:text-base font-semibold tracking-wide">BUY NOW</span>
