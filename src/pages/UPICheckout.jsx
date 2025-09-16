@@ -72,6 +72,33 @@ export default function UPICheckout() {
     return `upi_checkout_order/${keyParts}`;
   }, [productId, amountParam, metaRef, redirect]);
 
+  // Storage helpers to persist order id across tabs
+  const readOrderId = (key) => {
+    try {
+      return sessionStorage.getItem(key) || localStorage.getItem(key) || null;
+    } catch { return null; }
+  };
+  const writeOrderId = (key, id) => {
+    try { sessionStorage.setItem(key, id); } catch {}
+    try { localStorage.setItem(key, id); } catch {}
+  };
+  const removeOrderId = (key) => {
+    try { sessionStorage.removeItem(key); } catch {}
+    try { localStorage.removeItem(key); } catch {}
+  };
+
+  // URL helpers to persist/reuse order id via `?oid=`
+  const getOidFromUrl = () => {
+    try { const u = new URL(window.location.href); return u.searchParams.get('oid'); } catch { return null; }
+  };
+  const setOidInUrl = (id) => {
+    try {
+      const u = new URL(window.location.href);
+      if (id) u.searchParams.set('oid', id); else u.searchParams.delete('oid');
+      window.history.replaceState(null, '', u.toString());
+    } catch {}
+  };
+
   // ---- API helpers ----
   async function createOrder() {
     setLoading(true);
@@ -106,7 +133,8 @@ export default function UPICheckout() {
         currentUpiLink: data.upiLink || null,
       };
       setOrder(created);
-      try { sessionStorage.setItem(orderKey, created.id); } catch {}
+      writeOrderId(orderKey, created.id);
+      setOidInUrl(created.id);
 
       // compute and store absolute deadline; start showing time immediately
       const { deadline, left } = computeDeadlineFromServer(data.expiresInMs, data.expiresAt, data.serverNow);
@@ -162,8 +190,8 @@ export default function UPICheckout() {
     setError('');
     setExpired(false);
     try {
-      let existingId = null;
-      try { existingId = sessionStorage.getItem(orderKey) || null; } catch {}
+      // Prefer explicit URL `oid`, fall back to stored id
+      let existingId = getOidFromUrl() || readOrderId(orderKey);
       if (existingId) {
         try {
           const o = await fetchOrder(existingId);
@@ -177,6 +205,9 @@ export default function UPICheckout() {
               currentQr: o.currentQr,
               currentUpiLink: o.currentUpiLink,
             });
+            // Ensure persistence across tabs + URL for this context
+            writeOrderId(orderKey, o.id);
+            setOidInUrl(o.id);
             const { deadline, left } = computeDeadlineFromServer(o.expiresInMs, o.expiresAt, o.serverNow);
             if (deadline != null) {
               setDeadlineTs(deadline);
@@ -188,8 +219,13 @@ export default function UPICheckout() {
         } catch {
           // fall through to create new
         }
-        try { sessionStorage.removeItem(orderKey); } catch {}
+        // If we got here, the referenced order isn't usable; mark expired and do NOT auto-create.
+        removeOrderId(orderKey);
+        setExpired(true);
+        setLoading(false);
+        return;
       }
+      // No existing id present -> first-time visit for this context, create now
       await createOrder();
     } catch (e) {
       setError(e?.message || 'Failed to initialize order');
@@ -234,7 +270,7 @@ export default function UPICheckout() {
   useEffect(() => {
     if (order?.status === 'PAID' && countdownRef.current) {
       clearInterval(countdownRef.current);
-      try { sessionStorage.removeItem(orderKey); } catch {}
+      removeOrderId(orderKey);
     }
   }, [order?.status, orderKey]);
 
@@ -244,7 +280,8 @@ export default function UPICheckout() {
     setShowApps(false);
     setStoreSuggest(null);
     setOrder(null);
-    try { sessionStorage.removeItem(orderKey); } catch {}
+    removeOrderId(orderKey);
+    // Keep `oid` in URL so refresh honors the expired state. It will be replaced on next create.
   };
 
   // ---- UPI helpers (unchanged visuals/behavior) ----
