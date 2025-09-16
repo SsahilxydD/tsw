@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useMemo } from "react";
 import CartSteps from "../components/CartSteps";
 import { ShopContext } from "../context/ShopContext";
-// Removed CartTotal and StickyBar on this page to avoid conflicts
+import CartTotal from "../components/CartTotal";
 
 export default function Payment() {
   const { products, currency, cartItems, address, navigate, getCartCount } = useContext(ShopContext);
@@ -155,7 +155,9 @@ export default function Payment() {
                 )}
               </div>
             </div>
-            {/* Cart total intentionally removed on the payment page */}
+            <div className="rounded-md border bg-white p-4">
+              <CartTotal />
+            </div>
           </div>
         </div>
       </div>
