@@ -13,6 +13,14 @@ const { sha256 } = require('./utils/hash');
 const { getProduct } = require('./products');
 
 const app = express();
+// Behind Nginx: trust the proxy so req.ip is the real client and
+// express-rate-limit doesn't complain when X-Forwarded-* is present.
+// Using `true` trusts all hops which is safe for a single Nginx in front.
+app.set('trust proxy', true);
+try {
+  const tp = app.get('trust proxy');
+  console.log('[server] trust proxy enabled:', tp !== false);
+} catch {}
 const crypto = require('crypto');
 
 const ADMIN_USER = process.env.ADMIN_USER || 'thesolowardrobe@gmail.com';
