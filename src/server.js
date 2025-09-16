@@ -856,30 +856,31 @@ app.get('/order/:token', (req, res) => {
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Order Confirmation · Solo Wardrobe</title>
 <style>
-  :root{color-scheme:dark light}
-  body{margin:0;font-family:Inter,Segoe UI,Roboto,Arial,sans-serif;background:radial-gradient(circle at top,#0e1220,#05060c);color:#e5e7eb;}
+  :root{color-scheme:light}
+  body{margin:0;font-family:Inter,Segoe UI,Roboto,Arial,sans-serif;background:#fff;color:#000;}
   .wrap{max-width:780px;margin:40px auto;padding:24px;}
-  .card{background:rgba(15,18,30,0.9);border:1px solid rgba(255,255,255,0.06);border-radius:22px;padding:32px;box-shadow:0 30px 80px rgba(0,0,0,0.45);backdrop-filter:blur(12px);}
+  .card{background:#fff;border:1px solid #000;border-radius:0;padding:32px;box-shadow:none;}
   .hero{display:flex;align-items:center;gap:16px;margin-bottom:24px;}
-  .check{width:54px;height:54px;border-radius:50%;background:#22c55e;display:grid;place-content-center;color:#04130a;box-shadow:0 12px 30px rgba(34,197,94,0.35);}
-  h1{margin:0;font-size:24px;font-weight:600;letter-spacing:-0.01em;}
-  .muted{color:#a1accb;font-size:14px;}
+  .check{width:44px;height:44px;background:#000;color:#fff;display:grid;place-content-center;border:1px solid #000;border-radius:0;}
+  h1{margin:0;font-size:24px;font-weight:600;letter-spacing:-0.01em;color:#000;}
+  .muted{color:#000;font-size:14px;}
   .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:18px;margin:26px 0;}
-  .chip{padding:10px 14px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);font-size:13px;color:#cbd5f5;}
-  .section{margin-top:28px;border-top:1px solid rgba(255,255,255,0.05);padding-top:22px;}
-  .section h3{margin:0 0 12px;font-size:16px;font-weight:600;color:#f8fafc;}
-  .text-block p{margin:4px 0;font-size:14px;color:#cbd5f5;}
+  .chip{padding:10px 14px;border-radius:0;background:#fff;border:1px solid #000;font-size:13px;color:#000;}
+  .section{margin-top:28px;border-top:1px solid #000;padding-top:22px;}
+  .section h3{margin:0 0 12px;font-size:16px;font-weight:600;color:#000;}
+  .text-block p{margin:4px 0;font-size:14px;color:#000;}
   .policy-list{list-style:none;padding:0;margin:12px 0 0;display:grid;gap:12px;}
-  .policy-list li{padding:14px 16px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.05);}
-  .policy-list strong{display:block;font-weight:600;color:#f8fafc;margin-bottom:4px;font-size:14px;}
-  .policy-list span{color:#a1accb;font-size:13px;}
+  .policy-list li{padding:14px 16px;border-radius:0;background:#fff;border:1px solid #000;}
+  .policy-list strong{display:block;font-weight:600;color:#000;margin-bottom:4px;font-size:14px;}
+  .policy-list span{color:#000;font-size:13px;}
   .actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:32px;}
-  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 18px;border-radius:999px;font-weight:600;font-size:14px;text-decoration:none;transition:transform .18s ease,opacity .18s ease;}
-  .btn-primary{background:#f8fafc;color:#05060c;}
-  .btn-outline{background:transparent;color:#f8fafc;border:1px solid rgba(255,255,255,0.35);}
-  .btn:hover{transform:translateY(-1px);}
-  .note{margin-top:24px;font-size:12px;color:#7c8aab;line-height:1.5;}
-  @media(max-width:640px){.card{padding:24px;border-radius:18px;}.hero{flex-direction:column;align-items:flex-start;}.actions{flex-direction:column;align-items:stretch;}}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 18px;border-radius:0;font-weight:600;font-size:14px;text-decoration:none;border:1px solid #000;transition:none;color:#000;background:#fff;}
+  .btn-primary{background:#000;color:#fff;border-color:#000;}
+  .btn-outline{background:#fff;color:#000;border-color:#000;}
+  .btn:hover{transform:none;opacity:1;}
+  .note{margin-top:24px;font-size:12px;color:#000;line-height:1.5;}
+  @media(max-width:640px){.card{padding:24px;border-radius:0;}.hero{flex-direction:column;align-items:flex-start;}.actions{flex-direction:column;align-items:stretch;}}
+  a{color:#000}
 </style>
 </head>
 <body><div class="wrap"><div class="card">

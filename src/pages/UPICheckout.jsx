@@ -485,13 +485,13 @@ export default function UPICheckout() {
       </div>
 
       {error && (
-        <div className="rounded-md border border-red-300 text-red-200 bg-red-950/40 p-3 mb-4">
+        <div className="rounded-none border border-white text-white bg-black/60 p-3 mb-4">
           {String(error)}
         </div>
       )}
 
       {!!order && !expired && (
-        <div className="mb-4 rounded-md border bg-yellow-50 text-yellow-800 px-3 py-2 text-sm flex items-center justify-between">
+        <div className="mb-4 rounded-none border bg-black text-white px-3 py-2 text-sm flex items-center justify-between">
           <span>Complete payment within 5 minutes</span>
           <span className="font-semibold tabular-nums">
             {deadlineTs ? mmss(timeLeft) : '—:—'}
@@ -500,10 +500,10 @@ export default function UPICheckout() {
       )}
 
       {expired && (
-        <div className="rounded-md border bg-red-50 text-red-800 p-3 mb-4">
+        <div className="rounded-none border bg-black text-white p-3 mb-4">
           This payment session expired. Please return to your cart to place a new order.
           <div className="mt-2">
-            <a href="/cart" className="px-4 py-2 inline-block rounded-md bg-black text-white text-sm">Go to Cart</a>
+            <a href="/cart" className="px-4 py-2 inline-block rounded-none bg-black text-white text-sm">Go to Cart</a>
           </div>
         </div>
       )}
@@ -512,7 +512,7 @@ export default function UPICheckout() {
 
       {!!order && !expired && (
         <div className="grid sm:grid-cols-2 gap-6">
-          <div className="rounded-md border bg-white/5 p-4 flex items-center justify-center min-h-[300px]">
+          <div className="rounded-none border bg-white/5 p-4 flex items-center justify-center min-h-[300px]">
             {order.currentQr ? (
               <img key={order.currentQr} src={order.currentQr} alt="UPI QR" className="w-56 h-56 sm:w-64 sm:h-64 object-contain" />
             ) : (
@@ -520,16 +520,16 @@ export default function UPICheckout() {
             )}
           </div>
 
-          <div className="rounded-xl border bg-white p-4 sm:col-span-2 shadow-sm">
+          <div className="rounded-none border bg-white p-4 sm:col-span-2 shadow-sm">
             <div>
               <p className="font-semibold mb-2">Pay via</p>
-              <div className="mb-3 text-xs p-2 rounded border bg-blue-50 text-blue-800">
+              <div className="mb-3 text-xs p-2 rounded-none border bg-black text-white">
                 Tip: We copied your Order ID to the clipboard. In your UPI app, paste it into the “Add note/message” field before paying so we can auto-verify instantly.
-                {copiedOrderId && <span className="ml-2 text-[11px] text-green-600">Order ID copied</span>}
+                {copiedOrderId && <span className="ml-2 text-[11px] text-white">Order ID copied</span>}
               </div>
-              <div className="w-full flex items-center justify-between border rounded-lg px-3 py-3 bg-white shadow-sm">
+              <div className="w-full flex items-center justify-between border rounded-none px-3 py-3 bg-white shadow-sm">
                 <span className="flex items-center gap-2">
-                  <span className="inline-grid h-5 w-5 place-content-center rounded border text-gray-500">₹</span>
+                  <span className="inline-grid h-5 w-5 place-content-center rounded-none border text-gray-500">₹</span>
                   <span className="font-medium">UPI payment</span>
                 </span>
                 <span className="ml-auto mr-2 text-sm font-semibold">₹{fmt(order.total)}</span>
@@ -540,7 +540,7 @@ export default function UPICheckout() {
                 <div className="grid grid-cols-4 gap-3">
                   {appDeepLinks.filter(a => ['gpay','phonepe','paytm'].includes(a.key)).map(a => (
                     <button key={a.key} onClick={() => openWithScheme(a.scheme, a.storeUrl, a.label)} className="flex flex-col items-center gap-2">
-                      <span className="h-14 w-16 grid place-content-center rounded-xl border shadow-sm bg-white hover:shadow-md active:scale-[0.98] transition">
+                      <span className="h-14 w-16 grid place-content-center rounded-none border shadow-sm bg-white hover:shadow-md active:scale-[0.98] transition">
                         <img src={{ gpay:'/gpay.png', phonepe:'/phonepe.png', paytm:'/paytm.png' }[a.key]} alt={a.label} className="h-8 object-contain" />
                       </span>
                       <span className="text-[11px] text-gray-600">{a.label}</span>
@@ -548,7 +548,7 @@ export default function UPICheckout() {
                   ))}
                   {!isIOS && order?.currentUpiLink && (
                     <button key="others" onClick={() => { try { window.location.href = order.currentUpiLink; } catch {} }} className="flex flex-col items-center gap-2">
-                      <span className="h-14 w-16 grid place-content-center rounded-xl border shadow-sm bg-white hover:shadow-md active:scale-[0.98] transition">
+                      <span className="h-14 w-16 grid place-content-center rounded-none border shadow-sm bg-white hover:shadow-md active:scale-[0.98] transition">
                         <span className="text-lg">⋯</span>
                       </span>
                       <span className="text-[11px] text-gray-600">Others</span>
@@ -566,16 +566,16 @@ export default function UPICheckout() {
                     placeholder="yourname@bank"
                     value={upiId}
                     onChange={(e) => { setUpiId(e.target.value); setUpiStatus('idle'); }}
-                    className="h-10 px-3 rounded-md border focus-ring"
+                    className="h-10 px-3 rounded-none border focus-ring"
                   />
-                  <button type="button" onClick={verifyUpiId} className="h-10 px-4 rounded-md bg-black text-white text-sm pressable">
+                  <button type="button" onClick={verifyUpiId} className="h-10 px-4 rounded-none bg-black text-white text-sm pressable">
                     Verify UPI ID
                   </button>
                 </div>
-                {upiStatus === 'ok' && <p className="mt-1 text-xs text-green-600">UPI ID looks good. Opening your UPI app…</p>}
+                {upiStatus === 'ok' && <p className="mt-1 text-xs text-white">UPI ID looks good. Opening your UPI app…</p>}
                 {upiStatus === 'error' && <p className="mt-1 text-xs text-red-600">Enter a valid UPI ID like name@bank.</p>}
                 {isIOS && storeSuggest && (
-                  <div className="mt-3 p-2 border rounded bg-yellow-50 text-yellow-800 text-xs">
+                  <div className="mt-3 p-2 border rounded-none bg-black text-white text-xs">
                     If the app didn't open, tap here to open {storeSuggest.label} in the App Store.
                     <a className="ml-2 underline" href={storeSuggest.storeUrl} target="_blank" rel="noopener">Open App Store</a>
                   </div>
@@ -584,10 +584,10 @@ export default function UPICheckout() {
             </div>
           </div>
 
-          <div className="rounded-md border bg-white p-4 space-y-2">
+          <div className="rounded-none border bg-white p-4 space-y-2">
             <p>
               <b>Order:</b> {order.id}
-              <button type="button" onClick={() => onCopy(order.id)} className="ml-2 px-2 py-0.5 text-xs border rounded">Copy</button>
+              <button type="button" onClick={() => onCopy(order.id)} className="ml-2 px-2 py-0.5 text-xs border rounded-none">Copy</button>
             </p>
             <p><b>Status:</b> {order.status}</p>
             <p><b>Total:</b> ₹{fmt(order.total)}</p>
@@ -597,69 +597,69 @@ export default function UPICheckout() {
               <p className="text-xs text-gray-500 mt-2">Partial payment received. New QR generated for the remainder.</p>
             )}
             {order.status === 'PAID' && (
-              <p className="text-green-600 font-medium mt-2">Payment confirmed. Thank you!</p>
+              <p className="text-white font-medium mt-2">Payment confirmed. Thank you!</p>
             )}
           </div>
         </div>
       )}
 
       {showSuccess && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4 animate-fade-in">
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
           <div className="relative w-full max-w-3xl">
             <div className="pointer-events-none absolute inset-0 -z-10">
               {Array.from({ length: 20 }).map((_, i) => (
                 <span key={i} className="confetti" style={{ '--i': i, '--c': i % 3 === 0 ? '#22c55e' : i % 3 === 1 ? '#06b6d4' : '#f59e0b' }} />
               ))}
             </div>
-            <div className="animate-swipe-in-up rounded-3xl border border-white/10 bg-slate-900/95 text-slate-100 shadow-2xl backdrop-blur px-6 py-8 sm:px-10">
+            <div className="animate-swipe-in-up rounded-none border border-white/20 bg-black text-white shadow-2xl backdrop-blur px-6 py-8 sm:px-10">
               <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-emerald-500 text-emerald-950 grid place-content-center shadow-lg animate-pop">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-none bg-white text-black grid place-content-center shadow-lg animate-pop">
                   <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
                 </div>
                 <div>
                   <h2 className="text-2xl font-semibold tracking-tight">Payment received — thank you!</h2>
-                  <p className="text-sm text-slate-300">Order {order?.id} is confirmed. We’ll keep you posted until it ships.</p>
+                  <p className="text-sm text-gray-300">Order {order?.id} is confirmed. We’ll keep you posted until it ships.</p>
                 </div>
               </div>
 
               <div className="mt-6 grid gap-3 sm:grid-cols-3 text-sm">
-                <div className="rounded-xl border border-white/10 bg-slate-800/60 p-4">
-                  <div className="text-xs uppercase tracking-wide text-slate-400">Order ID</div>
-                  <div className="mt-1 font-mono text-xs break-all text-slate-100">{order?.id}</div>
-                  <button type="button" onClick={() => order?.id && onCopy(order.id)} className="mt-2 text-xs underline text-slate-300">Copy</button>
+                <div className="rounded-none border border-white/20 bg-black/70 p-4">
+                  <div className="text-xs uppercase tracking-wide text-gray-400">Order ID</div>
+                  <div className="mt-1 font-mono text-xs break-all text-white">{order?.id}</div>
+                  <button type="button" onClick={() => order?.id && onCopy(order.id)} className="mt-2 text-xs underline text-gray-300">Copy</button>
                 </div>
-                <div className="rounded-xl border border-white/10 bg-slate-800/60 p-4">
-                  <div className="text-xs uppercase tracking-wide text-slate-400">Total</div>
+                <div className="rounded-none border border-white/20 bg-black/70 p-4">
+                  <div className="text-xs uppercase tracking-wide text-gray-400">Total</div>
                   <div className="mt-1 text-base font-semibold">₹{fmt(order?.total)}</div>
-                  <p className="text-xs text-slate-400">Paid: ₹{fmt(order?.paid)}</p>
+                  <p className="text-xs text-gray-400">Paid: ₹{fmt(order?.paid)}</p>
                 </div>
-                <div className="rounded-xl border border-white/10 bg-slate-800/60 p-4">
-                  <div className="text-xs uppercase tracking-wide text-slate-400">Status</div>
+                <div className="rounded-none border border-white/20 bg-black/70 p-4">
+                  <div className="text-xs uppercase tracking-wide text-gray-400">Status</div>
                   <div className="mt-1 text-base font-semibold">{order?.status}</div>
-                  {order?.dispatchBy && <p className="text-xs text-slate-400">Dispatch ETA: {new Date(order.dispatchBy).toLocaleString()}</p>}
+                  {order?.dispatchBy && <p className="text-xs text-gray-400">Dispatch ETA: {new Date(order.dispatchBy).toLocaleString()}</p>}
                 </div>
                 {order?.createdAt && (
-                  <div className="rounded-xl border border-white/10 bg-slate-800/60 p-4">
-                    <div className="text-xs uppercase tracking-wide text-slate-400">Placed</div>
-                    <div className="mt-1 text-sm text-slate-100">{new Date(order.createdAt).toLocaleString()}</div>
+                  <div className="rounded-none border border-white/20 bg-black/70 p-4">
+                    <div className="text-xs uppercase tracking-wide text-gray-400">Placed</div>
+                    <div className="mt-1 text-sm text-white">{new Date(order.createdAt).toLocaleString()}</div>
                   </div>
                 )}
                 {order?.paidAt && (
-                  <div className="rounded-xl border border-white/10 bg-slate-800/60 p-4">
-                    <div className="text-xs uppercase tracking-wide text-slate-400">Paid At</div>
-                    <div className="mt-1 text-sm text-slate-100">{new Date(order.paidAt).toLocaleString()}</div>
+                  <div className="rounded-none border border-white/20 bg-black/70 p-4">
+                    <div className="text-xs uppercase tracking-wide text-gray-400">Paid At</div>
+                    <div className="mt-1 text-sm text-white">{new Date(order.paidAt).toLocaleString()}</div>
                   </div>
                 )}
                 {order?.remaining > 0 && (
-                  <div className="rounded-xl border border-white/10 bg-amber-500/10 p-4">
-                    <div className="text-xs uppercase tracking-wide text-amber-200">Amount Due</div>
-                    <div className="mt-1 text-sm text-amber-100">₹{fmt(order.remaining)}</div>
-                    <p className="text-xs text-amber-200/80">Complete the remaining amount to finish your purchase.</p>
+                  <div className="rounded-none border border-white/20 bg-white/10 p-4">
+                    <div className="text-xs uppercase tracking-wide text-gray-200">Amount Due</div>
+                    <div className="mt-1 text-sm text-gray-100">₹{fmt(order.remaining)}</div>
+                    <p className="text-xs text-gray-300">Complete the remaining amount to finish your purchase.</p>
                   </div>
                 )}
                 {order?.product?.name && (
-                  <div className="rounded-xl border border-white/10 bg-slate-800/60 p-4 sm:col-span-3">
-                    <div className="text-xs uppercase tracking-wide text-slate-400">Product</div>
+                  <div className="rounded-none border border-white/20 bg-black/70 p-4 sm:col-span-3">
+                    <div className="text-xs uppercase tracking-wide text-gray-400">Product</div>
                     <div className="mt-1 font-medium">{order.product.name}</div>
                   </div>
                 )}
@@ -668,9 +668,9 @@ export default function UPICheckout() {
               {(receiptContactLines.length > 0 || receiptAddressLines.length > 0) && (
                 <div className="mt-6 grid gap-4 sm:grid-cols-2 text-sm">
                   {receiptContactLines.length > 0 && (
-                    <div className="rounded-2xl border border-white/10 bg-slate-800/60 p-4">
-                      <h3 className="text-sm font-semibold text-slate-100 mb-2">Contact</h3>
-                      <ul className="space-y-1 text-slate-300">
+                    <div className="rounded-none border border-white/20 bg-black/70 p-4">
+                      <h3 className="text-sm font-semibold text-white mb-2">Contact</h3>
+                      <ul className="space-y-1 text-gray-300">
                         {receiptContactLines.map((line, idx) => (
                           <li key={idx}>{line}</li>
                         ))}
@@ -678,9 +678,9 @@ export default function UPICheckout() {
                     </div>
                   )}
                   {receiptAddressLines.length > 0 && (
-                    <div className="rounded-2xl border border-white/10 bg-slate-800/60 p-4">
-                      <h3 className="text-sm font-semibold text-slate-100 mb-2">Shipping Address</h3>
-                      <ul className="space-y-1 text-slate-300">
+                    <div className="rounded-none border border-white/20 bg-black/70 p-4">
+                      <h3 className="text-sm font-semibold text-white mb-2">Shipping Address</h3>
+                      <ul className="space-y-1 text-gray-300">
                         {receiptAddressLines.map((line, idx) => (
                           <li key={idx}>{line}</li>
                         ))}
@@ -691,23 +691,23 @@ export default function UPICheckout() {
               )}
 
               <div className="mt-8">
-                <h3 className="text-sm font-semibold text-slate-200 uppercase tracking-wide">Our policies</h3>
+                <h3 className="text-sm font-semibold text-gray-200 uppercase tracking-wide">Our policies</h3>
                 <ul className="mt-3 grid gap-3 sm:grid-cols-2">
                   {RECEIPT_POLICIES.map((p) => (
-                    <li key={p.title} className="rounded-2xl border border-white/10 bg-slate-800/60 p-4">
-                      <div className="font-medium text-slate-100">{p.title}</div>
-                      <div className="text-xs text-slate-400 mt-1">{p.subtitle}</div>
+                    <li key={p.title} className="rounded-none border border-white/20 bg-black/70 p-4">
+                      <div className="font-medium text-white">{p.title}</div>
+                      <div className="text-xs text-gray-400 mt-1">{p.subtitle}</div>
                     </li>
                   ))}
                 </ul>
               </div>
 
               <div className="mt-8 flex flex-wrap gap-3">
-                <button onClick={onContinue} className="px-5 py-2.5 rounded-full bg-white text-slate-900 text-sm font-semibold shadow-sm hover:-translate-y-0.5 transition">Continue</button>
-                <a className="px-5 py-2.5 rounded-full border border-emerald-400/60 text-sm font-semibold text-emerald-300 hover:-translate-y-0.5 transition" href={whatsappLink} target="_blank" rel="noreferrer">WhatsApp support</a>
+                <button onClick={onContinue} className="px-5 py-2.5 rounded-none bg-white text-black text-sm font-semibold shadow-sm hover:-translate-y-0.5 transition">Continue</button>
+                <a className="px-5 py-2.5 rounded-none border border-white text-sm font-semibold text-white hover:-translate-y-0.5 transition" href={whatsappLink} target="_blank" rel="noreferrer">WhatsApp support</a>
               </div>
 
-              <p className="mt-4 text-xs text-slate-400">Need help? Message us on WhatsApp at <strong className="text-slate-200">{SUPPORT_WHATSAPP}</strong> or reply to your confirmation email.</p>
+              <p className="mt-4 text-xs text-gray-400">Need help? Message us on WhatsApp at <strong className="text-gray-200">{SUPPORT_WHATSAPP}</strong> or reply to your confirmation email.</p>
             </div>
           </div>
         </div>
