@@ -10,6 +10,9 @@ export default function Admin() {
   const [loading, setLoading] = React.useState(true);
   const [serverNow, setServerNow] = React.useState(null);
   const [error, setError] = React.useState('');
+  const [openId, setOpenId] = React.useState(null);
+  const [openOrder, setOpenOrder] = React.useState(null);
+  const [loadingDetail, setLoadingDetail] = React.useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -63,10 +66,17 @@ export default function Admin() {
       }
       if (!r.ok) throw new Error(`Failed (${r.status})`);
       await fetchOrders();
+      // keep details view fresh if it's the same order
+      if (openId === id) {
+        try {
+          const r2 = await fetch(`/admin/api/orders/${id}`, { credentials: 'include' });
+          if (r2.ok) setOpenOrder(await r2.json());
+        } catch {}
+      }
     } catch (e) {
       setError(e.message || 'Action failed');
     }
-  }, [fetchOrders, redirectToLogin]);
+  }, [fetchOrders, redirectToLogin, openId]);
 
   const handleLogout = React.useCallback(async () => {
     try {
@@ -88,6 +98,35 @@ export default function Admin() {
     }
   }, [serverNow]);
 
+  const displayName = (o) => {
+    const name = o?.customer?.name 
+      || `${o?.meta?.address?.firstName || ''} ${o?.meta?.address?.lastName || ''}`.trim();
+    return name || '(no name)';
+  };
+
+  const openDetails = async (o) => {
+    setError('');
+    if (openId === o.id) {
+      setOpenId(null);
+      setOpenOrder(null);
+      return;
+    }
+    setOpenId(o.id);
+    setLoadingDetail(true);
+    try {
+      const r = await fetch(`/admin/api/orders/${o.id}`, { credentials: 'include', cache: 'no-store' });
+      if (r.status === 401) { redirectToLogin(); return; }
+      if (!r.ok) throw new Error(`Failed (${r.status})`);
+      const j = await r.json();
+      setOpenOrder(j);
+    } catch (e) {
+      setError(e.message || 'Failed to load details');
+      setOpenOrder(null);
+    } finally {
+      setLoadingDetail(false);
+    }
+  };
+
   return (
     <div className="border-t pt-10 px-4 max-w-6xl mx-auto">
       <h1 className="text-xl font-semibold mb-4">Admin Dashboard</h1>
@@ -108,7 +147,8 @@ export default function Admin() {
           <table className="min-w-full text-sm">
             <thead>
               <tr className="text-left border-b">
-                <th className="py-2 pr-3">Order</th>
+                <th className="py-2 pr-3">Customer</th>
+                <th className="py-2 pr-3">Order ID</th>
                 <th className="py-2 pr-3">Status</th>
                 <th className="py-2 pr-3">Total</th>
                 <th className="py-2 pr-3">Paid</th>
@@ -120,40 +160,95 @@ export default function Admin() {
             </thead>
             <tbody>
               {orders.map((o) => (
-                <tr key={o.id} className="border-b last:border-b-0">
-                  <td className="py-2 pr-3 font-mono text-xs">{o.id}</td>
-                  <td className="py-2 pr-3">{o.status}</td>
-                  <td className="py-2 pr-3">{fmtRs(o.totalAmountPaise)}</td>
-                  <td className="py-2 pr-3">{fmtRs(o.paidPaise)}</td>
-                  <td className="py-2 pr-3">{fmtRs(o.remainingPaise)}</td>
-                  <td className="py-2 pr-3 tabular-nums">{minutesLeft(o)}</td>
-                  <td className="py-2 pr-3 whitespace-nowrap">{new Date(o.createdAt).toLocaleString()}</td>
-                  <td className="py-2 flex flex-wrap gap-2">
-                    <button
-                      className="px-2 py-1 border rounded text-xs"
-                      onClick={() => action(o.id, 'regenerate')}
-                    >
-                      Regenerate
-                    </button>
-                    <button
-                      className="px-2 py-1 border rounded text-xs"
-                      onClick={() => action(o.id, 'expire')}
-                    >
-                      Expire
-                    </button>
-                    <button
-                      className="px-2 py-1 border rounded text-xs"
-                      onClick={() => action(o.id, 'mark-paid')}
-                    >
-                      Mark Paid
-                    </button>
-                    {o.currentQr && (
-                      <a className="px-2 py-1 border rounded text-xs" href={o.currentQr} target="_blank" rel="noreferrer">
-                        QR
-                      </a>
-                    )}
-                  </td>
-                </tr>
+                <React.Fragment key={o.id}>
+                  <tr className="border-b last:border-b-0 hover:bg-slate-50 cursor-pointer" onClick={() => openDetails(o)}>
+                    <td className="py-2 pr-3">{displayName(o)}</td>
+                    <td className="py-2 pr-3 font-mono text-xs">{o.id}</td>
+                    <td className="py-2 pr-3">{o.status}</td>
+                    <td className="py-2 pr-3">{fmtRs(o.totalAmountPaise)}</td>
+                    <td className="py-2 pr-3">{fmtRs(o.paidPaise)}</td>
+                    <td className="py-2 pr-3">{fmtRs(o.remainingPaise)}</td>
+                    <td className="py-2 pr-3 tabular-nums">{minutesLeft(o)}</td>
+                    <td className="py-2 pr-3 whitespace-nowrap">{new Date(o.createdAt).toLocaleString()}</td>
+                    <td className="py-2 flex flex-wrap gap-2">
+                      <button
+                        className="px-2 py-1 border rounded text-xs"
+                        onClick={(e) => { e.stopPropagation(); action(o.id, 'regenerate'); }}
+                      >
+                        Regenerate
+                      </button>
+                      <button
+                        className="px-2 py-1 border rounded text-xs"
+                        onClick={(e) => { e.stopPropagation(); action(o.id, 'expire'); }}
+                      >
+                        Expire
+                      </button>
+                      <button
+                        className="px-2 py-1 border rounded text-xs"
+                        onClick={(e) => { e.stopPropagation(); action(o.id, 'mark-paid'); }}
+                      >
+                        Mark Paid
+                      </button>
+                      {o.currentQr && (
+                        <a className="px-2 py-1 border rounded text-xs" href={o.currentQr} target="_blank" rel="noreferrer" onClick={(e)=>e.stopPropagation()}>
+                          QR
+                        </a>
+                      )}
+                    </td>
+                  </tr>
+                  {openId === o.id && (
+                    <tr className="bg-slate-50 border-b last:border-b-0">
+                      <td colSpan={9} className="p-4">
+                        {loadingDetail && <div className="text-sm text-gray-600">Loading details...</div>}
+                        {!loadingDetail && openOrder && (
+                          <div className="grid sm:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <h3 className="font-semibold text-sm">Order Details</h3>
+                              <div className="text-sm text-gray-700 space-y-1">
+                                <div><span className="text-gray-500">Order ID:</span> <span className="font-mono text-xs">{openOrder.id}</span></div>
+                                <div><span className="text-gray-500">Status:</span> {openOrder.status}</div>
+                                <div><span className="text-gray-500">Total:</span> {fmtRs(openOrder.totalAmountPaise)}</div>
+                                <div><span className="text-gray-500">Paid:</span> {fmtRs(openOrder.paidPaise)}</div>
+                                <div><span className="text-gray-500">Remaining:</span> {fmtRs(openOrder.remainingPaise)}</div>
+                                {openOrder.product && (
+                                  <div><span className="text-gray-500">Product:</span> {openOrder.product.name}</div>
+                                )}
+                                {openOrder.currentQr && (
+                                  <div><a className="underline" href={openOrder.currentQr} target="_blank" rel="noreferrer">Open QR</a></div>
+                                )}
+                              </div>
+                              <div className="flex gap-2 mt-2">
+                                <button className="px-2 py-1 border rounded text-xs" onClick={() => action(openOrder.id, 'regenerate')}>Regenerate</button>
+                                <button className="px-2 py-1 border rounded text-xs" onClick={() => action(openOrder.id, 'expire')}>Expire</button>
+                                <button className="px-2 py-1 border rounded text-xs" onClick={() => action(openOrder.id, 'mark-paid')}>Mark Paid</button>
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <h3 className="font-semibold text-sm">Customer</h3>
+                              <div className="text-sm text-gray-700 space-y-1">
+                                <div><span className="text-gray-500">Name:</span> {displayName(openOrder)}</div>
+                                {openOrder?.customer?.phone || openOrder?.meta?.address?.phone ? (
+                                  <div><span className="text-gray-500">Phone:</span> {openOrder.customer?.phone || openOrder.meta.address.phone}</div>
+                                ) : null}
+                                {openOrder?.customer?.email || openOrder?.meta?.address?.email ? (
+                                  <div><span className="text-gray-500">Email:</span> {openOrder.customer?.email || openOrder.meta.address.email}</div>
+                                ) : null}
+                                {openOrder?.meta?.address && (
+                                  <>
+                                    {openOrder.meta.address.address1 && <div>{openOrder.meta.address.address1}</div>}
+                                    {openOrder.meta.address.address2 && <div>{openOrder.meta.address.address2}</div>}
+                                    {openOrder.meta.address.landmark && <div>Landmark: {openOrder.meta.address.landmark}</div>}
+                                    <div>{[openOrder.meta.address.locality || openOrder.meta.address.district, openOrder.meta.address.state, openOrder.meta.address.zip, openOrder.meta.address.country].filter(Boolean).join(', ')}</div>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               ))}
             </tbody>
           </table>

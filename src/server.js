@@ -328,6 +328,30 @@ app.post('/orders', async (req, res) => {
     const qrFile = path.join(QRS_DIR, `${orderId}-${amountPaise}.png`);
     await makeQr(qrFile, upiLink);
 
+    const sanitizeAddress = (addr) => {
+      if (!addr || typeof addr !== 'object') return null;
+      const pick = (k) => (addr[k] != null ? String(addr[k]).trim() : '');
+      const a = {
+        firstName: pick('firstName'),
+        lastName: pick('lastName'),
+        phone: pick('phone'),
+        email: pick('email'),
+        address1: pick('address1'),
+        address2: pick('address2'),
+        locality: pick('locality') || pick('landmark'),
+        district: pick('district') || pick('city'),
+        state: pick('state'),
+        zip: pick('zip'),
+        country: pick('country') || 'India',
+        landmark: pick('landmark')
+      };
+      // ensure at least something meaningful
+      const nonEmpty = Object.values(a).some(v => String(v).trim());
+      return nonEmpty ? a : null;
+    };
+
+    const addressIn = sanitizeAddress(meta.address || req.body.address);
+
     const orders = loadOrders();
     const now = nowIso();
     const expiresAt = addMinutes(now, ORDER_TTL_MIN);
@@ -349,7 +373,12 @@ app.post('/orders', async (req, res) => {
       updatedAt: now,
       expiresAt,
       paidAt: null,
-      meta: { ...meta, productId: product ? product.id : meta.productId },
+      meta: { ...meta, productId: product ? product.id : meta.productId, ...(addressIn ? { address: addressIn } : {}) },
+      customer: addressIn ? {
+        name: `${addressIn.firstName || ''} ${addressIn.lastName || ''}`.trim() || null,
+        phone: addressIn.phone || null,
+        email: addressIn.email || null,
+      } : null,
       product: product ? { id: product.id, name: product.name, amountPaise: amountPaise } : null,
       publicViewToken: genViewToken(), // customer-safe token
     };

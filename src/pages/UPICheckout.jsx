@@ -110,6 +110,14 @@ export default function UPICheckout() {
       if (productId) payload.productId = productId;
       else if (amountParam) payload.amount = Number(amountParam);
       if (metaRef) payload.meta.ref = metaRef;
+      // Attach shipping/contact address from local storage if present
+      try {
+        const addrRaw = localStorage.getItem('addr.v1');
+        if (addrRaw) {
+          const addr = JSON.parse(addrRaw);
+          if (addr && typeof addr === 'object') payload.meta.address = addr;
+        }
+      } catch {}
 
       const r = await fetch('/orders', {
         method: 'POST',
