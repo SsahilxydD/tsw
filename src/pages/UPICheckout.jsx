@@ -180,11 +180,40 @@ export default function UPICheckout() {
 
       {!!order && (
         <div className="grid sm:grid-cols-2 gap-6">
-          <div className="rounded-md border bg-white/5 p-4 flex items-center justify-center min-h-[320px]">
+          <div className="rounded-md border bg-white/5 p-4 flex items-center justify-center min-h-[300px]">
             {order.currentQr ? (
-              <img src={order.currentQr} alt="UPI QR" className="max-w-full" />
+              <img src={order.currentQr} alt="UPI QR" className="w-56 h-56 sm:w-64 sm:h-64 object-contain" />
             ) : (
               <p className="text-gray-500">No QR available</p>
+            )}
+          </div>
+          {/* Separate UPI app box placed below QR on larger screens */}
+          <div className="rounded-md border bg-white p-4 sm:col-span-2">
+            <p className="font-medium mb-2">Pay via UPI app</p>
+            {order.currentUpiLink ? (
+              <button onClick={onOpenUpi} className="inline-block px-4 py-2 rounded-md bg-black text-white text-sm">Open UPI App</button>
+            ) : (
+              <p className="text-sm text-gray-600">UPI link unavailable</p>
+            )}
+            {isIOS && showApps && (
+              <div className="mt-3 border-t pt-3">
+                <p className="text-sm text-gray-700 mb-2">Open with:</p>
+                <div className="flex flex-wrap gap-2">
+                  {appDeepLinks.map((a) => (
+                    <button key={a.key} onClick={() => openWithScheme(a.scheme, a.storeUrl, a.label)} className="px-3 py-2 text-sm border rounded hover:bg-gray-50">
+                      {a.label}
+                    </button>
+                  ))}
+                  <button onClick={() => onCopy(order.currentUpiLink)} className="px-3 py-2 text-sm border rounded">Copy UPI link</button>
+                </div>
+                {storeSuggest && (
+                  <div className="mt-2 p-2 border rounded bg-yellow-50 text-yellow-800 text-xs">
+                    If the app didn't open, tap here to open {storeSuggest.label} in the App Store.
+                    <a className="ml-2 underline" href={storeSuggest.storeUrl} target="_blank" rel="noopener">Open App Store</a>
+                  </div>
+                )}
+                <p className="text-xs text-gray-500 mt-2">If nothing happens, open your UPI app and scan the QR above.</p>
+              </div>
             )}
           </div>
           <div className="rounded-md border bg-white p-4 space-y-2">
@@ -193,7 +222,7 @@ export default function UPICheckout() {
             <p><b>Total:</b> ₹{fmt(order.total)}</p>
             <p><b>Paid:</b> ₹{fmt(order.paid)}</p>
             <p><b>Remaining:</b> ₹{fmt(order.remaining)}</p>
-            {order.currentUpiLink && (
+            {false && (
               <button onClick={onOpenUpi} className="inline-block mt-2 px-4 py-2 rounded-md bg-black text-white text-sm">Open UPI App</button>
             )}
             {order.status === 'PARTIAL' && (
@@ -203,7 +232,7 @@ export default function UPICheckout() {
               <p className="text-green-600 font-medium mt-2">Payment confirmed. Thank you!</p>
             )}
             {/* iOS app chooser */}
-            {isIOS && showApps && (
+            {false && (
               <div className="mt-3 border-t pt-3">
                 <p className="text-sm text-gray-700 mb-2">Open with:</p>
                 <div className="flex flex-wrap gap-2">
