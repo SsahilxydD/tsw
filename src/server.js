@@ -15,8 +15,15 @@ const { getProduct } = require('./products');
 const app = express();
 const crypto = require('crypto');
 
-const ADMIN_USER = 'thesolowardrobe@gmail.com';
-const ADMIN_PASS = 'Thesolowardrobe@14333';
+const ADMIN_USER = process.env.ADMIN_USER || 'thesolowardrobe@gmail.com';
+const ADMIN_PASS = process.env.ADMIN_PASS || 'Thesolowardrobe@14333';
+const ADMIN_SESSION_SECRET = process.env.ADMIN_SESSION_SECRET || process.env.SESSION_SECRET || 'solo-wardrobe-dev-secret';
+const ADMIN_SESSION_COOKIE = 'solo_admin_session';
+const ADMIN_SESSION_TTL_MS = Math.max(5 * 60 * 1000, Number(process.env.ADMIN_SESSION_TTL_MS || 12 * 60 * 60 * 1000));
+const isProduction = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
+if (!process.env.ADMIN_SESSION_SECRET && !process.env.SESSION_SECRET) {
+  console.warn('[admin] Using fallback admin session secret. Set ADMIN_SESSION_SECRET for production.');
+}
 
 // constant-time compare to avoid timing attacks
 function safeEq(a, b) {
@@ -30,51 +37,119 @@ function safeEq(a, b) {
   }
 }
 
-// identify any URL that has an "admin" path segment
-function isAdminPath(p) {
-  return String(p || '').split('/').filter(Boolean).includes('admin');
+function toBase64Url(value) {
+  const buf = Buffer.isBuffer(value) ? value : Buffer.from(String(value));
+  return buf.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 }
 
-function challenge(res) {
-  res.setHeader('WWW-Authenticate', 'Basic realm="SoloAdmin", charset="UTF-8"');
-  // prevent caching of protected responses
+function fromBase64Url(str) {
+  const normalized = String(str || '').replace(/-/g, '+').replace(/_/g, '/');
+  const pad = normalized.length % 4;
+  const padded = normalized + (pad ? '='.repeat(4 - pad) : '');
+  return Buffer.from(padded, 'base64');
+}
+
+function parseCookies(req) {
+  const header = req.headers && req.headers.cookie;
+  if (!header) return {};
+  const cookies = {};
+  for (const part of header.split(';')) {
+    if (!part) continue;
+    const idx = part.indexOf('=');
+    if (idx === -1) continue;
+    const key = part.slice(0, idx).trim();
+    if (!key) continue;
+    const val = part.slice(idx + 1).trim();
+    try {
+      cookies[key] = decodeURIComponent(val);
+    } catch {
+      cookies[key] = val;
+    }
+  }
+  return cookies;
+}
+
+function appendCookie(res, name, value, options = {}) {
+  const segments = [`${name}=${encodeURIComponent(value)}`];
+  const path = options.path || '/';
+  if (path) segments.push(`Path=${path}`);
+  if (options.maxAgeMs != null) {
+    const maxAgeSec = Math.max(0, Math.floor(options.maxAgeMs / 1000));
+    segments.push(`Max-Age=${maxAgeSec}`);
+    const expires = options.expires instanceof Date ? options.expires : new Date(Date.now() + options.maxAgeMs);
+    segments.push(`Expires=${expires.toUTCString()}`);
+  } else if (options.expires instanceof Date) {
+    segments.push(`Expires=${options.expires.toUTCString()}`);
+  }
+  if (options.httpOnly) segments.push('HttpOnly');
+  if (options.sameSite) segments.push(`SameSite=${options.sameSite}`);
+  if (options.secure) segments.push('Secure');
+  res.append('Set-Cookie', segments.join('; '));
+}
+
+function createSessionToken(payload) {
+  const data = toBase64Url(JSON.stringify(payload));
+  const sig = toBase64Url(crypto.createHmac('sha256', ADMIN_SESSION_SECRET).update(data).digest());
+  return `${data}.${sig}`;
+}
+
+function verifySessionToken(token) {
+  if (!token || typeof token !== 'string') return null;
+  const [data, sig] = token.split('.');
+  if (!data || !sig) return null;
+  const expectedSig = toBase64Url(crypto.createHmac('sha256', ADMIN_SESSION_SECRET).update(data).digest());
+  if (!safeEq(sig, expectedSig)) return null;
+  try {
+    const payload = JSON.parse(fromBase64Url(data).toString('utf8'));
+    if (!payload || typeof payload !== 'object') return null;
+    if (!payload.exp || Date.now() > Number(payload.exp)) return null;
+    if (!safeEq(String(payload.sub || ''), ADMIN_USER)) return null;
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+function issueAdminSession(res) {
+  const now = Date.now();
+  const payload = {
+    sub: ADMIN_USER,
+    iat: now,
+    exp: now + ADMIN_SESSION_TTL_MS,
+    jti: crypto.randomBytes(10).toString('hex'),
+  };
+  const token = createSessionToken(payload);
+  appendCookie(res, ADMIN_SESSION_COOKIE, token, {
+    httpOnly: true,
+    sameSite: 'Strict',
+    secure: isProduction,
+    maxAgeMs: ADMIN_SESSION_TTL_MS,
+  });
+  return payload;
+}
+
+function clearAdminSession(res) {
+  appendCookie(res, ADMIN_SESSION_COOKIE, '', {
+    httpOnly: true,
+    sameSite: 'Strict',
+    secure: isProduction,
+    maxAgeMs: 0,
+    expires: new Date(0),
+  });
+}
+
+function setAdminNoCache(res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
-  return res.status(401).send('Auth required');
 }
 
-function adminBasicAuth(req, res, next) {
-  if (!isAdminPath(req.path)) return next();
-
-  const hdr = req.headers && req.headers.authorization;
-  if (!hdr || !hdr.startsWith('Basic ')) return challenge(res);
-
-  let user = '', pass = '';
-  try {
-    const decoded = Buffer.from(hdr.slice(6), 'base64').toString('utf8');
-    const idx = decoded.indexOf(':');
-    if (idx >= 0) {
-      user = decoded.slice(0, idx);
-      pass = decoded.slice(idx + 1);
-    }
-  } catch {
-    return challenge(res);
-  }
-
-  if (safeEq(user, ADMIN_USER) && safeEq(pass, ADMIN_PASS)) {
-    // don't cache admin pages
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    return next();
-  }
-  return challenge(res);
+function getAdminSession(req) {
+  const cookies = parseCookies(req);
+  const token = cookies[ADMIN_SESSION_COOKIE];
+  return { session: verifySessionToken(token), token };
 }
 
-// register BEFORE any static middleware or SPA fallbacks
-app.use(adminBasicAuth);
-// --- END: Minimal Basic Auth for /admin ---
 app.use(helmet());
 app.use(express.json({ limit: '256kb' }));
 
@@ -154,29 +229,55 @@ function sanitizeOrder(o) {
     dispatchBy
   };
 }
-function parseBasicAuth(req) {
-  const hdr = req.headers && req.headers.authorization;
-  if (!hdr || !hdr.startsWith('Basic ')) return null;
-  try {
-    const decoded = Buffer.from(hdr.slice(6), 'base64').toString('utf8');
-    const idx = decoded.indexOf(':');
-    if (idx < 0) return null;
-    return { user: decoded.slice(0, idx), pass: decoded.slice(idx + 1) };
-  } catch { return null; }
-}
 function requireAdminApi(req, res, next) {
-  const creds = parseBasicAuth(req);
-  if (creds && safeEq(creds.user, ADMIN_USER) && safeEq(creds.pass, ADMIN_PASS)) {
-    res.setHeader('Cache-Control', 'no-store');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
+  const { session, token } = getAdminSession(req);
+  if (session) {
+    res.locals.adminSession = session;
+    setAdminNoCache(res);
     return next();
   }
-  res.setHeader('WWW-Authenticate', 'Basic realm="SoloAdmin-API", charset="UTF-8"');
-  res.setHeader('Cache-Control', 'no-store');
-  return res.status(401).send('Auth required');
+  if (token) clearAdminSession(res);
+  setAdminNoCache(res);
+  return res.status(401).json({ error: 'Auth required' });
 }
 // --- END HELPERS ---
+
+const loginLimiter = rateLimit({ windowMs: 60_000, max: 10, standardHeaders: true, legacyHeaders: false });
+
+app.get('/admin/api/session', (req, res) => {
+  const { session, token } = getAdminSession(req);
+  if (!session) {
+    if (token) clearAdminSession(res);
+    setAdminNoCache(res);
+    return res.status(401).json({ authenticated: false });
+  }
+  setAdminNoCache(res);
+  let expiresAt = null;
+  try {
+    if (session.exp) expiresAt = new Date(Number(session.exp)).toISOString();
+  } catch {
+    expiresAt = null;
+  }
+  return res.json({ authenticated: true, user: { email: ADMIN_USER }, expiresAt });
+});
+
+app.post('/admin/api/login', loginLimiter, (req, res) => {
+  const { email, password } = req.body || {};
+  if (!safeEq(email, ADMIN_USER) || !safeEq(password, ADMIN_PASS)) {
+    clearAdminSession(res);
+    setAdminNoCache(res);
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+  issueAdminSession(res);
+  setAdminNoCache(res);
+  return res.json({ ok: true });
+});
+
+app.post('/admin/api/logout', (req, res) => {
+  clearAdminSession(res);
+  setAdminNoCache(res);
+  return res.json({ ok: true });
+});
 
 // Static hosting for QR images and built SPA assets
 app.use('/qrs', express.static(QRS_DIR, { fallthrough: false }));
@@ -189,7 +290,7 @@ function assertPositiveInteger(name, v) {
   if (!Number.isFinite(v) || v <= 0) throw new Error(`${name} must be > 0`);
 }
 
-// Create order and generate QR
+// Create order and generate QR (PUBLIC)
 app.post('/orders', async (req, res) => {
   try {
     const { amount, amountPaise: amountPaiseIn, currency = 'INR', meta = {}, productId } = req.body || {};
@@ -242,22 +343,22 @@ app.post('/orders', async (req, res) => {
       paidAt: null,
       meta: { ...meta, productId: product ? product.id : meta.productId },
       product: product ? { id: product.id, name: product.name, amountPaise: amountPaise } : null,
-      publicViewToken: genViewToken(), // <-- add public view token
+      publicViewToken: genViewToken(), // customer-safe token
     };
     orders.push(order);
     saveOrders(orders);
 
-    // set a secure HttpOnly cookie so a plain /orders browser nav can find the confirmation page
-    res.cookie('last_order_token', order.publicViewToken, {
+    // Optional: cookie helps redirect old flows, harmless to keep
+    res.cookie?.('last_order_token', order.publicViewToken, {
       httpOnly: true,
       sameSite: 'Lax',
-      secure: true,     // assumes HTTPS via Nginx
+      secure: true,
       path: '/',
       maxAge: 7 * 24 * 3600 * 1000
     });
 
     const expiresInMs = Math.max(0, new Date(expiresAt).getTime() - new Date(now).getTime());
-    const confirmationUrl = `/order/${order.publicViewToken}`; // safe confirmation URL for customers
+    const confirmationUrl = `/order/${order.publicViewToken}`;
     res.json({
       orderId,
       upiLink: order.currentUpiLink,
@@ -277,35 +378,13 @@ app.post('/orders', async (req, res) => {
   }
 });
 
-// --- intercept browser navigations to /orders and redirect customers to their confirmation page
-function getCookie(req, name) {
-  const raw = req.headers.cookie || '';
-  const arr = raw.split(';').map(s => s.trim()).filter(Boolean);
-  for (const kv of arr) {
-    const idx = kv.indexOf('=');
-    if (idx > -1) {
-      const k = decodeURIComponent(kv.slice(0, idx).trim());
-      const v = decodeURIComponent(kv.slice(idx + 1).trim());
-      if (k === name) return v;
-    }
-  }
-  return null;
-}
+// HARD-REMOVE any public GET /orders (always 404)
+app.get('/orders', (_req, res) => res.status(404).send('Not found'));
 
-app.get('/orders', (req, res, next) => {
-  const accept = String(req.headers.accept || '');
-  const wantsHtml = accept.includes('text/html');
-  const hasAuth = !!req.headers.authorization;
-  if (wantsHtml && !hasAuth) {
-    const token = getCookie(req, 'last_order_token');
-    if (token) return res.redirect(302, `/order/${token}`);
-    return res.redirect(302, '/');
-  }
-  return next();
-});
+// ===== Admin API moved under /admin/api/* so /orders is gone =====
 
-// List orders (admin only JSON)
-app.get('/orders', requireAdminApi, (req, res) => {
+// List orders (ADMIN ONLY)
+app.get('/admin/api/orders', requireAdminApi, (req, res) => {
   const orders = loadOrders();
   let changed = false;
   for (const o of orders) {
@@ -320,8 +399,8 @@ app.get('/orders', requireAdminApi, (req, res) => {
   res.json({ serverNow: nowIso(), orders: out });
 });
 
-// Get single order (admin only)
-app.get('/orders/:id', requireAdminApi, async (req, res) => {
+// Get single order (ADMIN ONLY)
+app.get('/admin/api/orders/:id', requireAdminApi, async (req, res) => {
   const orders = loadOrders();
   const order = orders.find((o) => o.id === req.params.id);
   if (!order) return res.status(404).json({ error: 'Not found' });
@@ -373,46 +452,8 @@ app.get('/orders/:id', requireAdminApi, async (req, res) => {
   res.json({ ...order, serverNow: serverNowVal, expiresInMs });
 });
 
-// Products API (read-only)
-app.get('/products/:id', (req, res) => {
-  const product = getProduct(req.params.id);
-  if (!product) return res.status(404).json({ error: 'Not found' });
-  const amountPaise = Math.round((product.amountPaise != null ? product.amountPaise : product.amount * 100));
-  res.json({ id: product.id, name: product.name, amountPaise });
-});
-
-// Rate-limit and protect SMS webhook
-const smsLimiter = rateLimit({ windowMs: 60_000, max: 30, standardHeaders: true, legacyHeaders: false });
-
-function requireWebhookSecret(req) {
-  const secret = process.env.WEBHOOK_SECRET;
-  if (!secret) return true; // not set -> allow
-  const provided = req.headers['x-webhook-secret'] || req.query.secret || (req.body && req.body.secret);
-  return String(provided) === String(secret);
-}
-
-function updateOrderForPartial(order, paidAmountPaise, upiId, upiName) {
-  const now = new Date().toISOString();
-  order.paidPaise += paidAmountPaise;
-  if (order.paidPaise < 0) order.paidPaise = 0;
-  order.remainingPaise = Math.max(0, order.totalAmountPaise - order.paidPaise);
-  if (order.remainingPaise === 0) {
-    order.status = 'PAID';
-    order.paidAt = now;
-    order.currentUpiLink = null;
-    order.currentQr = null;
-    return;
-  }
-  order.status = order.paidPaise > 0 ? 'PARTIAL' : 'PENDING';
-  // Generate a new QR for the remaining amount
-  const nextLink = buildUpiLink({ pa: upiId, pn: upiName, amountPaise: order.remainingPaise, orderId: order.id });
-  const qrFile = path.join(QRS_DIR, `${order.id}-${order.remainingPaise}.png`);
-  // Return info for caller to await generation
-  return { nextLink, qrFile };
-}
-
-// Admin-lite actions (now admin-only)
-app.post('/orders/:id/expire', requireAdminApi, (req, res) => {
+// Admin actions (ADMIN ONLY)
+app.post('/admin/api/orders/:id/expire', requireAdminApi, (req, res) => {
   const orders = loadOrders();
   const order = orders.find(o => o.id === req.params.id);
   if (!order) return res.status(404).json({ error: 'Not found' });
@@ -426,7 +467,7 @@ app.post('/orders/:id/expire', requireAdminApi, (req, res) => {
   res.json({ ok: true, order });
 });
 
-app.post('/orders/:id/mark-paid', requireAdminApi, (req, res) => {
+app.post('/admin/api/orders/:id/mark-paid', requireAdminApi, (req, res) => {
   const orders = loadOrders();
   const order = orders.find(o => o.id === req.params.id);
   if (!order) return res.status(404).json({ error: 'Not found' });
@@ -438,10 +479,12 @@ app.post('/orders/:id/mark-paid', requireAdminApi, (req, res) => {
   order.paidAt = nowIso();
   order.updatedAt = order.paidAt;
   saveOrders(orders);
-  res.json({ ok: true, order });
+  // also return a friendly confirmation URL for convenience
+  const confirmationUrl = order.publicViewToken ? `/order/${order.publicViewToken}` : null;
+  res.json({ ok: true, order, confirmationUrl });
 });
 
-app.post('/orders/:id/regenerate', requireAdminApi, async (req, res) => {
+app.post('/admin/api/orders/:id/regenerate', requireAdminApi, async (req, res) => {
   try {
     const orders = loadOrders();
     const order = orders.find(o => o.id === req.params.id);
@@ -467,6 +510,34 @@ app.post('/orders/:id/regenerate', requireAdminApi, async (req, res) => {
     res.status(500).json({ error: 'Failed to regenerate' });
   }
 });
+
+// Webhook (rate-limited)
+const smsLimiter = rateLimit({ windowMs: 60_000, max: 30, standardHeaders: true, legacyHeaders: false });
+
+function requireWebhookSecret(req) {
+  const secret = process.env.WEBHOOK_SECRET;
+  if (!secret) return true; // not set -> allow
+  const provided = req.headers['x-webhook-secret'] || req.query.secret || (req.body && req.body.secret);
+  return String(provided) === String(secret);
+}
+
+function updateOrderForPartial(order, paidAmountPaise, upiId, upiName) {
+  const now = new Date().toISOString();
+  order.paidPaise += paidAmountPaise;
+  if (order.paidPaise < 0) order.paidPaise = 0;
+  order.remainingPaise = Math.max(0, order.totalAmountPaise - order.paidPaise);
+  if (order.remainingPaise === 0) {
+    order.status = 'PAID';
+    order.paidAt = now;
+    order.currentUpiLink = null;
+    order.currentQr = null;
+    return;
+  }
+  order.status = order.paidPaise > 0 ? 'PARTIAL' : 'PENDING';
+  const nextLink = buildUpiLink({ pa: upiId, pn: upiName, amountPaise: order.remainingPaise, orderId: order.id });
+  const qrFile = path.join(QRS_DIR, `${order.id}-${order.remainingPaise}.png`);
+  return { nextLink, qrFile };
+}
 
 app.post('/webhooks/sms', smsLimiter, async (req, res) => {
   try {
@@ -509,8 +580,8 @@ app.post('/webhooks/sms', smsLimiter, async (req, res) => {
       matchedOrder = orders.find((o) => note.toUpperCase().includes(o.id.toUpperCase()));
       if (!matchedOrder) matchedOrder = orders.find((o) => o.id.toUpperCase() === note.toUpperCase());
     }
-    // If no note-based match, try orders that have pending UTR matching this SMS
     if (!matchedOrder && utr) {
+      // If no note-based match, try orders that have pending UTR matching this SMS
       const norm = (s) => String(s || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
       matchedOrder = orders.find((o) => Array.isArray(o.pendingVerifications) && o.pendingVerifications.some((pv) => norm(pv.utr) === norm(utr)));
     }
@@ -635,7 +706,6 @@ app.get('/order/:token', (req, res) => {
   </div>
 </div></body></html>`);
 });
-// --- End customer-safe endpoints ---
 
 // Start server
 const PORT = process.env.PORT || 3000;
@@ -647,7 +717,14 @@ app.listen(PORT, HOST, () => {
 // SPA fallback to dist/index.html (after API routes)
 app.get('*', (req, res, next) => {
   // Do not interfere with API/static paths
-  const skip = req.path.startsWith('/qrs') || req.path.startsWith('/orders') || req.path.startsWith('/webhooks') || req.path.startsWith('/products') || req.path.startsWith('/health') || req.path.startsWith('/api/order') || req.path.startsWith('/order/');
+  const skip =
+    req.path.startsWith('/qrs') ||
+    req.path.startsWith('/webhooks') ||
+    req.path.startsWith('/products') ||
+    req.path.startsWith('/health') ||
+    req.path.startsWith('/api/order') ||
+    req.path.startsWith('/order/') ||
+    req.path.startsWith('/admin/api/');
   if (skip) return next();
   const indexFile = path.join(DIST_DIR, 'index.html');
   if (fs.existsSync(indexFile)) return res.sendFile(indexFile);
