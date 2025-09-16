@@ -882,9 +882,10 @@ app.get('/order/:token', (req, res) => {
   .note{margin-top:24px;font-size:12px;color:#000;line-height:1.5;}
   @media(max-width:640px){.card{padding:24px;border-radius:0;}.hero{flex-direction:column;align-items:flex-start;}.actions{flex-direction:column;align-items:stretch;}}
   a{color:#000}
+  .page-bg{position:fixed;inset:0;background:#fff !important;z-index:-1;}
 </style>
 </head>
-<body><div class="wrap"><div class="card">
+<body><div class="page-bg" aria-hidden="true"></div><div class="wrap"><div class="card">
   <div class="hero">
     <div class="check">
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
