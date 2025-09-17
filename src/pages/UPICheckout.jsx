@@ -117,6 +117,49 @@ export default function UPICheckout() {
   };
 
   // ---- API helpers ----
+  // Build a lightweight client-side item snapshot from local cart + products
+  async function buildClientItemsFromLocal() {
+    try {
+      const raw = localStorage.getItem('cart.v1');
+      const cart = raw ? JSON.parse(raw) : null; // { [productId]: { [size]: qty } }
+      if (!cart || typeof cart !== 'object') return [];
+      // Load catalog the same way ShopContext does (/data/products.json)
+      let list = [];
+      try {
+        const r = await fetch('/data/products.json', { cache: 'no-store' });
+        const j = await r.json();
+        list = Array.isArray(j) ? j : (Array.isArray(j?.products) ? j.products : []);
+      } catch {}
+      const byId = new Map();
+      for (const p of Array.isArray(list) ? list : []) {
+        const pid = String(p._id ?? p.slug ?? p.id ?? '');
+        if (pid) byId.set(pid, p);
+      }
+      const items = [];
+      const rupeesToPaise = (n) => Math.round(Math.max(0, Number(n) || 0) * 100);
+      for (const pid of Object.keys(cart)) {
+        const sizes = cart[pid] || {};
+        const p = byId.get(String(pid));
+        const title = String(p?.name || p?.title || pid);
+        const image = Array.isArray(p?.images) ? (p.images[0] || null) : (Array.isArray(p?.image) ? (p.image[0] || null) : (p?.image || null));
+        const unitPaise = (p && (p.price != null)) ? rupeesToPaise(p.price) : null;
+        for (const size of Object.keys(sizes)) {
+          const qty = Math.max(1, parseInt(sizes[size] || 1, 10));
+          items.push({
+            productId: pid,
+            title,
+            variant: size,
+            size,
+            qty,
+            unitAmountPaise: unitPaise,
+            imageUrl: image,
+          });
+        }
+      }
+      return items;
+    } catch { return []; }
+  }
+
   async function createOrder() {
     setLoading(true);
     setError('');
@@ -132,6 +175,14 @@ export default function UPICheckout() {
         if (addrRaw) {
           const addr = JSON.parse(addrRaw);
           if (addr && typeof addr === 'object') payload.meta.address = addr;
+        }
+      } catch {}
+
+      // Attach cart snapshot for server-side itemization
+      try {
+        const items = await buildClientItemsFromLocal();
+        if (Array.isArray(items) && items.length > 0) {
+          payload.meta.items = items;
         }
       } catch {}
 

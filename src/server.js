@@ -399,13 +399,17 @@ function backfillMissingLineItems() {
       // No req available here; keep relative; APIs will absolutize per-request
       return s || null;
     };
-    const pushItem = (arr, p, qty, variant) => {
-      if (!p) return;
+    const pushItem = (arr, p, qty, variant, fallback) => {
+      if (!p && !fallback) return;
       const q = Math.max(1, parseInt(qty || 1, 10));
-      const unit = Math.max(0, Math.round(Number(p.amountPaise != null ? p.amountPaise : (p.amount * 100)) || 0));
-      const title = String(p.name || p.title || p.id || 'Item');
-      const img = Array.isArray(p.images) ? (p.images[0] || null) : (Array.isArray(p.image) ? (p.image[0] || null) : (p.image || null));
-      arr.push({ productId: p.id || null, sku: p.sku || null, title, variant: variant ? String(variant) : null, size: variant ? String(variant) : null, qty: q, unitAmountPaise: unit, imageUrl: makeAbs(img) });
+      const unit = p
+        ? Math.max(0, Math.round(Number(p.amountPaise != null ? p.amountPaise : (p.amount * 100)) || 0))
+        : Math.max(0, Math.round(Number(fallback?.unitAmountPaise != null ? fallback.unitAmountPaise : ((fallback?.price || 0) * 100)) || 0));
+      const title = p ? String(p.name || p.title || p.id || 'Item') : String(fallback?.title || fallback?.name || 'Item');
+      const img = p
+        ? (Array.isArray(p.images) ? (p.images[0] || null) : (Array.isArray(p.image) ? (p.image[0] || null) : (p.image || null)))
+        : (fallback?.imageUrl || fallback?.image || null);
+      arr.push({ productId: (p && p.id) || (fallback && fallback.productId) || null, sku: (p && p.sku) || (fallback && fallback.sku) || null, title, variant: variant ? String(variant) : null, size: variant ? String(variant) : null, qty: q, unitAmountPaise: unit, imageUrl: makeAbs(img) });
     };
     for (const o of orders) {
       if (!o || (Array.isArray(o.lineItems) && o.lineItems.length > 0)) continue;
@@ -420,7 +424,8 @@ function backfillMissingLineItems() {
           for (const it of m.items) {
             const pid = it && (it.productId || it.id || it.sku);
             const p = pid ? getProduct(pid) : null;
-            if (p) pushItem(arr, p, it.qty, it.size || it.variant);
+            const fb = { title: it?.title, imageUrl: it?.imageUrl, unitAmountPaise: it?.unitAmountPaise, price: it?.price, productId: pid, sku: it?.sku };
+            pushItem(arr, p, it.qty, it.size || it.variant, fb);
           }
         } else if (m.cart && typeof m.cart === 'object') {
           for (const pid of Object.keys(m.cart)) {
@@ -676,15 +681,19 @@ app.post('/orders', async (req, res) => {
         const s = String(u || '');
         return s.startsWith('http://') || s.startsWith('https://') ? s : (s ? `${req.protocol}://${req.get('host')}${s}` : null);
       };
-      const pushItem = (p, qty, variant) => {
-        if (!p) return;
+      const pushItem = (p, qty, variant, fallback) => {
+        if (!p && !fallback) return;
         const q = Math.max(1, parseInt(qty || 1, 10));
-        const unit = Math.max(0, Math.round(Number(p.amountPaise != null ? p.amountPaise : (p.amount * 100)) || 0));
-        const title = String(p.name || p.title || p.id || 'Item');
-        const img = Array.isArray(p.images) ? (p.images[0] || null) : (Array.isArray(p.image) ? (p.image[0] || null) : (p.image || null));
+        const unit = p
+          ? Math.max(0, Math.round(Number(p.amountPaise != null ? p.amountPaise : (p.amount * 100)) || 0))
+          : Math.max(0, Math.round(Number(fallback?.unitAmountPaise != null ? fallback.unitAmountPaise : ((fallback?.price || 0) * 100)) || 0));
+        const title = p ? String(p.name || p.title || p.id || 'Item') : String(fallback?.title || fallback?.name || 'Item');
+        const img = p
+          ? (Array.isArray(p.images) ? (p.images[0] || null) : (Array.isArray(p.image) ? (p.image[0] || null) : (p.image || null)))
+          : (fallback?.imageUrl || fallback?.image || null);
         order.lineItems.push({
-          productId: p.id || null,
-          sku: p.sku || null,
+          productId: (p && p.id) || (fallback && fallback.productId) || null,
+          sku: (p && p.sku) || (fallback && fallback.sku) || null,
           title,
           variant: variant ? String(variant) : null,
           size: variant ? String(variant) : null,
@@ -701,7 +710,8 @@ app.post('/orders', async (req, res) => {
           for (const it of meta.items) {
             const pid = it && (it.productId || it.id || it.sku);
             const p = pid ? getProduct(pid) : null;
-            if (p) pushItem(p, it.qty, it.size || it.variant);
+            const fb = { title: it?.title, imageUrl: it?.imageUrl, unitAmountPaise: it?.unitAmountPaise, price: it?.price, productId: pid, sku: it?.sku };
+            pushItem(p, it.qty, it.size || it.variant, fb);
           }
         }
         // meta.cart: { [productId]: { [size]: qty } }
