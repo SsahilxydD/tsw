@@ -279,10 +279,31 @@ function buildReceiptPdf(order, doc) {
   if (s.paidAt) doc.text(`Paid At: ${dateStr(s.paidAt)}`);
   doc.moveDown();
 
-  if (s.product) {
-    doc.fontSize(12).text('Product');
+  // Items table
+  if (Array.isArray(s.lineItems) && s.lineItems.length > 0) {
+    doc.fontSize(12).text('Items');
+    doc.moveDown(0.2);
     doc.fontSize(10).fillColor('#333');
-    doc.text(`- ${s.product.name} (${fmtRs(s.product.amountPaise)})`);
+    for (const it of s.lineItems) {
+      const title = String(it.title || 'Item');
+      const variant = it.variant ? ` (${String(it.variant)})` : '';
+      const qty = Math.max(1, parseInt(it.qty || 1, 10));
+      const unit = Number(it.unitAmountPaise || 0);
+      const sub = unit * qty;
+      doc.text(`- ${title}${variant}  |  Qty: ${qty}  |  Unit: ${(fmtRs(unit))}  |  Subtotal: ${fmtRs(sub)}`);
+    }
+    doc.fillColor('#000');
+    doc.moveDown();
+  } else if (s.product) {
+    doc.fontSize(12).text('Items');
+    doc.fontSize(10).fillColor('#333');
+    doc.text(`- ${s.product.name}  |  Qty: 1  |  Unit: ${fmtRs(s.product.amountPaise)}  |  Subtotal: ${fmtRs(s.product.amountPaise)}`);
+    doc.fillColor('#000');
+    doc.moveDown();
+  } else {
+    doc.fontSize(12).text('Items');
+    doc.fontSize(10).fillColor('#333');
+    doc.text(`- Custom payment — ${fmtRs(s.totalAmountPaise)}`);
     doc.fillColor('#000');
     doc.moveDown();
   }
@@ -367,6 +388,65 @@ async function makeQr(filePath, text) {
   await QRCode.toFile(filePath, text, { type: 'png', width: 512, margin: 1 });
 }
 
+// Backfill: populate lineItems on legacy orders at boot
+function backfillMissingLineItems() {
+  try {
+    const orders = loadOrders();
+    let changed = false;
+    const now = nowIso();
+    const makeAbs = (u) => {
+      const s = String(u || '');
+      // No req available here; keep relative; APIs will absolutize per-request
+      return s || null;
+    };
+    const pushItem = (arr, p, qty, variant) => {
+      if (!p) return;
+      const q = Math.max(1, parseInt(qty || 1, 10));
+      const unit = Math.max(0, Math.round(Number(p.amountPaise != null ? p.amountPaise : (p.amount * 100)) || 0));
+      const title = String(p.name || p.title || p.id || 'Item');
+      const img = Array.isArray(p.images) ? (p.images[0] || null) : (Array.isArray(p.image) ? (p.image[0] || null) : (p.image || null));
+      arr.push({ productId: p.id || null, sku: p.sku || null, title, variant: variant ? String(variant) : null, size: variant ? String(variant) : null, qty: q, unitAmountPaise: unit, imageUrl: makeAbs(img) });
+    };
+    for (const o of orders) {
+      if (!o || (Array.isArray(o.lineItems) && o.lineItems.length > 0)) continue;
+      const arr = [];
+      if (o.product && (o.product.id || o.meta?.productId)) {
+        const pid = o.product.id || o.meta?.productId;
+        const p = getProduct(pid);
+        if (p) pushItem(arr, p, 1, o.meta?.size || o.meta?.address?.size);
+      } else if (o.meta && typeof o.meta === 'object') {
+        const m = o.meta;
+        if (Array.isArray(m.items) && m.items.length > 0) {
+          for (const it of m.items) {
+            const pid = it && (it.productId || it.id || it.sku);
+            const p = pid ? getProduct(pid) : null;
+            if (p) pushItem(arr, p, it.qty, it.size || it.variant);
+          }
+        } else if (m.cart && typeof m.cart === 'object') {
+          for (const pid of Object.keys(m.cart)) {
+            const sizes = m.cart[pid] && typeof m.cart[pid] === 'object' ? m.cart[pid] : {};
+            const p = getProduct(pid);
+            for (const sz of Object.keys(sizes)) {
+              const q = sizes[sz];
+              if (p && Number(q) > 0) pushItem(arr, p, q, sz);
+            }
+          }
+        }
+      }
+      if (arr.length > 0) {
+        o.lineItems = arr;
+        o.updatedAt = now;
+        changed = true;
+      } else {
+        o.lineItems = [];
+      }
+    }
+    if (changed) saveOrders(orders);
+  } catch (e) {
+    console.error('[backfill] lineItems error:', e?.message);
+  }
+}
+
 // --- PUBLIC ORDER VIEW (safe) + ADMIN API GUARD HELPERS ---
 function genViewToken() {
   return crypto.randomBytes(18).toString('base64url');
@@ -406,6 +486,7 @@ function sanitizeOrder(o) {
     product: o.product ? { id: o.product.id, name: o.product.name, amountPaise: o.product.amountPaise } : null,
     lineItems: Array.isArray(o.lineItems) ? o.lineItems.map(it => ({ productId: it.productId, title: it.title, variant: it.variant || null, qty: it.qty || 1, unitAmountPaise: it.unitAmountPaise || 0, imageUrl: it.imageUrl || null, sku: it.sku || null })) : [],
     createdAt: o.createdAt,
+    updatedAt: o.updatedAt || o.createdAt || null,
     paidAt: o.paidAt || null,
     dispatchBy,
     currentQr: o.currentQr || null,
@@ -585,9 +666,72 @@ app.post('/orders', async (req, res) => {
         email: addressIn.email || null,
       } : null,
       product: product ? { id: product.id, name: product.name, amountPaise: amountPaise } : null,
-      lineItems: product ? [{ productId: product.id, title: (product.name || String(product.id)), variant: ((meta && (meta.size || (meta.address && meta.address.size))) ? String(meta.size || meta.address.size) : null), qty: 1, unitAmountPaise: amountPaise, imageUrl: (Array.isArray(product?.images) ? product.images[0] : (Array.isArray(product?.image) ? product.image[0] : product?.image)) || null, sku: product.sku || null }] : [],
+      lineItems: [],
       publicViewToken: genViewToken(), // customer-safe token
     };
+
+    // Build canonical lineItems snapshot
+    try {
+      const makeAbs = (u) => {
+        const s = String(u || '');
+        return s.startsWith('http://') || s.startsWith('https://') ? s : (s ? `${req.protocol}://${req.get('host')}${s}` : null);
+      };
+      const pushItem = (p, qty, variant) => {
+        if (!p) return;
+        const q = Math.max(1, parseInt(qty || 1, 10));
+        const unit = Math.max(0, Math.round(Number(p.amountPaise != null ? p.amountPaise : (p.amount * 100)) || 0));
+        const title = String(p.name || p.title || p.id || 'Item');
+        const img = Array.isArray(p.images) ? (p.images[0] || null) : (Array.isArray(p.image) ? (p.image[0] || null) : (p.image || null));
+        order.lineItems.push({
+          productId: p.id || null,
+          sku: p.sku || null,
+          title,
+          variant: variant ? String(variant) : null,
+          size: variant ? String(variant) : null,
+          qty: q,
+          unitAmountPaise: unit,
+          imageUrl: makeAbs(img),
+        });
+      };
+      if (product) {
+        pushItem(product, Math.max(1, Number(meta?.qty) || 1), (meta && (meta.size || meta?.address?.size)) ? (meta.size || meta.address.size) : null);
+      } else if (meta && typeof meta === 'object') {
+        // meta.items: [{ productId, qty, size/variant }]
+        if (Array.isArray(meta.items) && meta.items.length > 0) {
+          for (const it of meta.items) {
+            const pid = it && (it.productId || it.id || it.sku);
+            const p = pid ? getProduct(pid) : null;
+            if (p) pushItem(p, it.qty, it.size || it.variant);
+          }
+        }
+        // meta.cart: { [productId]: { [size]: qty } }
+        if (order.lineItems.length === 0 && meta.cart && typeof meta.cart === 'object') {
+          for (const pid of Object.keys(meta.cart)) {
+            const sizes = meta.cart[pid] && typeof meta.cart[pid] === 'object' ? meta.cart[pid] : {};
+            const p = getProduct(pid);
+            for (const sz of Object.keys(sizes)) {
+              const q = sizes[sz];
+              if (p && Number(q) > 0) pushItem(p, q, sz);
+            }
+          }
+        }
+        // Legacy single product in meta.product
+        if (order.lineItems.length === 0 && meta.product && (meta.product.id || meta.product.productId)) {
+          const pid = meta.product.id || meta.product.productId;
+          const p = getProduct(pid);
+          if (p) pushItem(p, meta.product.qty || 1, meta.product.size || meta.product.variant);
+        }
+      }
+      // If we built items but sum doesn't match, record a note (totals remain authoritative)
+      if (order.lineItems.length > 0) {
+        const sum = order.lineItems.reduce((acc, it) => acc + Math.max(1, parseInt(it.qty || 1, 10)) * Math.max(0, Number(it.unitAmountPaise || 0)), 0);
+        if (sum !== order.totalAmountPaise) {
+          order.meta = { ...(order.meta || {}), note: 'total != sum(line items)' };
+        }
+      }
+    } catch (e) {
+      console.error('[order] failed to build line items snapshot:', e?.message);
+    }
     orders.push(order);
     saveOrders(orders);
     // Opportunistic cleanup of long-stale unpaid orders
@@ -660,7 +804,12 @@ app.get('/public/my-orders', (req, res) => {
       if (!o) continue;
       if (ensureFreshStatus(o)) saveOrders(orders);
       if (o.status !== 'PAID') continue; // only show paid orders
-      out.push({ id: o.id, totalAmountPaise: o.totalAmountPaise, status: o.status, publicViewToken: o.publicViewToken, lineItems: Array.isArray(o.lineItems) ? o.lineItems.map(it => ({ title: it.title, imageUrl: it.imageUrl || null, qty: it.qty || 1, unitAmountPaise: it.unitAmountPaise || 0 })) : [],
+      const origin = `${req.protocol}://${req.get('host')}`;
+      const absolutize = (u) => {
+        const s = String(u || '');
+        return s.startsWith('http://') || s.startsWith('https://') ? s : (s ? `${origin}${s}` : null);
+      };
+      out.push({ id: o.id, totalAmountPaise: o.totalAmountPaise, status: o.status, publicViewToken: o.publicViewToken, lineItems: Array.isArray(o.lineItems) ? o.lineItems.map(it => ({ title: it.title, imageUrl: absolutize(it.imageUrl), qty: it.qty || 1, unitAmountPaise: it.unitAmountPaise || 0 })) : [],
         paidAt: o.paidAt || null,
         createdAt: o.createdAt || null,
         updatedAt: o.updatedAt || o.createdAt || null,
@@ -781,6 +930,7 @@ app.get('/admin/api/orders', requireAdminApi, (req, res) => {
 
 // Get single order (ADMIN ONLY)
 app.get('/admin/api/orders/:id', requireAdminApi, async (req, res) => {
+  setAdminNoCache(res);
   const orders = loadOrders();
   const order = orders.find((o) => o.id === req.params.id);
   if (!order) return res.status(404).json({ error: 'Not found' });
@@ -841,7 +991,16 @@ app.get('/admin/api/orders/:id', requireAdminApi, async (req, res) => {
       if (Number.isFinite(exp) && Number.isFinite(srv)) expiresInMs = Math.max(0, exp - srv);
     }
   } catch {}
-  res.json({ ...order, serverNow: serverNowVal, expiresInMs });
+  const origin = `${req.protocol}://${req.get('host')}`;
+  const absolutize = (u) => {
+    const s = String(u || '');
+    return s.startsWith('http://') || s.startsWith('https://') ? s : (s ? `${origin}${s}` : null);
+  };
+  const orderWithAbs = { ...order };
+  if (Array.isArray(orderWithAbs.lineItems)) {
+    orderWithAbs.lineItems = orderWithAbs.lineItems.map(it => ({ ...it, imageUrl: absolutize(it.imageUrl) }));
+  }
+  res.json({ ...orderWithAbs, serverNow: serverNowVal, expiresInMs });
 });
 
 // Admin actions (ADMIN ONLY)
@@ -1103,8 +1262,18 @@ app.get('/orders/:id', (req, res) => {
       if (Number.isFinite(exp) && Number.isFinite(srv)) expiresInMs = Math.max(0, exp - srv);
     }
   } catch {}
-  return res.json({
+  // absolutize images on this response
+  const origin = `${req.protocol}://${req.get('host')}`;
+  const absolutize = (u) => {
+    const s = String(u || '');
+    return s.startsWith('http://') || s.startsWith('https://') ? s : (s ? `${origin}${s}` : null);
+  };
+  const safeWithAbs = {
     ...safeOrder,
+    lineItems: Array.isArray(safeOrder.lineItems) ? safeOrder.lineItems.map(it => ({ ...it, imageUrl: absolutize(it.imageUrl) })) : [],
+  };
+  return res.json({
+    ...safeWithAbs,
     expiresAt: order.expiresAt || null,
     serverNow: serverNowVal,
     updatedAt: order.updatedAt || order.createdAt || serverNowVal,
@@ -1121,7 +1290,14 @@ app.get('/api/order/:token', (req, res) => {
     return res.status(404).json({ error: 'Not found' });
   }
   res.setHeader('Cache-Control', 'no-store');
-  return res.json({ order: sanitizeOrder(order) });
+  const origin = `${req.protocol}://${req.get('host')}`;
+  const absolutize = (u) => {
+    const s = String(u || '');
+    return s.startsWith('http://') || s.startsWith('https://') ? s : (s ? `${origin}${s}` : null);
+  };
+  const s = sanitizeOrder(order);
+  const withAbs = { ...s, lineItems: Array.isArray(s.lineItems) ? s.lineItems.map(it => ({ ...it, imageUrl: absolutize(it.imageUrl) })) : [] };
+  return res.json({ order: withAbs });
 });
 
 app.get('/order/:token', (req, res) => {
@@ -1212,6 +1388,29 @@ app.get('/order/:token', (req, res) => {
   </div>
   ${addressBlock}
   ${contactBlock}
+  <div class=\"section\">
+    <h3>Items</h3>
+    ${Array.isArray(s.lineItems) && s.lineItems.length > 0 ? `
+      <div>
+        ${s.lineItems.map(it => {
+          const title = escapeHtml(String(it.title || 'Item'));
+          const variant = it.variant ? ` (${escapeHtml(String(it.variant))})` : '';
+          const qty = Math.max(1, parseInt(it.qty || 1, 10));
+          const unit = Number(it.unitAmountPaise || 0);
+          const sub = unit * qty;
+          const img = escapeHtml(String(it.imageUrl || '/favicon.png'));
+          return `<div class=\"flex\" style=\"display:flex;align-items:center;gap:12px;margin:6px 0;\">
+            <img src=\"${img}\" alt=\"${title}${variant}\" loading=\"lazy\" style=\"width:64px;height:64px;object-fit:cover;border:1px solid #000;border-radius:0;\" />
+            <div style=\"flex:1;min-width:0;\">
+              <div style=\"font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;\">${title}${variant}</div>
+              <div style=\"font-size:12px;color:#000;\">Qty: ${qty} × Unit: ${fmtRs(unit)}</div>
+            </div>
+            <div style=\"font-weight:600;font-size:13px;\">${fmtRs(sub)}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    ` : `<div class=\"text-block\"><p>Custom payment — ${fmtRs(s.totalAmountPaise)}</p></div>`}
+  </div>
   <div class="section">
     <h3>Our promises to you</h3>
     <ul class="policy-list">${policyMarkup}</ul>
@@ -1228,6 +1427,9 @@ app.get('/order/:token', (req, res) => {
 // Start server
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
+// One-time backfill to populate item snapshots on legacy orders
+try { backfillMissingLineItems(); } catch {}
+
 app.listen(PORT, HOST, () => {
   console.log(`UPI QR server listening on http://${HOST}:${PORT}`);
 });
