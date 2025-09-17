@@ -157,7 +157,17 @@ const ShopContextProvider = (props) => {
           const isShirt = any([/\bshirts?\b/i, /formal\s+shirt/i]);
           const isSunglasses = any([/(sunglass|sunglasses|shades)\b/i]);
           const isSweatshirt = any([/\bsweat\s*-?\s*shirts?\b/i, /\bsweatshirt\b/i]);
-          const isTShirt = any([/(t\s*-?\s*shirts?|tshirts?)\b/i, /\btees?\b/i]);
+          const isTShirt = any([
+            /(t\s*[- ]?shirts?)\b/i,
+            /\btshirts?\b/i,
+            /\btee\s*-?\s*shirts?\b/i,
+            /\btees?\b/i,
+            /\bpolo\s*(?:t\s*[- ]?shirts?|tees?)\b/i,
+            /\bgraphic\s*(?:tees?|t\s*[- ]?shirts?)\b/i,
+            /\boversized\s*(?:tees?|t\s*[- ]?shirts?)\b/i,
+            /\b(?:crew|round)\s*neck\s*(?:tees?|t\s*[- ]?shirts?)\b/i,
+            /\b(?:half|full)\s*(?:sleeve|sleeves)\s*(?:tees?|t\s*[- ]?shirts?)\b/i,
+          ]);
           const isTrackPant = any([/(track\s*-?\s*pants?|trackpants?)\b/i, /\bjoggers?\b/i]);
           const isTracksuit = any([/\btrack\s*-?\s*suits?\b/i, /\btracksuits?\b/i]);
           const isWallet = any([/\bwallets?\b/i]);
@@ -168,8 +178,8 @@ const ShopContextProvider = (props) => {
           const isDiscounted = /\bdiscounted\b/i.test(lcRaw);
           const isShoe = isFootwearProduct({ category: originalCategory, categoryRaw: originalCategory, sizes: item?.sizes });
 
-          // Simple pricing: add 550 to every product, regardless of category/type
-          let price = Math.max(0, basePrice + 550);
+          // Use base price from data; specific overrides may apply below
+          let price = Math.max(0, basePrice);
 
           // Derive Discounted subCategory using hardened Topwear link checks
           // If in Discounted, override subCategory based on source URL and heuristics
@@ -216,7 +226,8 @@ const ShopContextProvider = (props) => {
               price = 1850;
             } else if (subLower === 'topwear') {
               // Set Topwear discounted price to 750, unless it matches "shirt" → 950
-              price = isShirt ? 950 : 750;
+              // T-shirts → 750; non-tee shirts → 950; others in Topwear sale → 750
+              price = isTShirt ? 750 : (isShirt ? 950 : 750);
             }
           }
 
@@ -367,7 +378,7 @@ const ShopContextProvider = (props) => {
   }
 
   const value = {
-    currency: '₹', delivery_fee,
+    currency: '\u20B9', delivery_fee,
     products, loadingProducts,
     navigate,
     notice, notify,
