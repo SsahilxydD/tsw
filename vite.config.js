@@ -47,14 +47,7 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
-    proxy: {
-      // During local dev: forward API + QR to Express (port 3000)
-      '/orders': 'http://localhost:3000',
-      '/webhooks': 'http://localhost:3000',
-      '/qrs': 'http://localhost:3000',
-      '/health': 'http://localhost:3000',
-      '/products': 'http://localhost:3000'
-    }
+    // No backend proxy: frontend-only app
   },
   preview: { port: 4173, host: true },
   build: {

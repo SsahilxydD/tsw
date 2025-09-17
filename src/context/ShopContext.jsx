@@ -115,33 +115,8 @@ const ShopContextProvider = (props) => {
     }
   };
 
-  // Wrapper navigate: intercept UPI checkout to open WhatsApp prefilled chat instead
-  const navigate = (to, options) => {
-    try {
-      const target = typeof to === 'string' ? to : (to && to.pathname ? to.pathname : '');
-      if (typeof target === 'string' && target.startsWith('/upi-checkout')) {
-        const supportPhone = '+919933778870';
-        const digits = String(supportPhone).replace(/\D/g, '') || '919933778870';
-        const msg = buildWhatsAppOrderMessage();
-        const encoded = encodeURIComponent(msg);
-        const primary = `https://wa.me/${digits}?text=${encoded}`;
-        const fallback = `https://api.whatsapp.com/send?phone=${digits}&text=${encoded}`;
-        try {
-          const win = window.open(primary, '_blank', 'noopener,noreferrer');
-          setTimeout(() => {
-            try {
-              if (!win || win.closed) window.location.href = fallback;
-            } catch { window.location.href = fallback; }
-          }, 350);
-        } catch {
-          window.location.href = primary;
-        }
-        notify('Opening WhatsApp…');
-        return;
-      }
-    } catch {}
-    return routerNavigate(to, options);
-  };
+  // Expose plain router navigate (no backend routes in frontend-only mode)
+  const navigate = routerNavigate;
 
   // Address persisted locally
   const [address, setAddress] = useState(() => {

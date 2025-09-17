@@ -23,10 +23,7 @@ import Address from "./pages/Address";
 import Payment from "./pages/Payment";
 import PlaceOrder from "./pages/PlaceOrder";
 import Orders from "./pages/Orders";
-import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
-import UPICheckout from "./pages/UPICheckout";
-import Admin from "./pages/Admin";
 
 export default function App() {
   const location = useLocation();
@@ -43,7 +40,8 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/collection" element={<Collection />} />
-          <Route path="/category/:cat/:slug" element={<Product />} />`n          <Route path="/category/:cat" element={<Category />} />
+          <Route path="/category/:cat/:slug" element={<Product />} />
+          <Route path="/category/:cat" element={<Category />} />
           <Route path="/product/:id" element={<Product />} />
           <Route path="/address" element={<Address />} />
           <Route path="/payment" element={<Payment />} />
@@ -51,10 +49,8 @@ export default function App() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/place-order" element={<PlaceOrder />} />
-          <Route path="/upi-checkout" element={<UPICheckout />} />
+          {/* UPI checkout removed; direct WhatsApp flow is used instead */}
           <Route path="/orders" element={<Orders />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/admin" element={<Admin />} />
           {/* Fallback */}
           <Route path="*" element={<NotFound />} />
         </Routes>
