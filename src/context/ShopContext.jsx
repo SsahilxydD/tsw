@@ -137,45 +137,45 @@ const ShopContextProvider = (props) => {
 
           let priceAdj = 0;
           if (isDiscounted) {
-            priceAdj = -200; // Discounted overrides
+            priceAdj = 0; // Discounted overrides
           } else if (isBelt) {
-            priceAdj = 600;
+            priceAdj = 550;
           } else if (isCap) {
-            priceAdj = 600;
+            priceAdj = 550;
           } else if (isFlipFlop) {
-            priceAdj = 600;
+            priceAdj = 550;
           } else if (isHoodie) {
-            priceAdj = 600;
+            priceAdj = 550;
           } else if (isHandbag) {
             priceAdj = 550;
           } else if (isJacket) {
-            priceAdj = 600;
+            priceAdj = 550;
           } else if (isJeansProduct({ category: originalCategory, categoryRaw: originalCategory })) {
             priceAdj = 550;
           } else if (isWomensWatch) {
-            priceAdj = 600;
+            priceAdj = 550;
           } else if (isMensPerfume) {
-            priceAdj = 600;
+            priceAdj = 550;
           } else if (isShirt) {
-            priceAdj = 600;
+            priceAdj = 550;
           } else if (isSunglasses) {
-            priceAdj = 700;
+            priceAdj = 550;
           } else if (isSweatshirt) {
-            priceAdj = 650;
+            priceAdj = 550;
           } else if (isTShirt) {
-            priceAdj = 650;
+            priceAdj = 550;
           } else if (isTrackPant) {
-            priceAdj = 650;
+            priceAdj = 550;
           } else if (isTracksuit) {
-            priceAdj = 600;
+            priceAdj = 550;
           } else if (isWallet) {
-            priceAdj = 650;
+            priceAdj = 550;
           } else if (isMensWatch) {
-            priceAdj = 600;
+            priceAdj = 550;
           } else if (isWomensPerfume) {
-            priceAdj = 600;
+            priceAdj = 550;
           } else if (isShoe) {
-            priceAdj = 600;
+            priceAdj = 550;
           } else {
             priceAdj = 0; // default: no change
           }
