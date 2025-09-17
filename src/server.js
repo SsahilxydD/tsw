@@ -2,6 +2,7 @@ const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
 const express = require('express');
+const PDFDocument = require('pdfkit');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const QRCode = require('qrcode');
@@ -175,8 +176,10 @@ const DATA_DIR = path.join(process.cwd(), 'data');
 const PUBLIC_DIR = path.join(process.cwd(), 'public');
 const DIST_DIR = path.join(process.cwd(), 'dist');
 const QRS_DIR = path.join(PUBLIC_DIR, 'qrs');
+const RECEIPTS_DIR = path.join(PUBLIC_DIR, 'receipts');
 ensureDir(DATA_DIR);
 ensureDir(QRS_DIR);
+ensureDir(RECEIPTS_DIR);
 
 const db = new FSDB(DATA_DIR);
 
@@ -252,6 +255,146 @@ function savePayments(payments) {
   db.write('payments', payments);
 }
 
+// --- Files (FSDB) helpers for receipts ---
+function loadFiles() {
+  return db.read('files', []);
+}
+function saveFiles(files) {
+  db.write('files', files);
+}
+function fileStatSafe(p) {
+  try { return fs.statSync(p); } catch { return null; }
+}
+function orderReceiptPath(orderId) {
+  return path.join(RECEIPTS_DIR, `${orderId}.pdf`);
+}
+function ensureReceiptsDir() {
+  try { fs.mkdirSync(RECEIPTS_DIR, { recursive: true }); } catch {}
+}
+function upsertReceiptFileMeta(order, absPath) {
+  const files = loadFiles();
+  const st = fileStatSafe(absPath);
+  const size = st ? Number(st.size) : null;
+  const id = `${order.id}.pdf`;
+  const idx = files.findIndex(f => f.kind === 'receipt' && f.orderId === order.id);
+  const row = {
+    id,
+    orderId: order.id,
+    kind: 'receipt',
+    mime: 'application/pdf',
+    size,
+    path: absPath,
+    publicUrl: `/receipts/${id}`,
+    createdAt: nowIso(),
+  };
+  if (idx >= 0) files[idx] = { ...files[idx], ...row };
+  else files.push(row);
+  saveFiles(files);
+  return row;
+}
+
+function buildReceiptPdf(order, doc) {
+  const s = sanitizeOrder(order) || {};
+  const fmtRs = (n) => `₹${(Number(n || 0) / 100).toFixed(2)}`;
+  const dateStr = (iso) => iso ? new Date(iso).toLocaleString() : '';
+
+  doc.fontSize(20).text('Payment Receipt', { align: 'left' });
+  doc.moveDown(0.5);
+  doc.fontSize(10).fillColor('#666').text(`Generated: ${new Date().toLocaleString()}`);
+  doc.moveDown();
+
+  doc.fillColor('#000').fontSize(12);
+  doc.text(`Order ID: ${s.id || order.id}`);
+  doc.text(`Status: ${s.status || order.status || ''}`);
+  doc.text(`Currency: ${s.currency || order.currency || 'INR'}`);
+  doc.text(`Total: ${fmtRs(s.totalAmountPaise ?? order.totalAmountPaise)}`);
+  doc.text(`Paid: ${fmtRs(s.paidPaise ?? order.paidPaise)}`);
+  if (s.createdAt) doc.text(`Created At: ${dateStr(s.createdAt)}`);
+  if (s.paidAt) doc.text(`Paid At: ${dateStr(s.paidAt)}`);
+  doc.moveDown();
+
+  if (s.product) {
+    doc.fontSize(12).text('Product');
+    doc.fontSize(10).fillColor('#333');
+    doc.text(`- ${s.product.name} (${fmtRs(s.product.amountPaise)})`);
+    doc.fillColor('#000');
+    doc.moveDown();
+  }
+
+  if (s.address) {
+    doc.fontSize(12).text('Shipping Address');
+    doc.fontSize(10).fillColor('#333');
+    const lines = [];
+    if (s.address.name) lines.push(String(s.address.name));
+    if (s.address.line1) lines.push(String(s.address.line1));
+    if (s.address.line2) lines.push(String(s.address.line2));
+    const loc = [s.address.locality, s.address.district, s.address.state].filter(Boolean).join(', ');
+    if (loc) lines.push(loc);
+    const tail = [s.address.zip, s.address.country].filter(Boolean).join(', ');
+    if (tail) lines.push(tail);
+    for (const l of lines) doc.text(l);
+    doc.fillColor('#000');
+    doc.moveDown();
+  }
+
+  if (s.customer?.phone || s.customer?.email) {
+    doc.fontSize(12).text('Contact');
+    doc.fontSize(10).fillColor('#333');
+    if (s.customer?.phone) doc.text(`Phone: ${s.customer.phone}`);
+    if (s.customer?.email) doc.text(`Email: ${s.customer.email}`);
+    doc.fillColor('#000');
+    doc.moveDown();
+  }
+
+  doc.fontSize(9).fillColor('#666')
+    .text('Thank you for your purchase. This receipt confirms payment has been received. Keep this document for your records.');
+}
+
+async function ensureReceiptPdf(order, opts = {}) {
+  if (!order || order.status !== 'PAID') return null;
+  ensureReceiptsDir();
+  const absPath = orderReceiptPath(order.id);
+  const exists = !!fileStatSafe(absPath);
+  // Always set URL if file exists or will be written
+  order.receiptPdfUrl = `/receipts/${order.id}.pdf`;
+  if (exists) return { path: absPath, existed: true };
+
+  return await new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ size: 'A4', margin: 50 });
+      const fileStream = fs.createWriteStream(absPath);
+      const cleanup = () => { try { doc.removeAllListeners(); } catch {} };
+
+      fileStream.on('finish', () => {
+        try {
+          upsertReceiptFileMeta(order, absPath);
+          order.updatedAt = nowIso();
+        } catch {}
+        cleanup();
+        resolve({ path: absPath, existed: false });
+      });
+      fileStream.on('error', (err) => {
+        console.error('[receipt.pdf] file write error', { orderId: order.id, path: absPath, err: err?.message });
+        cleanup();
+        reject(err);
+      });
+
+      doc.pipe(fileStream);
+      if (opts.streamToRes && opts.res) {
+        // stream also to HTTP response
+        opts.res.setHeader('Content-Type', 'application/pdf');
+        opts.res.setHeader('Cache-Control', 'no-store');
+        doc.pipe(opts.res);
+      }
+      buildReceiptPdf(order, doc);
+      doc.end();
+    } catch (err) {
+      console.error('[receipt.pdf] generation error', { orderId: order?.id, path: absPath, err: err?.message });
+      reject(err);
+    }
+  });
+}
+
 function genOrderId() {
   const ts = new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14);
   const rand = Math.random().toString(36).slice(2, 7).toUpperCase();
@@ -305,6 +448,7 @@ function sanitizeOrder(o) {
     currentQr: o.currentQr || null,
     currentUpiLink: o.currentUpiLink || null,
     publicViewToken: o.publicViewToken || null,
+    receiptPdfUrl: o.receiptPdfUrl || (fs.existsSync(orderReceiptPath(o.id)) ? `/receipts/${o.id}.pdf` : null),
     customer: {
       name: customerName,
       phone: customerPhone,
@@ -371,14 +515,24 @@ app.use('/qrs', express.static(QRS_DIR, {
     res.setHeader('Cache-Control', 'no-store');
   }
 }));
+// Static hosting for Receipt PDFs (no-cache)
+app.use('/receipts', express.static(RECEIPTS_DIR, {
+  fallthrough: false,
+  setHeaders(res) {
+    res.setHeader('Cache-Control', 'no-store');
+  }
+}));
 app.use(express.static(DIST_DIR));
 
 // Health
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
-// Disable public receipt endpoints entirely
-app.use('/api/order', (req, res) => res.status(404).json({ error: 'Not found' }));
-app.use('/order', (req, res) => res.status(404).send('<h1>Not found</h1>'));
+// Optionally disable public receipt endpoints entirely via env switch
+const RECEIPTS_PUBLIC = String(process.env.RECEIPTS_PUBLIC || 'true').toLowerCase() === 'true';
+if (!RECEIPTS_PUBLIC) {
+  app.use('/api/order', (req, res) => res.status(404).json({ error: 'Not found' }));
+  app.use('/order', (req, res) => res.status(404).send('<h1>Not found</h1>'));
+}
 
 function assertPositiveInteger(name, v) {
   if (!Number.isFinite(v) || v <= 0) throw new Error(`${name} must be > 0`);
@@ -553,6 +707,32 @@ app.get('/public/my-orders', (req, res) => {
   }
 });
 
+// Public download endpoint for receipt PDF (token-guarded)
+app.get('/api/orders/:id/receipt.pdf', async (req, res) => {
+  try {
+    const id = String(req.params.id || '');
+    const token = String(req.query.token || '');
+    const orders = loadOrders();
+    const order = orders.find(o => String(o.id) === id);
+    if (!order || order.status !== 'PAID') return res.status(404).json({ error: 'Not found' });
+    if (!token || token !== order.publicViewToken) return res.status(404).json({ error: 'Not found' });
+
+    const absPath = orderReceiptPath(order.id);
+    if (fs.existsSync(absPath)) {
+      res.setHeader('Cache-Control', 'no-store');
+      return res.sendFile(absPath);
+    }
+    // Generate and stream to response
+    await ensureReceiptPdf(order, { streamToRes: true, res });
+    // Save updated order fields (receiptPdfUrl)
+    try { saveOrders(orders); } catch {}
+    // Note: response already streamed; end handler
+  } catch (e) {
+    console.error('[public] receipt download error', { err: e?.message });
+    return res.status(500).json({ error: 'Failed to generate receipt' });
+  }
+});
+
 // Public: allow client to link a receipt token to this device after payment
 app.post('/api/link-order', (req, res) => {
   try {
@@ -639,6 +819,15 @@ app.get('/admin/api/orders/:id', requireAdminApi, async (req, res) => {
       }
     }
   } catch {}
+  // If order is PAID, ensure a receipt PDF exists
+  try {
+    if (order.status === 'PAID') {
+      await ensureReceiptPdf(order);
+      saveOrders(orders);
+    }
+  } catch (e) {
+    console.error('[admin] ensure receipt error', { orderId: order.id, err: e?.message });
+  }
   const serverNowVal = nowIso();
   let expiresInMs = 0;
   try {
@@ -666,7 +855,7 @@ app.post('/admin/api/orders/:id/expire', requireAdminApi, (req, res) => {
   res.json({ ok: true, order });
 });
 
-app.post('/admin/api/orders/:id/mark-paid', requireAdminApi, (req, res) => {
+app.post('/admin/api/orders/:id/mark-paid', requireAdminApi, async (req, res) => {
   const orders = loadOrders();
   const order = orders.find(o => o.id === req.params.id);
   if (!order) return res.status(404).json({ error: 'Not found' });
@@ -677,10 +866,48 @@ app.post('/admin/api/orders/:id/mark-paid', requireAdminApi, (req, res) => {
   order.currentUpiLink = null;
   order.paidAt = nowIso();
   order.updatedAt = order.paidAt;
+  try {
+    await ensureReceiptPdf(order);
+  } catch (e) {
+    console.error('[admin] receipt generate error', { orderId: order.id, path: orderReceiptPath(order.id), err: e?.message });
+    return res.status(500).json({ error: 'Failed to generate receipt PDF' });
+  }
   saveOrders(orders);
   // also return a friendly confirmation URL for convenience
   const confirmationUrl = order.publicViewToken ? `/order/${order.publicViewToken}` : null;
-  res.json({ ok: true, order, confirmationUrl });
+  const receiptPdfUrl = order.receiptPdfUrl || null;
+  res.json({ ok: true, order, confirmationUrl, receiptPdfUrl });
+});
+
+// Admin: list files with filters (receipt PDFs)
+app.get('/admin/api/files', requireAdminApi, (req, res) => {
+  let files = loadFiles();
+  const orderId = req.query.orderId ? String(req.query.orderId) : null;
+  const kind = req.query.kind ? String(req.query.kind) : null;
+  if (orderId) files = files.filter(f => String(f.orderId) === orderId);
+  if (kind) files = files.filter(f => String(f.kind) === String(kind));
+  const total = files.length;
+  const limit = Math.max(1, Math.min(1000, Number(req.query.limit) || 200));
+  const offset = Math.max(0, Number(req.query.offset) || 0);
+  const page = files
+    .slice()
+    .sort((a,b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+    .slice(offset, offset + limit);
+  res.json({ total, limit, offset, files: page });
+});
+
+// Admin: list files for a given order
+app.get('/admin/api/orders/:id/files', requireAdminApi, (req, res) => {
+  const id = String(req.params.id);
+  const limit = Math.max(1, Math.min(1000, Number(req.query.limit) || 200));
+  const offset = Math.max(0, Number(req.query.offset) || 0);
+  let files = loadFiles().filter(f => String(f.orderId) === id);
+  const total = files.length;
+  files = files
+    .slice()
+    .sort((a,b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+    .slice(offset, offset + limit);
+  res.json({ total, limit, offset, files });
 });
 
 app.post('/admin/api/orders/:id/regenerate', requireAdminApi, async (req, res) => {
