@@ -249,6 +249,12 @@ const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd =
         {name}
       </p>
 
+
+      {/* Discounted price overrides */
+      {name && (/(?:^|\b)(t\s?-?\s?shirt)s?/i.test(name)) && (<p className="text-sm font-semibold text-red-600 mt-1">Now Just: ?650/-</p>)}
+      {name && (/(?:^|\b)(collar\s*t\s?-?\s?shirt)s?/i.test(name)) && (<p className="text-sm font-semibold text-red-600 mt-1">Now Just: ?750/-</p>)}
+      {name && (/(?:^|\b)(shirt)s?/i.test(name)) && !(/t\s?-?\s?shirt/i.test(name)) && (<p className="text-sm font-semibold text-red-600 mt-1">Now Just: ?950/-</p>)}
+
       {tileSizes.length > 0 && (
         <div className="mt-2 flex overflow-x-auto whitespace-nowrap items-center gap-1.5 pr-2">
           {visibleSizes.map((sz) => (
