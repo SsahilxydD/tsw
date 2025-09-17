@@ -248,17 +248,41 @@ export default function UPICheckout() {
 
   function clearPurchasedFromCart(o) {
     try {
-      const productId = o?.product?.id || o?.product?.productId || null;
-      if (!productId) return;
       const raw = localStorage.getItem('cart.v1');
       const data = raw ? JSON.parse(raw) : {};
       if (!data || typeof data !== 'object') return;
-      if (data[productId]) {
-        delete data[productId];
+      let mutated = false;
+      // Prefer items[] array if provided
+      const items = Array.isArray(o?.items) ? o.items : (Array.isArray(o?.meta?.items) ? o.meta.items : null);
+      if (Array.isArray(items) && items.length) {
+        for (const it of items) {
+          const pid = String(it?.id || it?.productId || '').trim();
+          if (!pid) continue;
+          if (data[pid]) { delete data[pid]; mutated = true; }
+        }
+      } else {
+        const productId = String(o?.product?.id || o?.product?.productId || '').trim();
+        if (productId && data[productId]) { delete data[productId]; mutated = true; }
+      }
+      if (mutated) {
         localStorage.setItem('cart.v1', JSON.stringify(data));
       }
     } catch {}
   }
+
+  // Safety: when success modal opens with PAID, ensure cart is cleared once
+  useEffect(() => {
+    if (!showSuccess || !isPaidStatus(order?.status) || !order?.id) return;
+    try {
+      const clearedKey = 'cart.cleared.orderId';
+      const already = localStorage.getItem(clearedKey);
+      if (already !== order.id) {
+        clearPurchasedFromCart(order);
+        localStorage.setItem(clearedKey, order.id);
+        try { window.dispatchEvent(new CustomEvent('cart:updated')); } catch {}
+      }
+    } catch {}
+  }, [showSuccess, order?.status, order?.id]);
 
   async function initOrder() {
     setLoading(true);

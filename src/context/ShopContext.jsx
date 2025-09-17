@@ -285,6 +285,12 @@ const ShopContextProvider = (props) => {
 
   // Listen for external cart updates (e.g., after payment confirmation)
   useEffect(() => {
+    // Reconcile cart from storage once on mount to avoid stale in-memory snapshots
+    try {
+      const raw = localStorage.getItem('cart.v1');
+      const parsed = raw ? JSON.parse(raw) : {};
+      setCartItems(parsed || {});
+    } catch {}
     const reload = () => {
       try {
         const raw = localStorage.getItem('cart.v1');
