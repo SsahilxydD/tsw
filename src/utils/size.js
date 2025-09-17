@@ -9,9 +9,17 @@ const EU_TO_UK = new Map([
 
 export function isFootwearProduct(p) {
   const cat = String(p?.category || p?.categoryRaw || "").toLowerCase();
+  const sub = String(p?.subCategory || "").toLowerCase();
+  const name = String(p?.name || p?.title || "").toLowerCase();
   const sizes = Array.isArray(p?.sizes) ? p.sizes : [];
+
   // Never classify bottomwear as footwear
   if (/(jeans|trouser|pant|chino|bottom\s?wear|shorts?)\b/.test(cat)) return false;
+
+  // Explicit hints via subcategory or name
+  const footRe = /(shoe|sneaker|footwear|loafer|boot|flip\s?flop|slide|slipper|clog|sandal)/;
+  const hasFootHint = footRe.test(cat) || footRe.test(sub) || footRe.test(name);
+  if (hasFootHint) return true;
 
   // If any size token can be parsed into a UK shoe label, treat as footwear.
   try {
@@ -19,9 +27,6 @@ export function isFootwearProduct(p) {
       if (toUKLabel(x)) return true;
     }
   } catch {}
-
-  // Include flip-flops, slides, slippers, clogs, sandals alongside shoes
-  const hasFootHint = /(shoe|sneaker|footwear|loafer|boot|flip\s?flop|slide|slipper|clog|sandal)/.test(cat);
 
   // Numeric shoe sizes typically fall into these ranges
   const looksLikeFootNumber = (n) => (n >= 3 && n <= 12) || (n >= 36 && n <= 48);
@@ -39,7 +44,7 @@ export function isFootwearProduct(p) {
   const hasUnitToken = sizes.some((x) => /^(EURO|EU|UK|US)$/i.test(String(x).trim()))
     || sizes.some((x) => /^(\d{1,2})-(UK|EU)$/i.test(String(x).trim()));
 
-  return hasFootHint || hasFootNumeric || hasUnitToken;
+  return hasFootNumeric || hasUnitToken;
 }
 
 // Detect jeans/bottomwear by category

@@ -77,6 +77,38 @@ const ShopContextProvider = (props) => {
         if (!raw) throw lastErr || new Error("No products source available");
 
         const input = Array.isArray(raw) ? raw : (Array.isArray(raw?.products) ? raw.products : []);
+        // Normalize incoming sizes field to an array of string tokens
+        const normInputSizes = (val) => {
+          try {
+            if (Array.isArray(val)) {
+              const out = [];
+              for (const v of val) {
+                if (v == null) continue;
+                if (typeof v === 'string') {
+                  // split by comma/pipe/slash/space; keep hyphen (for patterns like M-7)
+                  const parts = v.split(/[,|\/]+|\s+/).map((x) => x.trim()).filter(Boolean);
+                  out.push(...parts);
+                } else if (typeof v === 'number') {
+                  out.push(String(v));
+                } else if (typeof v === 'object') {
+                  for (const k in v) { if (v[k] != null) out.push(String(v[k])); }
+                }
+              }
+              return out;
+            }
+            if (typeof val === 'string') {
+              return val.split(/[,|\/]+|\s+/).map((x) => x.trim()).filter(Boolean);
+            }
+            if (typeof val === 'number') return [String(val)];
+            if (val && typeof val === 'object') {
+              const out = [];
+              for (const k in val) { if (val[k] != null) out.push(String(val[k])); }
+              return out;
+            }
+          } catch {}
+          return [];
+        };
+
         const mapped = Array.isArray(input) ? input.map((item) => {
           const images = Array.isArray(item.images)
             ? item.images.map((src) => {
@@ -197,7 +229,7 @@ const ShopContextProvider = (props) => {
             category,
             categoryRaw: originalCategory,
             subCategory: derivedSub,
-            sizes: Array.isArray(item.sizes) ? item.sizes : [],
+            sizes: normInputSizes(item.sizes),
             bestseller: Boolean(item.bestseller ?? false),
             slug: item.slug ?? "",
             detail_url_src: item.detail_url_src ?? ""
