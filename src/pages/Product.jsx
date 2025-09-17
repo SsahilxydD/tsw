@@ -63,13 +63,13 @@ export default function Product() {
       <div className="grid md:grid-cols-2 gap-6">
         <div className="rounded-none border bg-white p-4 min-h-[300px]">
           {allImages.length > 0 ? (
-            <div className="grid grid-cols-1 gap-3">
+            <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-smooth">
               {allImages.map((src, i) => (
                 <img
                   key={`${i}-${String(src)}`}
                   src={src}
                   alt={(product.name || product.title || 'Product') + ` ${i+1}`}
-                  className="w-full max-h-[420px] object-contain rounded-none border"
+                  className="flex-none w-full max-h-[420px] object-contain rounded-none border snap-center"
                   loading={i === 0 ? 'eager' : 'lazy'}
                 />
               ))}
