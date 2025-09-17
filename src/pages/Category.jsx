@@ -152,6 +152,9 @@ const Category = () => {
     if (!isDiscounted) return [];
     const counts = new Map();
     for (const p of baseProducts) {
+      // Skip items that can't be ordered (no valid size info)
+      if (isJeansProduct(p) && normalizeJeansSizes(p.sizes).length === 0) continue;
+      if (isFootwearProduct(p) && uniqueUKLabels(Array.isArray(p.sizes) ? p.sizes : []).length === 0) continue;
       const raw = String(p?.subCategory || '').trim().toLowerCase();
       if (!raw) continue;
       counts.set(raw, (counts.get(raw) || 0) + 1);
@@ -196,6 +199,13 @@ const Category = () => {
 
   const applyFilterAndOrder = () => {
     let copy = baseProducts.slice();
+
+    // Drop items that cannot be purchased due to missing size data
+    copy = copy.filter((p) => {
+      if (isJeansProduct(p) && normalizeJeansSizes(p.sizes).length === 0) return false;
+      if (isFootwearProduct(p) && uniqueUKLabels(Array.isArray(p.sizes) ? p.sizes : []).length === 0) return false;
+      return true;
+    });
 
     // search (only when global search UI is visible)
     if (showSearch && debouncedSearch) {

@@ -54,6 +54,8 @@ const Collection = () => {
     let copy = Array.isArray(products) ? products.slice() : [];
     // Globally hide jeans with no sizes in data
     copy = copy.filter((p) => !(isJeansProduct(p) && normalizeJeansSizes(p.sizes).length === 0));
+    // Hide footwear that doesn't declare any valid UK sizes
+    copy = copy.filter((p) => !(isFootwearProduct(p) && Array.isArray(p.sizes) && uniqueUKLabels(p.sizes).length === 0));
 
     // search (only when global search UI is visible)
     if (showSearch && debouncedSearch) {

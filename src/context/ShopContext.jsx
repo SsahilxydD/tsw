@@ -76,7 +76,8 @@ const ShopContextProvider = (props) => {
         }
         if (!raw) throw lastErr || new Error("No products source available");
 
-        const mapped = Array.isArray(raw) ? raw.map((item) => {
+        const input = Array.isArray(raw) ? raw : (Array.isArray(raw?.products) ? raw.products : []);
+        const mapped = Array.isArray(input) ? input.map((item) => {
           const images = Array.isArray(item.images)
             ? item.images.map((src) => {
                 if (!src) return "";
@@ -206,10 +207,34 @@ const ShopContextProvider = (props) => {
           if (isJeansProduct(mappedItem) && normalizeJeansSizes(mappedItem.sizes).length === 0) {
             return null;
           }
+
+          // Drop footwear that does not declare any convertible UK sizes
+          try {
+            if (isFootwearProduct(mappedItem)) {
+              const { uniqueUKLabels } = require('../utils/size');
+              const uk = uniqueUKLabels(mappedItem.sizes);
+              if (!uk || uk.length === 0) return null;
+            }
+          } catch {}
+
+          // Basic validity checks
+          if (!mappedItem._id || !mappedItem.name) return null;
+          if (!mappedItem.image && (!Array.isArray(mappedItem.images) || mappedItem.images.length === 0)) return null;
           return mappedItem;
         }) : [];
 
-        setProducts(mapped.filter(Boolean));
+        // Deduplicate by _id (keep first occurrence)
+        const seen = new Set();
+        const clean = [];
+        for (const p of mapped) {
+          if (!p) continue;
+          const key = String(p._id || p.slug || p.id || '').trim();
+          if (!key || seen.has(key)) continue;
+          seen.add(key);
+          clean.push(p);
+        }
+
+        setProducts(clean);
       } catch (err) {
         console.error(err);
         setProducts([]);

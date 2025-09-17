@@ -176,7 +176,9 @@ export default function Product() {
 
   // gate CTAs until size is selected (when sizes exist)
   const requiresSize = hasSizes && masterSizes.length > 0;
-  const canSubmit = !requiresSize || Boolean(selectedSize);
+  // Block ordering for footwear without declared sizes
+  const blocked = product && isFootwearProduct(product) && footParsed.length === 0;
+  const canSubmit = !blocked && (!requiresSize || Boolean(selectedSize));
 
   const handleAdd = () => {
     if (!canSubmit) return;
@@ -389,7 +391,7 @@ export default function Product() {
               className={`w-full h-14 px-5 rounded-none border border-black bg-white text-black font-semibold pressable flex items-center justify-center text-[15px] sm:text-base tracking-wide
                 ${!canSubmit ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              {added ? 'Added to cart' : 'Add to cart'}
+              {blocked ? 'Unavailable' : (added ? 'Added to cart' : 'Add to cart')}
             </button>
 
             {/* BUY NOW: flat solid rectangle (no radius) */}
