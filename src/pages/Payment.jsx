@@ -173,7 +173,7 @@ export default function Payment() {
           </div>
         </div>
       </div>
-      {/* Keep original gateway CTA to create order and proceed */
+      {/* Keep original gateway CTA to create order and proceed */}
       <div className="max-w-6xl mx-auto px-4 mt-8 mb-10">
         <div className="border-t pt-6">
           <button
@@ -188,3 +188,4 @@ export default function Payment() {
     </div>
   );
 }
+
