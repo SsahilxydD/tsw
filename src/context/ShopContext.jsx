@@ -209,13 +209,14 @@ const ShopContextProvider = (props) => {
             }
           }
 
-          // Sales (Discounted) overrides: Footwear fixed at 2800; Topwear keeps base price
+          // Sales (Discounted) overrides
           if (isDiscounted) {
             const subLower = String(derivedSub || '').toLowerCase();
             if (subLower === 'footwear' || (!subLower && isShoe)) {
               price = 1850;
             } else if (subLower === 'topwear') {
-              price = Math.max(0, basePrice);
+              // Set Topwear discounted price to 750, unless it matches "shirt" → 950
+              price = isShirt ? 950 : 750;
             }
           }
 
