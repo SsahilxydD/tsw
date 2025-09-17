@@ -174,7 +174,18 @@ export default function Payment() {
           </div>
         </div>
       </div>
-      {/* Replaced gateway CTA with UPI QR + Copy UI */}
+      {/* Keep original gateway CTA to create order and proceed */}
+      <div className="max-w-6xl mx-auto px-4 mt-8 mb-10">
+        <div className="border-t pt-6">
+          <button
+            type="button"
+            onClick={onPay}
+            className="w-full sm:w-auto px-6 py-3 rounded-md bg-black text-white text-sm tracking-wide pressable"
+          >
+            PAY SECURELY
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
