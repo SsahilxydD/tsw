@@ -346,6 +346,12 @@ export default function UPICheckout() {
         try {
           const o = await fetchOrder(existingId);
           if (o && (o.status === 'PENDING' || o.status === 'PARTIAL')) {
+            // If this is a legacy order without item snapshots, create a fresh one
+            if (!Array.isArray(o.lineItems) || o.lineItems.length === 0) {
+              removeOrderId(orderKey);
+              await createOrder();
+              return;
+            }
             setOrder({
               id: o.id,
               status: o.status,

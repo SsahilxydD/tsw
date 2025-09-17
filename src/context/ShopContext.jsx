@@ -220,7 +220,7 @@ const ShopContextProvider = (props) => {
             }
           }
 
-          // ---- ADDON: hardcoded keywords pricing rules ----
+          // ---- ADDON: hardcoded keywords → force price = 650 (case-insensitive exact phrase match) ----
           const SHIRT_KEYWORDS = [
             "Adida S Premium Oversized Tshirt",
             "Armanni Exchange T Shirt",
@@ -266,32 +266,10 @@ const ShopContextProvider = (props) => {
             "Armanni Exchange Shirt",
           ];
           const SHIRT_KEYWORDS_LC = SHIRT_KEYWORDS.map(s => String(s || '').toLowerCase());
-
-          // Matches any hardcoded keyword from the list
-          const matchesAnyKeyword = SHIRT_KEYWORDS_LC.some(kw => kw && lcTitle.includes(kw));
-
-          // "Just shirt" = contains the whole word "shirt" but NOT any t-shirt/tee forms
-          const titleHasJustShirt =
-            /\bshirt\b/i.test(title) && !/(t\s*-?\s*shirt|tshirt|tee|tees)/i.test(title);
-
-          // Also ensure it's from within the provided names (subset that themselves contain "shirt" but not t-shirt/tee)
-          const matchesShirtOnlyFromList = SHIRT_KEYWORDS_LC.some(
-            kw => kw &&
-              /\bshirt\b/i.test(kw) &&
-              !/(t\s*-?\s*shirt|tshirt|tee|tees)/i.test(kw) &&
-              lcTitle.includes(kw)
-          );
-
-          if (matchesAnyKeyword) {
-            if (titleHasJustShirt || matchesShirtOnlyFromList) {
-              // Pure "Shirt" items from the provided names → 950
-              price = 950;
-            } else {
-              // All other matching names (mostly T-shirt variants) → 650
-              price = 650;
-            }
+          if (SHIRT_KEYWORDS_LC.some(kw => kw && lcTitle.includes(kw))) {
+            price = 650;
           }
-          // ---- END ADDON ----
+          // ---------------------------------------------------------------------------------------------
 
           const mappedItem = {
             _id: (item.slug ?? item.slug_name ?? item.title)?.toString(),
