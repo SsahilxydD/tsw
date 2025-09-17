@@ -6,6 +6,7 @@ import { ShopContext } from "../context/ShopContext";
 import useInView from "../hooks/useInView";
 import SafeImg from "./SafeImg";
 import { isFootwearProduct, isJeansProduct, normalizeJeansSizes, toUKLabel, uniqueUKLabels } from "../utils/size";
+import { normalizeExternalUrl } from "../utils/url";
 
 // variant: "default" | "recommendation"
 const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd = false, sizeHint, requireSize = false, disableFly = false }) => {
@@ -144,136 +145,163 @@ const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd =
     return base;
   }, [inView, i]);
 
+  const externalUrl = React.useMemo(
+    () => normalizeExternalUrl(productObj?.detailUrl || productObj?.detail_url_src || ""),
+    [productObj]
+  );
+
+  const handleExternalClick = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!externalUrl) return;
+    try {
+      window.open(externalUrl, "_blank", "noopener,noreferrer");
+    } catch {}
+  };
+
   return (
     <>
-    <Link
-      ref={ref}
-      to={`/product/${id}`}
-      title={name}
-      aria-label={name}
-      onMouseEnter={preload}
-      onTouchStart={preload}
-      style={linkStyle}
-      className={`text-gray-700 group block focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30 transition-transform active:scale-[0.98] hover:shadow-sm hover-lift cv-auto reveal-item ${inView ? 'in' : ''}`}
-    >
-      <div className={`relative w-full overflow-hidden bg-gray-100 ${imgHeights} select-none`}>
-        <SafeImg
-          src={cover}
-          alt={name}
-          sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
-          width={1200}
-          height={1200}
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-300
+      <div
+        ref={ref}
+        style={linkStyle}
+        className={`relative cv-auto reveal-item ${inView ? 'in' : ''}`}
+      >
+        <Link
+          to={`/product/${id}`}
+          title={name}
+          aria-label={name}
+          onMouseEnter={preload}
+          onTouchStart={preload}
+          className={`text-gray-700 group block focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30 transition-transform active:scale-[0.98] hover:shadow-sm hover-lift`}
+        >
+          <div className={`relative w-full overflow-hidden bg-gray-100 ${imgHeights} select-none`}>
+            <SafeImg
+              src={cover}
+              alt={name}
+              sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
+              width={1200}
+              height={1200}
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-300
                      group-hover:scale-105 motion-reduce:transform-none"
-        />
-        {showAdd && (
+            />
+            {showAdd && (
+              <button
+                type="button"
+                aria-label="Add to bag"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  try {
+                    const pid = String(id);
+                    const p = (products || []).find(pr => String(pr._id ?? pr.slug ?? pr.id) === pid);
+                    const sizes = Array.isArray(p?.sizes) ? p.sizes : [];
+                    const added = isAdded;
+                    if (added) {
+                      const c = (cartItems || {})[pid] || {};
+                      for (const sz of Object.keys(c)) updateQuantity(pid, sz, 0);
+                    } else {
+                      if (requireSize && sizes.length > 0 && !sizeHint) {
+                        const opts = isFootwearProduct(p)
+                          ? uniqueUKLabels(sizes)
+                          : (isJeansProduct(p) ? normalizeJeansSizes(sizes) : sizes.map(String));
+                        setSizesForPick(opts);
+                        setPicking(true);
+                        return;
+                      }
+                      const y = window.scrollY;
+                      let chosen = sizeHint || 'std';
+                      if (!sizeHint && sizes.length > 0) {
+                        if (isFootwearProduct(p)) {
+                          const first = toUKLabel(sizes[0]);
+                          chosen = first || 'std';
+                        } else {
+                          chosen = String(sizes[0]);
+                        }
+                      }
+                      addToCart(pid, chosen);
+                      if (!disableFly) {
+                        try {
+                          const root = e.currentTarget.closest('a');
+                          const imgEl = root ? root.querySelector('img') : null;
+                          const cartEl = document.getElementById('cart-anchor');
+                          if (imgEl && cartEl) {
+                            const imgRect = imgEl.getBoundingClientRect();
+                            const cartRect = cartEl.getBoundingClientRect();
+                            const clone = imgEl.cloneNode(true);
+                            clone.style.position = 'fixed';
+                            clone.style.left = imgRect.left + 'px';
+                            clone.style.top = imgRect.top + 'px';
+                            clone.style.width = imgRect.width + 'px';
+                            clone.style.height = imgRect.height + 'px';
+                            clone.style.opacity = '0.9';
+                            clone.style.zIndex = '9999';
+                            clone.style.borderRadius = '8px';
+                            clone.style.transition = 'transform 600ms cubic-bezier(.22,.8,.24,1), opacity 600ms ease';
+                            document.body.appendChild(clone);
+                            const dx = cartRect.left + cartRect.width / 2 - (imgRect.left + imgRect.width / 2);
+                            const dy = cartRect.top + cartRect.height / 2 - (imgRect.top + imgRect.height / 2);
+                            requestAnimationFrame(() => {
+                              clone.style.transform = `translate(${dx}px, ${dy}px) scale(.12)`;
+                              clone.style.opacity = '0.1';
+                            });
+                            setTimeout(() => { try { document.body.removeChild(clone); } catch {} }, 650);
+                          }
+                        } catch {}
+                      }
+                      requestAnimationFrame(() => { try { window.scrollTo({ top: y, left: 0, behavior: 'auto' }); } catch { window.scrollTo(0, y); } });
+                    }
+                  } catch {}
+                }}
+                className={`absolute bottom-2 right-2 px-2.5 py-1.5 rounded text-[11px] tracking-wide shadow-sm transition-colors duration-200 pressable ${isAdded ? 'bg-white text-black border border-black' : 'bg-black/90 text-white hover:bg-black'}`}
+              >
+                {isAdded ? 'ADDED' : 'ADD'}
+              </button>
+            )}
+          </div>
+
+          {/* Name clamp */}
+          <p className="mt-3 text-sm leading-5 overflow-hidden normal-case tracking-normal" style={nameStyle}>
+            {name}
+          </p>
+
+          {tileSizes.length > 0 && (
+            <div className="mt-2 flex overflow-x-auto whitespace-nowrap items-center gap-1.5 pr-2">
+              {visibleSizes.map((sz) => (
+                <span
+                  key={String(sz)}
+                  className="inline-flex items-center h-7 px-2 rounded-md border border-gray-300 bg-white text-[11px] leading-none tracking-wide"
+                >
+                  {String(sz).replace(/^UK-/, '')}
+                </span>
+              ))}
+              {sizesOverflow > 0 && (
+                <span className="inline-flex items-center h-7 px-2 rounded-md border border-gray-200 bg-gray-50 text-[11px] leading-none text-gray-500">
+                  +{sizesOverflow}
+                </span>
+              )}
+            </div>
+          )}
+
+          <p className="mt-2 text-sm font-semibold">
+            {currency}{price}
+          </p>
+        </Link>
+
+        {externalUrl && (
           <button
             type="button"
-            aria-label="Add to bag"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              try {
-                const pid = String(id);
-                const p = (products || []).find(pr => String(pr._id ?? pr.slug ?? pr.id) === pid);
-                const sizes = Array.isArray(p?.sizes) ? p.sizes : [];
-                const added = isAdded;
-                if (added) {
-                  const c = (cartItems || {})[pid] || {};
-                  for (const sz of Object.keys(c)) updateQuantity(pid, sz, 0);
-                } else {
-                  // If size selection is required and sizes exist, open picker
-                  if (requireSize && sizes.length > 0 && !sizeHint) {
-                    const opts = isFootwearProduct(p)
-                      ? uniqueUKLabels(sizes)
-                      : (isJeansProduct(p) ? normalizeJeansSizes(sizes) : sizes.map(String));
-                    setSizesForPick(opts);
-                    setPicking(true);
-                    return;
-                  }
-                  const y = window.scrollY;
-                  let chosen = sizeHint || 'std';
-                  if (!sizeHint && sizes.length > 0) {
-                    if (isFootwearProduct(p)) {
-                      const first = toUKLabel(sizes[0]);
-                      chosen = first || 'std';
-                    } else {
-                      chosen = String(sizes[0]);
-                    }
-                  }
-                  addToCart(pid, chosen);
-                  // Fly-to-cart animation everywhere except when disabled
-                  if (!disableFly) {
-                    try {
-                      const root = e.currentTarget.closest('a');
-                      const imgEl = root ? root.querySelector('img') : null;
-                      const cartEl = document.getElementById('cart-anchor');
-                      if (imgEl && cartEl) {
-                        const imgRect = imgEl.getBoundingClientRect();
-                        const cartRect = cartEl.getBoundingClientRect();
-                        const clone = imgEl.cloneNode(true);
-                        clone.style.position = 'fixed';
-                        clone.style.left = imgRect.left + 'px';
-                        clone.style.top = imgRect.top + 'px';
-                        clone.style.width = imgRect.width + 'px';
-                        clone.style.height = imgRect.height + 'px';
-                        clone.style.opacity = '0.9';
-                        clone.style.zIndex = '9999';
-                        clone.style.borderRadius = '8px';
-                        clone.style.transition = 'transform 600ms cubic-bezier(.22,.8,.24,1), opacity 600ms ease';
-                        document.body.appendChild(clone);
-                        const dx = cartRect.left + cartRect.width / 2 - (imgRect.left + imgRect.width / 2);
-                        const dy = cartRect.top + cartRect.height / 2 - (imgRect.top + imgRect.height / 2);
-                        requestAnimationFrame(() => {
-                          clone.style.transform = `translate(${dx}px, ${dy}px) scale(.12)`;
-                          clone.style.opacity = '0.1';
-                        });
-                        setTimeout(() => { try { document.body.removeChild(clone); } catch {} }, 650);
-                      }
-                    } catch {}
-                  }
-                  requestAnimationFrame(() => { try { window.scrollTo({ top: y, left: 0, behavior: 'auto' }); } catch { window.scrollTo(0, y); } });
-                }
-              } catch {}
-            }}
-            className={`absolute bottom-2 right-2 px-2.5 py-1.5 rounded text-[11px] tracking-wide shadow-sm transition-colors duration-200 pressable ${isAdded ? 'bg-white text-black border border-black' : 'bg-black/90 text-white hover:bg-black'}`}
+            onClick={handleExternalClick}
+            className="mt-2 inline-flex items-center gap-1 text-[11px] uppercase tracking-wide text-gray-500 hover:text-black"
+            aria-label="View original product"
           >
-            {isAdded ? 'ADDED' : 'ADD'}
+            View Original
           </button>
         )}
-
       </div>
-
-      {/* Name clamp */}
-      <p className="mt-3 text-sm leading-5 overflow-hidden normal-case tracking-normal" style={nameStyle}>
-        {name}
-      </p>
-
-      {tileSizes.length > 0 && (
-        <div className="mt-2 flex overflow-x-auto whitespace-nowrap items-center gap-1.5 pr-2">
-          {visibleSizes.map((sz) => (
-            <span
-              key={String(sz)}
-              className="inline-flex items-center h-7 px-2 rounded-md border border-gray-300 bg-white text-[11px] leading-none tracking-wide"
-            >
-              {String(sz).replace(/^UK-/, '')}
-            </span>
-          ))}
-          {sizesOverflow > 0 && (
-            <span className="inline-flex items-center h-7 px-2 rounded-md border border-gray-200 bg-gray-50 text-[11px] leading-none text-gray-500">
-              +{sizesOverflow}
-            </span>
-          )}
-        </div>
-      )}
-
-      <p className="mt-2 text-sm font-semibold">
-        {currency}{price}
-      </p>
-    </Link>
-    {renderSizePicker}
+      {renderSizePicker}
     </>
   );
+
 };
 
 export default ProductItem;

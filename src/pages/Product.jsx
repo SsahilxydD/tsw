@@ -4,6 +4,7 @@ import Title from "../components/Title";
 import ProductItem from "../components/ProductItem";
 import { ShopContext } from "../context/ShopContext";
 import { isFootwearProduct, isJeansProduct, normalizeJeansSizes, uniqueUKLabels, toUKLabel } from "../utils/size";
+import { normalizeExternalUrl } from "../utils/url";
 
 export default function Product() {
   const { id: paramId } = useParams();
@@ -108,6 +109,9 @@ export default function Product() {
             price = special900 ? 900 : 2800;
           }
 
+          const rawDetailUrl = item.detail_url_src || item.detail_url || item.source_url || item.source || "";
+          const detailUrl = normalizeExternalUrl(rawDetailUrl);
+
           return {
             _id: (item.slug ?? item.slug_name ?? item.title)?.toString(),
             name: title,
@@ -121,7 +125,8 @@ export default function Product() {
             sizes: normInputSizes(item.sizes),
             bestseller: Boolean(item.bestseller ?? false),
             slug: item.slug ?? "",
-            detail_url_src: item.detail_url_src ?? "",
+            detail_url_src: detailUrl,
+            detailUrl,
           };
         };
 
@@ -148,6 +153,10 @@ export default function Product() {
   const [added, setAdded] = useState(false);
   const [selectedSize, setSelectedSize] = useState("");
   const canSubmit = !!effective;
+  const externalUrl = useMemo(() =>
+    normalizeExternalUrl(effective?.detailUrl || effective?.detail_url_src || ""),
+    [effective]
+  );
 
   // Pure-frontend cart fallback if context.addToCart is absent
   const addToCartSafe = (pid, sz) => {
@@ -280,6 +289,18 @@ export default function Product() {
             >
               <span className="text-[15px] sm:text-base font-semibold tracking-wide">Buy Now</span>
             </button>
+
+            {externalUrl && (
+              <a
+                className="inline-flex items-center gap-1 text-xs font-medium text-gray-600 underline underline-offset-4 hover:text-black"
+                href={externalUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                View original product
+              </a>
+            )}
+
           </div>
 
           <div className="mt-6 space-y-1 text-sm text-gray-600">

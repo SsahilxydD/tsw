@@ -1,5 +1,7 @@
 import { createContext, useEffect, useRef, useState } from "react";
 import { isJeansProduct, isFootwearProduct, normalizeJeansSizes } from "../utils/size";
+import { normalizeExternalUrl } from "../utils/url";
+
 import { useNavigate } from "react-router-dom";
 
 export const ShopContext = createContext();
@@ -276,6 +278,10 @@ const ShopContextProvider = (props) => {
           const isDiscounted = /\bdiscounted\b/i.test(lcRaw);
           const isShoe = isFootwearProduct({ category: originalCategory, categoryRaw: originalCategory, sizes: item?.sizes });
 
+          const rawDetailUrl = item.detail_url_src || item.detail_url || item.source_url || item.source || "";
+
+          const detailUrl = normalizeExternalUrl(rawDetailUrl);
+
           // Pricing rule: add 450 to all non-Discounted items; keep Discounted at base price
           let price = Math.max(0, basePrice + (/\bdiscounted\b/i.test(String(originalCategory || '')) ? 0 : 450));
           // Override: Discounted Footwear => default 2800; selected names => 900
@@ -297,9 +303,7 @@ const ShopContextProvider = (props) => {
           // If in Discounted, override subCategory based on source URL and heuristics
           let derivedSub = item.subCategory ?? "";
           if (isDiscounted) {
-            const srcUrl = String(
-              item.detail_url_src || item.detail_url || item.source_url || item.source || ""
-            ).toLowerCase();
+            const srcUrl = String(rawDetailUrl || "").toLowerCase();
 
             // Strong Topwear URL patterns, allow minor hyphen/typo variations
             const topwearPatterns = [
@@ -347,7 +351,8 @@ const ShopContextProvider = (props) => {
             sizes: normInputSizes(item.sizes),
             bestseller: Boolean(item.bestseller ?? false),
             slug: item.slug ?? "",
-            detail_url_src: item.detail_url_src ?? ""
+            detail_url_src: detailUrl,
+            detailUrl,
           };
 
           // Drop jeans products with no explicit sizes in data
