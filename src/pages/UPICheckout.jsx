@@ -716,8 +716,8 @@ export default function UPICheckout() {
 
       {!!order && !expired && (
         <div className="grid sm:grid-cols-2 gap-6">
-          <div className="rounded-none border bg-white/5 p-4 flex items-center justify-center min-h-[300px]">
-            <img src="/qr.jpeg" alt="UPI QR" className="w-56 h-56 sm:w-64 sm:h-64 object-contain" />
+          <div className="rounded-none border bg-white/5 p-4 flex items-center justify-center min-h-[600px]">
+            <img src="/qr.jpeg" alt="UPI QR" className="w-[28rem] h-[28rem] sm:w-[32rem] sm:h-[32rem] object-contain" />
           </div>
 
           <div className="rounded-none border bg-white p-4 sm:col-span-2 shadow-sm">
