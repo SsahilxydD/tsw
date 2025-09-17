@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Title from '../components/Title';
+import { slugify, slugCategory } from '../utils/slug';
 
 export default function UPICheckout() {
   const qs = useMemo(() => new URLSearchParams(window.location.search), []);
@@ -38,7 +39,7 @@ export default function UPICheckout() {
         const unitPaise = (p && (p.price != null)) ? rupeesToPaise(p.price) : 0;
         for (const size of Object.keys(sizes)) {
           const qty = Math.max(1, parseInt(sizes[size] || 1, 10));
-          items.push({ productId: pid, title, size, qty, unitAmountPaise: unitPaise });
+          items.push({ productId: pid, title, size, qty, unitAmountPaise: unitPaise, category: p?.category });
         }
       }
       return items;
@@ -54,7 +55,7 @@ export default function UPICheckout() {
       if (Array.isArray(items) && items.length > 0) {
         lines.push('*Items:*');
         for (const it of items) {
-          const url = it?.productId ? `${window.location.origin}/product/${encodeURIComponent(it.productId)}` : '';
+          const url = it?.productId ? `${window.location.origin}/category/${slugCategory(it.category||"")}/${slugify(it.title||"")}` : '';
           const sizeText = it?.size ? ` (Size: ${String(it.size).replace(/^UK-/, '')})` : '';
           const qtyText = it?.qty > 1 ? ` x${it.qty}` : '';
           lines.push(`- ${it?.title || 'Item'}${sizeText}${qtyText}`);
@@ -134,4 +135,3 @@ export default function UPICheckout() {
     </div>
   );
 }
-

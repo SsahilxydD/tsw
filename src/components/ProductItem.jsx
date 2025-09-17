@@ -7,6 +7,7 @@ import useInView from "../hooks/useInView";
 import SafeImg from "./SafeImg";
 import { isFootwearProduct, isJeansProduct, normalizeJeansSizes, toUKLabel, uniqueUKLabels } from "../utils/size";
 import { normalizeExternalUrl } from "../utils/url";
+import { slugify, slugCategory } from "../utils/slug";
 
 // variant: "default" | "recommendation"
 const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd = false, sizeHint, requireSize = false, disableFly = false }) => {
@@ -150,6 +151,17 @@ const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd =
     [productObj]
   );
 
+
+  const productPath = React.useMemo(() => {
+    try {
+      const cat = productObj?.catSlug || slugCategory(productObj?.category || "");
+      const pslug = productObj?.productSlug || slugify(productObj?.name || name || String(id));
+      return `/category/${cat}/${pslug}`;
+    } catch {
+      return `/product/${id}`;
+    }
+  }, [productObj, id, name]);
+
   const handleExternalClick = (event) => {
     event.preventDefault();
     event.stopPropagation();
@@ -167,7 +179,7 @@ const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd =
         className={`relative cv-auto reveal-item ${inView ? 'in' : ''}`}
       >
         <Link
-          to={`/product/${id}`}
+          to={productPath}
           title={name}
           aria-label={name}
           onMouseEnter={preload}

@@ -5,9 +5,10 @@ import ProductItem from "../components/ProductItem";
 import { ShopContext } from "../context/ShopContext";
 import { isFootwearProduct, isJeansProduct, normalizeJeansSizes, uniqueUKLabels, toUKLabel } from "../utils/size";
 import { normalizeExternalUrl } from "../utils/url";
+import { slugify, slugCategory } from "../utils/slug";
 
 export default function Product() {
-  const { id: paramId } = useParams();
+  const { id: paramId, slug: paramSlug, cat: paramCat } = useParams();
 
   // Context is optional; fall back to pure-frontend behavior if absent
   const ctx = useContext(ShopContext) || {};
@@ -125,6 +126,9 @@ export default function Product() {
             sizes: normInputSizes(item.sizes),
             bestseller: Boolean(item.bestseller ?? false),
             slug: item.slug ?? "",
+            catSlug: slugCategory(category),
+            productSlug: slugify(title || (item.slug_name ?? "")),
+            path: `/category/${slugCategory(category)}/${slugify(title || (item.slug_name ?? ""))}` ,
             detail_url_src: detailUrl,
             detailUrl,
           };
@@ -146,9 +150,9 @@ export default function Product() {
     };
     load();
     return () => { cancelled = true; };
-  }, [product, paramId]);
+  }, [product, paramId, paramSlug]);
 
-  const effective = product || fallback.product;
+  const effective = product || productBySlug || fallback.product;
 
   const [added, setAdded] = useState(false);
   const [selectedSize, setSelectedSize] = useState("");

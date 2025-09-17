@@ -1,6 +1,7 @@
 import { createContext, useEffect, useRef, useState } from "react";
 import { isJeansProduct, isFootwearProduct, normalizeJeansSizes } from "../utils/size";
 import { normalizeExternalUrl } from "../utils/url";
+import { slugify, slugCategory } from "../utils/slug";
 
 import { useNavigate } from "react-router-dom";
 
@@ -54,7 +55,10 @@ const ShopContextProvider = (props) => {
         const p = (products || []).find((pr) => String(pr._id) === String(it._id) || String(pr.slug) === String(it._id));
         if (!p) continue;
         const pid = String(p._id ?? p.slug ?? it._id);
-        const url = origin ? `${origin}/product/${encodeURIComponent(pid)}` : `/product/${encodeURIComponent(pid)}`;
+                const catSlug = p.catSlug || (p.category ? (String(p.category).toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "").replace(/-+/g, "-").replace(/^-|-$/g, "")) : "collection");
+        const prodSlug = p.productSlug || (String(p.name || p.title || pid).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, ""));
+        const urlPath = `/category/${catSlug}/${prodSlug}`;
+        const url = origin ? `${origin}${urlPath}` : urlPath;
         const sizeText = it.size && it.size !== 'std' ? ` (Size: ${String(it.size).replace(/^UK-/, '')})` : '';
         const qtyText = it.quantity > 1 ? ` x${it.quantity}` : '';
         const name = String(p.name || p.title || pid);
@@ -351,6 +355,9 @@ const ShopContextProvider = (props) => {
             sizes: normInputSizes(item.sizes),
             bestseller: Boolean(item.bestseller ?? false),
             slug: item.slug ?? "",
+            catSlug: slugCategory(category),
+            productSlug: slugify(title || (item.slug_name ?? "")),
+            path: `/category/${slugCategory(category)}/${slugify(title || (item.slug_name ?? ""))}` ,
             detail_url_src: detailUrl,
             detailUrl,
           };
