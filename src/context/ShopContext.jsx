@@ -7,7 +7,7 @@ export const ShopContext = createContext();
 const ShopContextProvider = (props) => {
   const currency = '₹';
   const delivery_fee = 10;
-  const navigate = useNavigate();
+  const routerNavigate = useNavigate();
 
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
@@ -28,6 +28,113 @@ const ShopContextProvider = (props) => {
     try { if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current); } catch {}
     setNotice({ id: Date.now(), msg: String(msg || '') });
     noticeTimerRef.current = setTimeout(() => setNotice(null), 2000);
+  };
+
+  // Build a WhatsApp order message from current cart + products + address
+  const buildWhatsAppOrderMessage = () => {
+    try {
+      const lines = [];
+      lines.push("New order request");
+      lines.push("");
+      lines.push("*Items:*");
+
+      const cartList = [];
+      for (const id in (cartItems || {})) {
+        const sizes = cartItems[id] || {};
+        for (const size in sizes) {
+          const qty = sizes[size];
+          if (qty > 0) cartList.push({ _id: id, size, quantity: qty });
+        }
+      }
+
+      const origin = (typeof window !== 'undefined' && window.location && window.location.origin) ? window.location.origin : '';
+      for (const it of cartList) {
+        const p = (products || []).find((pr) => String(pr._id) === String(it._id) || String(pr.slug) === String(it._id));
+        if (!p) continue;
+        const pid = String(p._id ?? p.slug ?? it._id);
+        const url = origin ? `${origin}/product/${encodeURIComponent(pid)}` : `/product/${encodeURIComponent(pid)}`;
+        const sizeText = it.size && it.size !== 'std' ? ` (Size: ${String(it.size).replace(/^UK-/, '')})` : '';
+        const qtyText = it.quantity > 1 ? ` x${it.quantity}` : '';
+        const name = String(p.name || p.title || pid);
+        lines.push(`- ${name}${sizeText}${qtyText}`);
+        lines.push(`  ${url}`);
+      }
+
+      const total = cartList.reduce((sum, it) => {
+        const p = (products || []).find((pr) => String(pr._id) === String(it._id) || String(pr.slug) === String(it._id));
+        return sum + (p ? (Number(p.price) || 0) * (Number(it.quantity) || 0) : 0);
+      }, 0);
+
+      lines.push("");
+      lines.push(`*Total:* ${currency}${Number(total || 0).toLocaleString()}`);
+      lines.push("");
+      lines.push("*Shipping address:*");
+
+      if (address && typeof address === 'object') {
+        const contact = [];
+        const name = `${address.firstName || ''} ${address.lastName || ''}`.trim();
+        if (name) contact.push(`Name: ${name}`);
+        if (address.phone) contact.push(`Phone: ${address.phone}`);
+        if (address.email) contact.push(`Email: ${address.email}`);
+        if (contact.length) {
+          lines.push("");
+          lines.push("*Contact:*");
+          lines.push(...contact);
+        }
+
+        const street = [];
+        if (address.address1) street.push(address.address1);
+        if (address.address2) street.push(address.address2);
+        if (address.locality || address.landmark) street.push(`Locality: ${address.locality || address.landmark}`);
+        if (street.length) {
+          lines.push("");
+          lines.push("*Address:*");
+          lines.push(...street);
+        }
+
+        const locality = [address.district || address.city, address.state, address.zip].filter(Boolean).join(', ');
+        const country = address.country;
+        if (locality || country) {
+          lines.push("");
+          lines.push("*Location:*");
+          if (locality) lines.push(locality);
+          if (country) lines.push(country);
+        }
+      }
+
+      lines.push("");
+      return lines.join("\n");
+    } catch {
+      return "New order request";
+    }
+  };
+
+  // Wrapper navigate: intercept UPI checkout to open WhatsApp prefilled chat instead
+  const navigate = (to, options) => {
+    try {
+      const target = typeof to === 'string' ? to : (to && to.pathname ? to.pathname : '');
+      if (typeof target === 'string' && target.startsWith('/upi-checkout')) {
+        const supportPhone = '+919933778870';
+        const digits = String(supportPhone).replace(/\D/g, '') || '919933778870';
+        const msg = buildWhatsAppOrderMessage();
+        const encoded = encodeURIComponent(msg);
+        const primary = `https://wa.me/${digits}?text=${encoded}`;
+        const fallback = `https://api.whatsapp.com/send?phone=${digits}&text=${encoded}`;
+        try {
+          const win = window.open(primary, '_blank', 'noopener,noreferrer');
+          setTimeout(() => {
+            try {
+              if (!win || win.closed) window.location.href = fallback;
+            } catch { window.location.href = fallback; }
+          }, 350);
+        } catch {
+          window.location.href = primary;
+        }
+        notify('Opening WhatsApp…');
+        return;
+      }
+    } catch {}
+    return routerNavigate(to, options);
   };
 
   // Address persisted locally
