@@ -80,9 +80,18 @@ export default function Orders() {
               </div>
               <div className='flex items-center gap-4'>
                 <div className='text-sm font-semibold'>{fmtRs(it.amountPaise)}</div>
-                {it.downloadUrl && (
-                  <a href={it.downloadUrl} download className='border px-4 py-2 text-sm rounded-sm hover:bg-gray-50'>Download PDF</a>
-                )}
+                {it.token ? (
+                  <a
+                    href={`/order/${it.token}/receipt.pdf`}
+                    target="_blank"
+                    rel="noopener"
+                    className='border px-4 py-2 text-sm rounded-sm hover:bg-gray-50'
+                    aria-label='View PDF receipt'
+                    title='Opens in a new tab'
+                  >
+                    View PDF
+                  </a>
+                ) : null}
               </div>
             </div>
           ))}

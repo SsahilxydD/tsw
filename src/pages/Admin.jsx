@@ -194,39 +194,23 @@ export default function Admin() {
                           QR
                         </a>
                       )}
-                      {(
-                        <button
-                          className="px-2 py-1 border rounded text-xs"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const download = async () => {
-                              try {
-                                const r = await fetch(`/admin/${encodeURIComponent(o.id)}/receipt.pdf`, { credentials: 'include' });
-                                if (!r.ok) {
-                                  if (r.status === 404 || r.status === 409) setError('Receipt available after payment.');
-                                  else setError('Failed to download receipt');
-                                  return;
-                                }
-                                const blob = await r.blob();
-                                const ct = r.headers.get('content-type') || '';
-                                if (!/pdf/i.test(ct)) { setError('Failed to download receipt'); return; }
-                                const a = document.createElement('a');
-                                const url = URL.createObjectURL(blob);
-                                a.href = url;
-                                a.download = `Order-${o.id}.pdf`;
-                                document.body.appendChild(a);
-                                a.click();
-                                setTimeout(() => { try { URL.revokeObjectURL(url); document.body.removeChild(a); } catch {} }, 500);
-                              } catch {
-                                setError('Failed to download receipt');
-                              }
-                            };
-                            download();
-                          }}
-                        >
-                          Download PDF
-                        </button>
-                      )}
+                      <a
+                        href={`/admin/api/orders/${encodeURIComponent(o.id)}/receipt.pdf`}
+                        target="_blank"
+                        rel="noopener"
+                        aria-label="View PDF receipt"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (String(o.status).toUpperCase() !== 'PAID') {
+                            e.preventDefault();
+                            setError('PDF available after payment');
+                          }
+                        }}
+                        className={`px-2 py-1 border rounded text-xs ${String(o.status).toUpperCase() === 'PAID' ? '' : 'opacity-50 cursor-not-allowed'}`}
+                        title={String(o.status).toUpperCase() === 'PAID' ? 'Opens in a new tab' : 'PDF available after payment'}
+                      >
+                        View PDF
+                      </a>
                     </td>
                   </tr>
                   {openId === o.id && (

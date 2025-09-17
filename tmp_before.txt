@@ -176,10 +176,10 @@ const DATA_DIR = path.join(process.cwd(), 'data');
 const PUBLIC_DIR = path.join(process.cwd(), 'public');
 const DIST_DIR = path.join(process.cwd(), 'dist');
 const QRS_DIR = path.join(PUBLIC_DIR, 'qrs');
-const RECEIPTS_DATA_DIR = path.join(DATA_DIR, 'receipts');
+const RECEIPTS_DIR = path.join(PUBLIC_DIR, 'receipts');
 ensureDir(DATA_DIR);
 ensureDir(QRS_DIR);
-ensureDir(RECEIPTS_DATA_DIR);
+ensureDir(RECEIPTS_DIR);
 
 const db = new FSDB(DATA_DIR);
 
@@ -255,9 +255,43 @@ function savePayments(payments) {
   db.write('payments', payments);
 }
 
-// --- Receipt generation helpers ---
-function fileStatSafe(p) { try { return fs.statSync(p); } catch { return null; } }
-function receiptPath(orderId) { return path.join(RECEIPTS_DATA_DIR, `${orderId}.pdf`); }
+// --- Files (FSDB) helpers for receipts ---
+function loadFiles() {
+  return db.read('files', []);
+}
+function saveFiles(files) {
+  db.write('files', files);
+}
+function fileStatSafe(p) {
+  try { return fs.statSync(p); } catch { return null; }
+}
+function orderReceiptPath(orderId) {
+  return path.join(RECEIPTS_DIR, `${orderId}.pdf`);
+}
+function ensureReceiptsDir() {
+  try { fs.mkdirSync(RECEIPTS_DIR, { recursive: true }); } catch {}
+}
+function upsertReceiptFileMeta(order, absPath) {
+  const files = loadFiles();
+  const st = fileStatSafe(absPath);
+  const size = st ? Number(st.size) : null;
+  const id = `${order.id}.pdf`;
+  const idx = files.findIndex(f => f.kind === 'receipt' && f.orderId === order.id);
+  const row = {
+    id,
+    orderId: order.id,
+    kind: 'receipt',
+    mime: 'application/pdf',
+    size,
+    path: absPath,
+    publicUrl: `/receipts/${id}`,
+    createdAt: nowIso(),
+  };
+  if (idx >= 0) files[idx] = { ...files[idx], ...row };
+  else files.push(row);
+  saveFiles(files);
+  return row;
+}
 
 function buildReceiptPdf(order, doc) {
   const s = sanitizeOrder(order) || {};
@@ -316,43 +350,47 @@ function buildReceiptPdf(order, doc) {
     .text('Thank you for your purchase. This receipt confirms payment has been received. Keep this document for your records.');
 }
 
-async function ensureReceipt(order) {
+async function ensureReceiptPdf(order, opts = {}) {
   if (!order || order.status !== 'PAID') return null;
-  try { fs.mkdirSync(RECEIPTS_DATA_DIR, { recursive: true }); } catch {}
-  const finalPath = receiptPath(order.id);
-  const st = fileStatSafe(finalPath);
-  if (st && st.size > 0) return finalPath;
-  const tmpPath = path.join(RECEIPTS_DATA_DIR, `tmp-${order.id}.pdf`);
+  ensureReceiptsDir();
+  const absPath = orderReceiptPath(order.id);
+  const exists = !!fileStatSafe(absPath);
+  // Always set URL if file exists or will be written
+  order.receiptPdfUrl = `/receipts/${order.id}.pdf`;
+  if (exists) return { path: absPath, existed: true };
+
   return await new Promise((resolve, reject) => {
     try {
       const doc = new PDFDocument({ size: 'A4', margin: 50 });
-      const ws = fs.createWriteStream(tmpPath);
-      ws.on('error', (err) => {
-        console.error('[receipt.pdf] file write error', { orderId: order.id, err: err?.message });
+      const fileStream = fs.createWriteStream(absPath);
+      const cleanup = () => { try { doc.removeAllListeners(); } catch {} };
+
+      fileStream.on('finish', () => {
+        try {
+          upsertReceiptFileMeta(order, absPath);
+          order.updatedAt = nowIso();
+        } catch {}
+        cleanup();
+        resolve({ path: absPath, existed: false });
+      });
+      fileStream.on('error', (err) => {
+        console.error('[receipt.pdf] file write error', { orderId: order.id, path: absPath, err: err?.message });
+        cleanup();
         reject(err);
       });
-      ws.on('finish', () => {
-        try {
-          const fd = fs.openSync(tmpPath, 'r');
-          try { fs.fsyncSync(fd); } finally { try { fs.closeSync(fd); } catch {} }
-          fs.renameSync(tmpPath, finalPath);
-          const st2 = fileStatSafe(finalPath);
-          order.receiptMeta = { size: st2 ? Number(st2.size) : null, createdAt: nowIso() };
-          if (order.publicViewToken) order.receiptPdfUrl = `/order/${order.publicViewToken}/receipt.pdf`;
-          order.updatedAt = nowIso();
-          resolve(finalPath);
-        } catch (e) {
-          console.error('[receipt.pdf] finalize error', { orderId: order.id, err: e?.message });
-          try { fs.unlinkSync(tmpPath); } catch {}
-          reject(e);
-        }
-      });
-      doc.pipe(ws);
+
+      doc.pipe(fileStream);
+      if (opts.streamToRes && opts.res) {
+        // stream also to HTTP response
+        opts.res.setHeader('Content-Type', 'application/pdf');
+        opts.res.setHeader('Cache-Control', 'no-store');
+        doc.pipe(opts.res);
+      }
       buildReceiptPdf(order, doc);
       doc.end();
-    } catch (e) {
-      console.error('[receipt.pdf] generation error', { orderId: order?.id, err: e?.message });
-      reject(e);
+    } catch (err) {
+      console.error('[receipt.pdf] generation error', { orderId: order?.id, path: absPath, err: err?.message });
+      reject(err);
     }
   });
 }
@@ -410,7 +448,7 @@ function sanitizeOrder(o) {
     currentQr: o.currentQr || null,
     currentUpiLink: o.currentUpiLink || null,
     publicViewToken: o.publicViewToken || null,
-    receiptPdfUrl: (o.status === 'PAID' && o.publicViewToken && fileStatSafe(receiptPath(o.id))) ? `/order/${o.publicViewToken}/receipt.pdf` : null,
+    receiptPdfUrl: o.status === 'PAID' ? (STATIC_RECEIPT_PDF_URL || o.receiptPdfUrl || null) : null,
     customer: {
       name: customerName,
       phone: customerPhone,
@@ -478,7 +516,12 @@ app.use('/qrs', express.static(QRS_DIR, {
   }
 }));
 // Static hosting for Receipt PDFs (no-cache)
-// No static serving for receipts; use view endpoints to send from DATA_DIR
+app.use('/receipts', express.static(RECEIPTS_DIR, {
+  fallthrough: false,
+  setHeaders(res) {
+    res.setHeader('Cache-Control', 'no-store');
+  }
+}));
 app.use(express.static(DIST_DIR));
 
 // Health
@@ -486,6 +529,8 @@ app.get('/health', (_req, res) => res.json({ ok: true }));
 
 // Optionally disable public receipt endpoints entirely via env switch
 const RECEIPTS_PUBLIC = String(process.env.RECEIPTS_PUBLIC || 'true').toLowerCase() === 'true';
+// Use a single static receipt PDF for all orders when provided
+const STATIC_RECEIPT_PDF_URL = process.env.STATIC_RECEIPT_PDF_URL || '/receipts/receipt.pdf';
 if (!RECEIPTS_PUBLIC) {
   app.use('/api/order', (req, res) => res.status(404).json({ error: 'Not found' }));
   app.use('/order', (req, res) => res.status(404).send('<h1>Not found</h1>'));
@@ -673,12 +718,11 @@ app.get('/api/orders/:id/receipt.pdf', async (req, res) => {
     const order = orders.find(o => String(o.id) === id);
     if (!order || order.status !== 'PAID') return res.status(404).json({ error: 'Not found' });
     if (!token || token !== order.publicViewToken) return res.status(404).json({ error: 'Not found' });
-    const absPath = await ensureReceipt(order);
-    try { saveOrders(orders); } catch {}
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Cache-Control', 'no-store');
-    res.setHeader('Content-Disposition', `inline; filename="order-${order.id}.pdf"`);
-    return res.sendFile(absPath);
+    // Always use static receipt PDF URL
+    if (STATIC_RECEIPT_PDF_URL) {
+      return res.redirect(STATIC_RECEIPT_PDF_URL);
+    }
+    return res.status(404).json({ error: 'Receipt unavailable' });
   } catch (e) {
     console.error('[public] receipt download error', { err: e?.message });
     return res.status(500).json({ error: 'Failed to generate receipt' });
@@ -692,36 +736,25 @@ app.get('/order/:token/receipt.pdf', async (req, res) => {
     const orders = loadOrders();
     const order = orders.find(o => o.publicViewToken === token);
     if (!order || order.status !== 'PAID') return res.status(404).json({ error: 'Not found' });
-    const absPath = await ensureReceipt(order);
-    try { saveOrders(orders); } catch {}
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Cache-Control', 'no-store');
-    res.setHeader('Content-Disposition', `inline; filename="order-${order.id}.pdf"`);
-    return res.sendFile(absPath);
+    if (STATIC_RECEIPT_PDF_URL) {
+      return res.redirect(STATIC_RECEIPT_PDF_URL);
+    }
+    return res.status(404).json({ error: 'Receipt unavailable' });
   } catch (e) {
     console.error('[public] token receipt download error', { err: e?.message });
     return res.status(500).json({ error: 'Failed to generate receipt' });
   }
 });
 
-//
-app.get('/admin/api/orders/:id/receipt.pdf', requireAdminApi, async (req, res) => {
-  try {
-    const id = String(req.params.id || '');
-    const orders = loadOrders();
-    const order = orders.find(o => String(o.id) === id);
-    if (!order) return res.status(404).json({ error: 'Not found' });
-    if (order.status !== 'PAID') return res.status(409).json({ error: 'Receipt available after payment' });
-    const absPath = await ensureReceipt(order);
-    try { saveOrders(orders); } catch {}
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Cache-Control', 'no-store');
-    res.setHeader('Content-Disposition', `inline; filename="order-${order.id}.pdf"`);
-    return res.sendFile(absPath);
-  } catch (e) {
-    console.error('[admin] receipt view error', { orderId: req.params.id, err: e?.message });
-    return res.status(500).json({ error: 'Failed to generate receipt' });
-  }
+// Admin download: /admin/:id/receipt.pdf (auth required)
+app.get('/admin/:id/receipt.pdf', requireAdminApi, (req, res) => {
+  const id = String(req.params.id || '');
+  const orders = loadOrders();
+  const order = orders.find(o => String(o.id) === id);
+  if (!order) return res.status(404).json({ error: 'Not found' });
+  if (order.status !== 'PAID') return res.status(409).json({ error: 'Receipt available after payment' });
+  if (STATIC_RECEIPT_PDF_URL) return res.redirect(STATIC_RECEIPT_PDF_URL);
+  return res.status(404).json({ error: 'Receipt unavailable' });
 });
 
 // Public: allow client to link a receipt token to this device after payment
@@ -802,9 +835,6 @@ app.get('/admin/api/orders/:id', requireAdminApi, async (req, res) => {
               order.upiLink = order.currentUpiLink;
               order.qrPath = order.currentQr;
             }
-            if (order.status === 'PAID') {
-              try { await ensureReceipt(order); } catch (e) { console.error('[admin:get] ensure receipt error', { orderId: order.id, err: e?.message }); }
-            }
             order.updatedAt = nowIso();
             order.pendingVerifications.splice(idx, 1);
             saveOrders(orders);
@@ -815,12 +845,12 @@ app.get('/admin/api/orders/:id', requireAdminApi, async (req, res) => {
   } catch {}
   // If order is PAID, ensure a receipt PDF exists
   try {
-    if (order.status === 'PAID') {
-      await ensureReceipt(order);
+    if (order.status === 'PAID' && STATIC_RECEIPT_PDF_URL) {
+      order.receiptPdfUrl = STATIC_RECEIPT_PDF_URL;
       saveOrders(orders);
     }
   } catch (e) {
-    console.error('[admin] ensure receipt error', { orderId: order.id, err: e?.message });
+    console.error('[admin] static receipt set error', { orderId: order.id, err: e?.message });
   }
   const serverNowVal = nowIso();
   let expiresInMs = 0;
@@ -860,12 +890,8 @@ app.post('/admin/api/orders/:id/mark-paid', requireAdminApi, async (req, res) =>
   order.currentUpiLink = null;
   order.paidAt = nowIso();
   order.updatedAt = order.paidAt;
-  try {
-    await ensureReceipt(order);
-  } catch (e) {
-    console.error('[admin] receipt generate error', { orderId: order.id, err: e?.message });
-    return res.status(500).json({ error: 'Failed to generate receipt PDF' });
-  }
+  // Do not generate per-order receipts; set static URL
+  order.receiptPdfUrl = STATIC_RECEIPT_PDF_URL || null;
   saveOrders(orders);
   // also return a friendly confirmation URL for convenience
   const confirmationUrl = order.publicViewToken ? `/order/${order.publicViewToken}` : null;
@@ -875,27 +901,51 @@ app.post('/admin/api/orders/:id/mark-paid', requireAdminApi, async (req, res) =>
 
 // Admin: list files with filters (receipt PDFs)
 app.get('/admin/api/files', requireAdminApi, (req, res) => {
-  // Legacy endpoint; returns empty unless another part of the system stores files
   const orderId = req.query.orderId ? String(req.query.orderId) : null;
   const kind = req.query.kind ? String(req.query.kind) : null;
-  let files = (typeof loadFiles === 'function') ? loadFiles() : [];
+  if (orderId && kind === 'receipt') {
+    const orders = loadOrders();
+    const o = orders.find(x => String(x.id) === orderId);
+    if (o && o.status === 'PAID') {
+      return res.json({ total: 1, limit: 1, offset: 0, files: [
+        { id: 'static', orderId: o.id, kind: 'receipt', mime: 'application/pdf', size: null, path: null, publicUrl: STATIC_RECEIPT_PDF_URL, createdAt: o.paidAt || o.createdAt }
+      ]});
+    }
+    return res.json({ total: 0, limit: 1, offset: 0, files: [] });
+  }
+  // Fallback to actual FSDB listing (may be empty)
+  let files = loadFiles();
   if (orderId) files = files.filter(f => String(f.orderId) === orderId);
   if (kind) files = files.filter(f => String(f.kind) === String(kind));
   const total = files.length;
   const limit = Math.max(1, Math.min(1000, Number(req.query.limit) || 200));
   const offset = Math.max(0, Number(req.query.offset) || 0);
-  const page = files.slice().sort((a,b) => String(b.createdAt).localeCompare(String(a.createdAt))).slice(offset, offset + limit);
+  const page = files
+    .slice()
+    .sort((a,b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+    .slice(offset, offset + limit);
   res.json({ total, limit, offset, files: page });
 });
 
 // Admin: list files for a given order
 app.get('/admin/api/orders/:id/files', requireAdminApi, (req, res) => {
   const id = String(req.params.id);
+  const orders = loadOrders();
+  const o = orders.find(x => String(x.id) === id);
+  if (o && o.status === 'PAID') {
+    return res.json({ total: 1, limit: 1, offset: 0, files: [
+      { id: 'static', orderId: o.id, kind: 'receipt', mime: 'application/pdf', size: null, path: null, publicUrl: STATIC_RECEIPT_PDF_URL, createdAt: o.paidAt || o.createdAt }
+    ]});
+  }
+  // fallback to FSDB
   const limit = Math.max(1, Math.min(1000, Number(req.query.limit) || 200));
   const offset = Math.max(0, Number(req.query.offset) || 0);
-  let files = (typeof loadFiles === 'function') ? loadFiles().filter(f => String(f.orderId) === id) : [];
+  let files = loadFiles().filter(f => String(f.orderId) === id);
   const total = files.length;
-  files = files.slice().sort((a,b) => String(b.createdAt).localeCompare(String(a.createdAt))).slice(offset, offset + limit);
+  files = files
+    .slice()
+    .sort((a,b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+    .slice(offset, offset + limit);
   res.json({ total, limit, offset, files });
 });
 
@@ -1046,10 +1096,6 @@ app.post('/webhooks/sms', smsLimiter, async (req, res) => {
       matchedOrder.qrPath = matchedOrder.currentQr; // legacy sync
     }
 
-    // If fully paid, generate receipt
-    if (matchedOrder.status === 'PAID') {
-      try { await ensureReceipt(matchedOrder); } catch (e) { console.error('[webhook] ensure receipt error', { orderId: matchedOrder.id, err: e?.message }); }
-    }
     saveOrders(orders);
     payments.push(payment);
     savePayments(payments);
@@ -1235,3 +1281,4 @@ app.get('*', (req, res, next) => {
   if (fs.existsSync(indexFile)) return res.sendFile(indexFile);
   return next();
 });
+

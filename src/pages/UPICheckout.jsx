@@ -529,7 +529,7 @@ export default function UPICheckout() {
 
   // --- Receipt helpers ---
   const [downloading, setDownloading] = useState(false);
-  const receiptDownloadUrl = useMemo(
+  const receiptPdfUrl = useMemo(
     () => (order?.publicViewToken ? `/order/${order.publicViewToken}/receipt.pdf` : null),
     [order?.publicViewToken]
   );
@@ -540,24 +540,12 @@ export default function UPICheckout() {
     setTimeout(() => setError(''), 1800);
   };
 
-  const downloadReceipt = async () => {
-    if (!order?.publicViewToken) {
-      notify('Receipt available after payment confirmation');
+  const viewPdf = () => {
+    if (!order?.publicViewToken || !isPaidStatus(order?.status)) {
+      notify('PDF available after payment confirmation');
       return;
     }
-    try {
-      setDownloading(true);
-      const url = `/order/${encodeURIComponent(order.publicViewToken)}/receipt.pdf`;
-      // simple direct download via hidden anchor
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Order-${order.id}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => { try { document.body.removeChild(a); } catch {} }, 200);
-    } finally {
-      setDownloading(false);
-    }
+    window.open(`/order/${encodeURIComponent(order.publicViewToken)}/receipt.pdf`, '_blank', 'noopener');
   };
 
   // removed print-based legacy receipt generator
@@ -715,16 +703,18 @@ export default function UPICheckout() {
               <p className="text-green-700 font-medium mt-2">Payment confirmed. Thank you!</p>
             )}
             <div className="pt-2 flex flex-wrap gap-2">
-                {/* View receipt removed */}
-                <button
-                  type="button"
-                  onClick={downloadReceipt}
-                  disabled={downloading}
-                  className={`px-3 py-2 border text-sm rounded-none ${order?.publicViewToken && !downloading ? 'border-black text-black hover:bg-gray-50' : 'border-gray-300 text-gray-400'}`}
-                  title={order?.publicViewToken ? 'Download PDF' : 'Available after payment confirmation'}
+                <a
+                  role="button"
+                  onClick={(e) => { e.preventDefault(); viewPdf(); }}
+                  href={receiptPdfUrl || '#'}
+                  target="_blank"
+                  rel="noopener"
+                  aria-label="View PDF receipt"
+                  className={`px-3 py-2 border text-sm rounded-none inline-flex items-center justify-center ${order?.publicViewToken && isPaidStatus(order?.status) ? 'border-black text-black hover:bg-gray-50' : 'border-gray-300 text-gray-400 cursor-not-allowed'}`}
+                  title={order?.publicViewToken && isPaidStatus(order?.status) ? 'Opens in a new tab' : 'PDF available after payment confirmation'}
                 >
-                  {downloading ? 'Preparing…' : 'Download PDF'}
-                </button>
+                  View PDF
+                </a>
             </div>
           </div>
         </div>
@@ -831,14 +821,18 @@ export default function UPICheckout() {
 
               <div className="mt-8 flex flex-wrap gap-3">
                 <button onClick={onContinue} className="px-5 py-2.5 rounded-none bg-black text-white text-sm font-semibold shadow-sm hover:-translate-y-0.5 transition">Continue</button>
-                <button
-                  onClick={downloadReceipt}
-                  disabled={downloading}
-                  className={`px-5 py-2.5 w-full sm:w-auto rounded-none border border-black text-sm font-semibold text-black ${order?.publicViewToken && !downloading ? 'hover:-translate-y-0.5 transition' : 'opacity-60'}`}
-                  title={order?.publicViewToken ? 'Download PDF' : 'Available after payment confirmation'}
+                <a
+                  role="button"
+                  onClick={(e) => { e.preventDefault(); viewPdf(); }}
+                  href={receiptPdfUrl || '#'}
+                  target="_blank"
+                  rel="noopener"
+                  aria-label="View PDF receipt"
+                  className={`px-5 py-2.5 w-full sm:w-auto rounded-none border text-sm font-semibold inline-flex items-center justify-center ${order?.publicViewToken && isPaidStatus(order?.status) ? 'border-black text-black hover:-translate-y-0.5 transition' : 'border-gray-300 text-gray-400 cursor-not-allowed'}`}
+                  title={order?.publicViewToken && isPaidStatus(order?.status) ? 'Opens in a new tab' : 'PDF available after payment confirmation'}
                 >
-                  {downloading ? 'Preparing…' : 'Download PDF'}
-                </button>
+                  View PDF
+                </a>
                 <a className="px-5 py-2.5 rounded-none border border-black text-sm font-semibold text-black hover:-translate-y-0.5 transition" href={whatsappLink} target="_blank" rel="noreferrer">WhatsApp support</a>
               </div>
 
