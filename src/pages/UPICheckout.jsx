@@ -580,6 +580,37 @@ export default function UPICheckout() {
     try { await navigator.clipboard.writeText(text); setError(''); } catch { /* ignore */ }
   };
 
+  // Accessible, scrollable success modal sheet
+  const modalRef = useRef(null);
+  const lastFocusRef = useRef(null);
+  const closeSuccess = () => {
+    setShowSuccess(false);
+    try { document.body.style.overflow = ''; } catch {}
+    try { lastFocusRef.current && lastFocusRef.current.focus && lastFocusRef.current.focus(); } catch {}
+  };
+  useEffect(() => {
+    if (!showSuccess) return;
+    try { lastFocusRef.current = document.activeElement; } catch {}
+    try { document.body.style.overflow = 'hidden'; } catch {}
+    const onKey = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); closeSuccess(); }
+      else if (e.key === 'Tab') {
+        try {
+          const root = modalRef.current;
+          if (!root) return;
+          const focusables = Array.from(root.querySelectorAll('a[href],button:not([disabled]),[tabindex]:not([tabindex="-1"])'));
+          if (!focusables.length) return;
+          const first = focusables[0];
+          const last = focusables[focusables.length - 1];
+          if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+          else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        } catch {}
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showSuccess]);
+
   // ---- UI ----
   return (
     <div className="border-t pt-8 px-4 max-w-4xl mx-auto">
@@ -721,14 +752,17 @@ export default function UPICheckout() {
       )}
 
       {showSuccess && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="relative w-full max-w-3xl">
+        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-labelledby="successTitle">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={closeSuccess} />
+          <div className="relative h-[100svh] w-full p-3 sm:p-4 flex items-start justify-center" ref={modalRef}>
             <div className="pointer-events-none absolute inset-0 -z-10">
               {Array.from({ length: 20 }).map((_, i) => (
                 <span key={i} className="confetti" style={{ '--i': i, '--c': i % 3 === 0 ? '#22c55e' : i % 3 === 1 ? '#06b6d4' : '#f59e0b' }} />
               ))}
             </div>
-            <div className="animate-swipe-in-up rounded-none border border-gray-200 bg-white text-black shadow-2xl backdrop-blur px-6 py-8 sm:px-10">
+            <div className="animate-swipe-in-up rounded-none border border-gray-200 bg-white text-black shadow-2xl max-h-[92svh] flex flex-col overflow-hidden">
+              <button aria-label="Close" onClick={closeSuccess} className="absolute top-2 right-2 px-2 py-1 text-sm border rounded-none bg-white/90">✕</button>
+              <div className="flex-1 overflow-y-auto px-6 py-8 sm:px-10">
               <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                 <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-none bg-white text-black grid place-content-center shadow-lg animate-pop">
                   <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
@@ -820,23 +854,29 @@ export default function UPICheckout() {
               </div>
 
               <div className="mt-8 flex flex-wrap gap-3">
-                <button onClick={onContinue} className="px-5 py-2.5 rounded-none bg-black text-white text-sm font-semibold shadow-sm hover:-translate-y-0.5 transition">Continue</button>
-                <a
-                  role="button"
-                  onClick={(e) => { e.preventDefault(); viewPdf(); }}
-                  href={receiptPdfUrl || '#'}
-                  target="_blank"
-                  rel="noopener"
-                  aria-label="View PDF receipt"
-                  className={`px-5 py-2.5 w-full sm:w-auto rounded-none border text-sm font-semibold inline-flex items-center justify-center ${order?.publicViewToken && isPaidStatus(order?.status) ? 'border-black text-black hover:-translate-y-0.5 transition' : 'border-gray-300 text-gray-400 cursor-not-allowed'}`}
-                  title={order?.publicViewToken && isPaidStatus(order?.status) ? 'Opens in a new tab' : 'PDF available after payment confirmation'}
-                >
-                  View PDF
-                </a>
                 <a className="px-5 py-2.5 rounded-none border border-black text-sm font-semibold text-black hover:-translate-y-0.5 transition" href={whatsappLink} target="_blank" rel="noreferrer">WhatsApp support</a>
               </div>
 
               <p className="mt-4 text-xs text-gray-600">Need help? Message us on WhatsApp at <strong className="text-gray-700">{SUPPORT_WHATSAPP}</strong> or reply to your confirmation email.</p>
+              </div>
+
+              <div className="shrink-0 sticky bottom-0 border-t bg-white/95 backdrop-blur px-4 py-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <a
+                    role="button"
+                    onClick={(e) => { e.preventDefault(); viewPdf(); }}
+                    href={receiptPdfUrl || '#'}
+                    target="_blank"
+                    rel="noopener"
+                    aria-label="View PDF receipt"
+                    className={`px-4 py-3 rounded-none border text-sm font-semibold inline-flex items-center justify-center ${order?.publicViewToken && isPaidStatus(order?.status) ? 'border-black text-black hover:bg-gray-50' : 'border-gray-300 text-gray-400 cursor-not-allowed'}`}
+                    title={order?.publicViewToken && isPaidStatus(order?.status) ? 'Opens in a new tab' : 'PDF available after payment confirmation'}
+                  >
+                    View PDF
+                  </a>
+                  <button onClick={onContinue} className="px-4 py-3 rounded-none bg-black text-white text-sm font-semibold inline-flex items-center justify-center">Continue</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
