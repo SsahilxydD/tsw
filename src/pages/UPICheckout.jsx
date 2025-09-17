@@ -529,7 +529,10 @@ export default function UPICheckout() {
 
   // --- Receipt helpers ---
   const [downloading, setDownloading] = useState(false);
-  const receiptUrl = useMemo(() => (order?.publicViewToken ? `/order/${order.publicViewToken}` : null), [order?.publicViewToken]);
+  const receiptDownloadUrl = useMemo(
+    () => (order?.publicViewToken ? `/order/${order.publicViewToken}/receipt.pdf` : null),
+    [order?.publicViewToken]
+  );
 
   const notify = (msg) => {
     // minimal UX feedback using existing error banner
@@ -537,172 +540,27 @@ export default function UPICheckout() {
     setTimeout(() => setError(''), 1800);
   };
 
-  const viewReceipt = () => {
-    if (!order?.publicViewToken) {
-      if (!isReceiptableStatus(order?.status)) notify('Receipt not available for this order status.');
-      else notify('Receipt becomes available after payment confirmation.');
-      return;
-    }
-    window.location.href = `/order/${order.publicViewToken}`;
-  };
-
   const downloadReceipt = async () => {
-    if (!order?.id || !order?.publicViewToken) {
-      notify('Receipt becomes available after payment confirmation.');
+    if (!order?.publicViewToken) {
+      notify('Receipt available after payment confirmation');
       return;
     }
     try {
       setDownloading(true);
-      // 1) Try a direct PDF endpoint if available
-      const pdfCandidates = [];
-      if (order?.receiptPdfUrl) pdfCandidates.push(order.receiptPdfUrl);
-      pdfCandidates.push(`/api/orders/${encodeURIComponent(order.id)}/receipt.pdf?token=${encodeURIComponent(order.publicViewToken)}`);
-      let gotPdf = null;
-      for (const url of pdfCandidates) {
-        try {
-          const r = await fetch(url, { credentials: 'include' });
-          const ct = r.headers.get('content-type') || '';
-          if (r.ok && /pdf/i.test(ct)) { gotPdf = await r.blob(); break; }
-        } catch {}
-      }
-      if (gotPdf) {
-        const a = document.createElement('a');
-        const url = URL.createObjectURL(gotPdf);
-        a.href = url;
-        a.download = `Order-${order.id}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => { try { URL.revokeObjectURL(url); document.body.removeChild(a); } catch {} }, 500);
-        return;
-      }
-      // 2) Fallback: build a print-friendly HTML and navigate same-tab
-      const fmtRs = (p) => `₹${(Math.max(0, Number(p) || 0) / 100).toFixed(2)}`;
-      const fmtDate = (iso) => (iso ? new Date(iso).toLocaleString() : '—');
-      const addrLines = [];
-      if (order?.address?.line1) addrLines.push(order.address.line1);
-      if (order?.address?.line2) addrLines.push(order.address.line2);
-      const loc = [order?.address?.locality, order?.address?.district, order?.address?.state].filter(Boolean).join(', ');
-      if (loc) addrLines.push(loc);
-      const tail = [order?.address?.zip, order?.address?.country].filter(Boolean).join(', ');
-      if (tail) addrLines.push(tail);
-      const contact = [];
-      if (order?.customer?.name || order?.address?.name) contact.push(order?.customer?.name || order?.address?.name);
-      if (order?.customer?.phone || order?.address?.phone) contact.push(`Phone: ${order?.customer?.phone || order?.address?.phone}`);
-      if (order?.customer?.email) contact.push(`Email: ${order.customer.email}`);
-      const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">`
-        + `<title>Order ${order.id} receipt</title>`
-        + `<style>
-            :root{color-scheme:light}
-            html,body{background:#fff;color:#000}
-            body{margin:0;font-family:Inter,Segoe UI,Roboto,Arial,sans-serif}
-            .wrap{max-width:780px;margin:24px auto;padding:16px}
-            .card{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:24px}
-            .hero{display:flex;align-items:center;gap:12px;margin-bottom:20px}
-            .check{width:40px;height:40px;background:#10b981;color:#fff;display:grid;place-content:center;border-radius:50%}
-            h1{margin:0;font-size:22px;font-weight:600}
-            .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin:20px 0}
-            .chip{padding:10px 14px;border-radius:6px;background:#fff;border:1px solid #e5e7eb;font-size:13px;color:#111}
-            .section{margin-top:20px;border-top:1px solid #e5e7eb;padding-top:16px}
-            .section h3{margin:0 0 8px;font-size:15px;font-weight:600}
-            .muted{color:#6b7280;font-size:14px}
-            .text-sm{font-size:14px}
-            .note{margin-top:18px;font-size:12px;color:#6b7280}
-            @media print{.no-print{display:none}}
-          </style></head><body>`
-        + `<div class="wrap"><div class="card">`
-        + `<div class="hero">`
-        + `<div class="check"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>`
-        + `<div><h1>Payment received — thank you!</h1><div class="muted text-sm">Order ${order.id} is confirmed.</div></div>`
-        + `</div>`
-        + `<div class="grid">`
-        + `<div class="chip">Status<br><strong>${order.status}</strong></div>`
-        + `<div class="chip">Total<br><strong>${fmtRs(order.total)}</strong></div>`
-        + `<div class="chip">Paid<br><strong>${fmtRs(order.paid)}</strong></div>`
-        + `<div class="chip">Placed<br><strong>${fmtDate(order.createdAt)}</strong></div>`
-        + (order.paidAt ? `<div class="chip">Paid At<br><strong>${fmtDate(order.paidAt)}</strong></div>` : '')
-        + (order.dispatchBy ? `<div class="chip">Dispatch ETA<br><strong>${fmtDate(order.dispatchBy)}</strong></div>` : '')
-        + (order.product?.name ? `<div class="chip">Product<br><strong>${order.product.name}</strong></div>` : '')
-        + `</div>`
-        + (contact.length ? `<div class="section"><h3>Contact</h3>${contact.map((l)=>`<div class='text-sm'>${l}</div>`).join('')}</div>` : '')
-        + (addrLines.length ? `<div class="section"><h3>Shipping Address</h3>${addrLines.map((l)=>`<div class='text-sm'>${l}</div>`).join('')}</div>` : '')
-        + `<div class="note">Need help? WhatsApp us at ${SUPPORT_WHATSAPP}.</div>`
-        + `</div>`
-        + `<div class="wrap no-print"><p class="text-sm">If printing didn't start automatically, press Ctrl/Cmd + P.</p></div>`
-        + `<script>try{window.print()}catch(e){}</script>`
-        + `</body></html>`;
-      const blob = new Blob([html], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      window.location.assign(url);
-    } catch (e) {
-      notify(e?.message || 'Failed to download receipt');
+      const url = `/order/${encodeURIComponent(order.publicViewToken)}/receipt.pdf`;
+      // simple direct download via hidden anchor
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Order-${order.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { try { document.body.removeChild(a); } catch {} }, 200);
     } finally {
       setDownloading(false);
     }
   };
 
-  const downloadReceiptLegacy = () => {
-    try {
-      if (!order || order.status !== 'PAID') return;
-      const fmtRs = (p) => `₹${(Math.max(0, Number(p) || 0) / 100).toFixed(2)}`;
-      const fmtDate = (iso) => (iso ? new Date(iso).toLocaleString() : '—');
-      const addrLines = [];
-      if (order?.address?.line1) addrLines.push(order.address.line1);
-      if (order?.address?.line2) addrLines.push(order.address.line2);
-      const loc = [order?.address?.locality, order?.address?.district, order?.address?.state].filter(Boolean).join(', ');
-      if (loc) addrLines.push(loc);
-      const tail = [order?.address?.zip, order?.address?.country].filter(Boolean).join(', ');
-      if (tail) addrLines.push(tail);
-      const contact = [];
-      if (order?.customer?.name || order?.address?.name) contact.push(order?.customer?.name || order?.address?.name);
-      if (order?.customer?.phone || order?.address?.phone) contact.push(`Phone: ${order?.customer?.phone || order?.address?.phone}`);
-      if (order?.customer?.email) contact.push(`Email: ${order.customer.email}`);
-      const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">`
-        + `<title>Order ${order.id} receipt</title>`
-        + `<style>
-            :root{color-scheme:light}
-            html,body{background:#fff;color:#000}
-            body{margin:0;font-family:Inter,Segoe UI,Roboto,Arial,sans-serif}
-            .wrap{max-width:780px;margin:24px auto;padding:16px}
-            .card{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:24px}
-            .hero{display:flex;align-items:center;gap:12px;margin-bottom:20px}
-            .check{width:40px;height:40px;background:#10b981;color:#fff;display:grid;place-content:center;border-radius:50%}
-            h1{margin:0;font-size:22px;font-weight:600}
-            .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin:20px 0}
-            .chip{padding:10px 14px;border-radius:6px;background:#fff;border:1px solid #e5e7eb;font-size:13px;color:#111}
-            .section{margin-top:20px;border-top:1px solid #e5e7eb;padding-top:16px}
-            .section h3{margin:0 0 8px;font-size:15px;font-weight:600}
-            .muted{color:#6b7280;font-size:14px}
-            .text-sm{font-size:14px}
-            .note{margin-top:18px;font-size:12px;color:#6b7280}
-            @media print{.no-print{display:none}}
-          </style></head><body>`
-        + `<div class="wrap"><div class="card">`
-        + `<div class="hero">`
-        + `<div class="check"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>`
-        + `<div><h1>Payment received — thank you!</h1><div class="muted text-sm">Order ${order.id} is confirmed.</div></div>`
-        + `</div>`
-        + `<div class="grid">`
-        + `<div class="chip">Status<br><strong>${order.status}</strong></div>`
-        + `<div class="chip">Total<br><strong>${fmtRs(order.total)}</strong></div>`
-        + `<div class="chip">Paid<br><strong>${fmtRs(order.paid)}</strong></div>`
-        + `<div class="chip">Placed<br><strong>${fmtDate(order.createdAt)}</strong></div>`
-        + (order.paidAt ? `<div class="chip">Paid At<br><strong>${fmtDate(order.paidAt)}</strong></div>` : '')
-        + (order.dispatchBy ? `<div class="chip">Dispatch ETA<br><strong>${fmtDate(order.dispatchBy)}</strong></div>` : '')
-        + (order.product?.name ? `<div class="chip">Product<br><strong>${order.product.name}</strong></div>` : '')
-        + `</div>`
-        + (contact.length ? `<div class="section"><h3>Contact</h3>${contact.map((l)=>`<div class='text-sm'>${l}</div>`).join('')}</div>` : '')
-        + (addrLines.length ? `<div class="section"><h3>Shipping Address</h3>${addrLines.map((l)=>`<div class='text-sm'>${l}</div>`).join('')}</div>` : '')
-        + `<div class="note">Need help? WhatsApp us at ${SUPPORT_WHATSAPP}.</div>`
-        + `</div>`
-        + `<div class="wrap no-print"><button onclick="window.print()" style="margin-top:12px;padding:10px 14px;border:1px solid #111;background:#111;color:#fff;border-radius:6px;">Download PDF</button></div>`
-        + `</div></body></html>`;
-      const w = window.open('', '_blank', 'noopener');
-      if (!w) return;
-      w.document.write(html);
-      w.document.close();
-      setTimeout(() => { try { w.focus(); w.print(); } catch {} }, 250);
-    } catch {}
-  };
+  // removed print-based legacy receipt generator
 
   const launchPayment = async () => {
     if (!order?.currentUpiLink) return;
@@ -857,24 +715,16 @@ export default function UPICheckout() {
               <p className="text-green-700 font-medium mt-2">Payment confirmed. Thank you!</p>
             )}
             <div className="pt-2 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={viewReceipt}
-                disabled={!order?.publicViewToken}
-                className={`px-3 py-2 border text-sm rounded-none ${order?.publicViewToken ? 'border-black text-black hover:bg-gray-50' : 'border-gray-300 text-gray-400 cursor-not-allowed'}`}
-                title={order?.publicViewToken ? 'Open receipt' : 'Receipt becomes available after payment confirmation.'}
-              >
-                View receipt
-              </button>
-              <button
-                type="button"
-                onClick={downloadReceipt}
-                disabled={!order?.publicViewToken || downloading}
-                className={`px-3 py-2 border text-sm rounded-none ${order?.publicViewToken && !downloading ? 'border-black text-black hover:bg-gray-50' : 'border-gray-300 text-gray-400 cursor-not-allowed'}`}
-                title={order?.publicViewToken ? 'Download PDF' : 'Receipt becomes available after payment confirmation.'}
-              >
-                {downloading ? 'Preparing…' : 'Download PDF'}
-              </button>
+                {/* View receipt removed */}
+                <button
+                  type="button"
+                  onClick={downloadReceipt}
+                  disabled={downloading}
+                  className={`px-3 py-2 border text-sm rounded-none ${order?.publicViewToken && !downloading ? 'border-black text-black hover:bg-gray-50' : 'border-gray-300 text-gray-400'}`}
+                  title={order?.publicViewToken ? 'Download PDF' : 'Available after payment confirmation'}
+                >
+                  {downloading ? 'Preparing…' : 'Download PDF'}
+                </button>
             </div>
           </div>
         </div>
@@ -981,31 +831,14 @@ export default function UPICheckout() {
 
               <div className="mt-8 flex flex-wrap gap-3">
                 <button onClick={onContinue} className="px-5 py-2.5 rounded-none bg-black text-white text-sm font-semibold shadow-sm hover:-translate-y-0.5 transition">Continue</button>
-                {order?.publicViewToken ? (
-                  <>
-                    <button
-                      onClick={viewReceipt}
-                      className="px-5 py-2.5 rounded-none border border-black text-sm font-semibold text-black hover:-translate-y-0.5 transition"
-                    >
-                      View receipt
-                    </button>
-                    <button
-                      onClick={downloadReceipt}
-                      disabled={downloading}
-                      className="px-5 py-2.5 rounded-none border border-black text-sm font-semibold text-black hover:-translate-y-0.5 transition"
-                    >
-                      {downloading ? 'Preparing…' : 'Download PDF'}
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    disabled
-                    title="Receipt becomes available after payment confirmation."
-                    className="px-5 py-2.5 rounded-none border border-gray-300 text-sm font-semibold text-gray-400"
-                  >
-                    View receipt
-                  </button>
-                )}
+                <button
+                  onClick={downloadReceipt}
+                  disabled={downloading}
+                  className={`px-5 py-2.5 w-full sm:w-auto rounded-none border border-black text-sm font-semibold text-black ${order?.publicViewToken && !downloading ? 'hover:-translate-y-0.5 transition' : 'opacity-60'}`}
+                  title={order?.publicViewToken ? 'Download PDF' : 'Available after payment confirmation'}
+                >
+                  {downloading ? 'Preparing…' : 'Download PDF'}
+                </button>
                 <a className="px-5 py-2.5 rounded-none border border-black text-sm font-semibold text-black hover:-translate-y-0.5 transition" href={whatsappLink} target="_blank" rel="noreferrer">WhatsApp support</a>
               </div>
 

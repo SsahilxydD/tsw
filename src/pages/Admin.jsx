@@ -194,10 +194,38 @@ export default function Admin() {
                           QR
                         </a>
                       )}
-                      {o.status === 'PAID' && o.publicViewToken && (
-                        <a className="px-2 py-1 border rounded text-xs" href={`/order/${o.publicViewToken}`} target="_blank" rel="noreferrer" onClick={(e)=>e.stopPropagation()}>
-                          Receipt
-                        </a>
+                      {(
+                        <button
+                          className="px-2 py-1 border rounded text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const download = async () => {
+                              try {
+                                const r = await fetch(`/admin/${encodeURIComponent(o.id)}/receipt.pdf`, { credentials: 'include' });
+                                if (!r.ok) {
+                                  if (r.status === 404 || r.status === 409) setError('Receipt available after payment.');
+                                  else setError('Failed to download receipt');
+                                  return;
+                                }
+                                const blob = await r.blob();
+                                const ct = r.headers.get('content-type') || '';
+                                if (!/pdf/i.test(ct)) { setError('Failed to download receipt'); return; }
+                                const a = document.createElement('a');
+                                const url = URL.createObjectURL(blob);
+                                a.href = url;
+                                a.download = `Order-${o.id}.pdf`;
+                                document.body.appendChild(a);
+                                a.click();
+                                setTimeout(() => { try { URL.revokeObjectURL(url); document.body.removeChild(a); } catch {} }, 500);
+                              } catch {
+                                setError('Failed to download receipt');
+                              }
+                            };
+                            download();
+                          }}
+                        >
+                          Download PDF
+                        </button>
                       )}
                     </td>
                   </tr>

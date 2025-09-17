@@ -448,7 +448,7 @@ function sanitizeOrder(o) {
     currentQr: o.currentQr || null,
     currentUpiLink: o.currentUpiLink || null,
     publicViewToken: o.publicViewToken || null,
-    receiptPdfUrl: o.receiptPdfUrl || (fs.existsSync(orderReceiptPath(o.id)) ? `/receipts/${o.id}.pdf` : null),
+    receiptPdfUrl: o.status === 'PAID' ? (STATIC_RECEIPT_PDF_URL || o.receiptPdfUrl || null) : null,
     customer: {
       name: customerName,
       phone: customerPhone,
@@ -529,6 +529,8 @@ app.get('/health', (_req, res) => res.json({ ok: true }));
 
 // Optionally disable public receipt endpoints entirely via env switch
 const RECEIPTS_PUBLIC = String(process.env.RECEIPTS_PUBLIC || 'true').toLowerCase() === 'true';
+// Use a single static receipt PDF for all orders when provided
+const STATIC_RECEIPT_PDF_URL = process.env.STATIC_RECEIPT_PDF_URL || '/receipts/receipt.pdf';
 if (!RECEIPTS_PUBLIC) {
   app.use('/api/order', (req, res) => res.status(404).json({ error: 'Not found' }));
   app.use('/order', (req, res) => res.status(404).send('<h1>Not found</h1>'));
@@ -716,21 +718,43 @@ app.get('/api/orders/:id/receipt.pdf', async (req, res) => {
     const order = orders.find(o => String(o.id) === id);
     if (!order || order.status !== 'PAID') return res.status(404).json({ error: 'Not found' });
     if (!token || token !== order.publicViewToken) return res.status(404).json({ error: 'Not found' });
-
-    const absPath = orderReceiptPath(order.id);
-    if (fs.existsSync(absPath)) {
-      res.setHeader('Cache-Control', 'no-store');
-      return res.sendFile(absPath);
+    // Always use static receipt PDF URL
+    if (STATIC_RECEIPT_PDF_URL) {
+      return res.redirect(STATIC_RECEIPT_PDF_URL);
     }
-    // Generate and stream to response
-    await ensureReceiptPdf(order, { streamToRes: true, res });
-    // Save updated order fields (receiptPdfUrl)
-    try { saveOrders(orders); } catch {}
-    // Note: response already streamed; end handler
+    return res.status(404).json({ error: 'Receipt unavailable' });
   } catch (e) {
     console.error('[public] receipt download error', { err: e?.message });
     return res.status(500).json({ error: 'Failed to generate receipt' });
   }
+});
+
+// Public download by token: /order/:token/receipt.pdf
+app.get('/order/:token/receipt.pdf', async (req, res) => {
+  try {
+    const token = String(req.params.token || '');
+    const orders = loadOrders();
+    const order = orders.find(o => o.publicViewToken === token);
+    if (!order || order.status !== 'PAID') return res.status(404).json({ error: 'Not found' });
+    if (STATIC_RECEIPT_PDF_URL) {
+      return res.redirect(STATIC_RECEIPT_PDF_URL);
+    }
+    return res.status(404).json({ error: 'Receipt unavailable' });
+  } catch (e) {
+    console.error('[public] token receipt download error', { err: e?.message });
+    return res.status(500).json({ error: 'Failed to generate receipt' });
+  }
+});
+
+// Admin download: /admin/:id/receipt.pdf (auth required)
+app.get('/admin/:id/receipt.pdf', requireAdminApi, (req, res) => {
+  const id = String(req.params.id || '');
+  const orders = loadOrders();
+  const order = orders.find(o => String(o.id) === id);
+  if (!order) return res.status(404).json({ error: 'Not found' });
+  if (order.status !== 'PAID') return res.status(409).json({ error: 'Receipt available after payment' });
+  if (STATIC_RECEIPT_PDF_URL) return res.redirect(STATIC_RECEIPT_PDF_URL);
+  return res.status(404).json({ error: 'Receipt unavailable' });
 });
 
 // Public: allow client to link a receipt token to this device after payment
@@ -821,12 +845,12 @@ app.get('/admin/api/orders/:id', requireAdminApi, async (req, res) => {
   } catch {}
   // If order is PAID, ensure a receipt PDF exists
   try {
-    if (order.status === 'PAID') {
-      await ensureReceiptPdf(order);
+    if (order.status === 'PAID' && STATIC_RECEIPT_PDF_URL) {
+      order.receiptPdfUrl = STATIC_RECEIPT_PDF_URL;
       saveOrders(orders);
     }
   } catch (e) {
-    console.error('[admin] ensure receipt error', { orderId: order.id, err: e?.message });
+    console.error('[admin] static receipt set error', { orderId: order.id, err: e?.message });
   }
   const serverNowVal = nowIso();
   let expiresInMs = 0;
@@ -866,12 +890,8 @@ app.post('/admin/api/orders/:id/mark-paid', requireAdminApi, async (req, res) =>
   order.currentUpiLink = null;
   order.paidAt = nowIso();
   order.updatedAt = order.paidAt;
-  try {
-    await ensureReceiptPdf(order);
-  } catch (e) {
-    console.error('[admin] receipt generate error', { orderId: order.id, path: orderReceiptPath(order.id), err: e?.message });
-    return res.status(500).json({ error: 'Failed to generate receipt PDF' });
-  }
+  // Do not generate per-order receipts; set static URL
+  order.receiptPdfUrl = STATIC_RECEIPT_PDF_URL || null;
   saveOrders(orders);
   // also return a friendly confirmation URL for convenience
   const confirmationUrl = order.publicViewToken ? `/order/${order.publicViewToken}` : null;
@@ -881,9 +901,20 @@ app.post('/admin/api/orders/:id/mark-paid', requireAdminApi, async (req, res) =>
 
 // Admin: list files with filters (receipt PDFs)
 app.get('/admin/api/files', requireAdminApi, (req, res) => {
-  let files = loadFiles();
   const orderId = req.query.orderId ? String(req.query.orderId) : null;
   const kind = req.query.kind ? String(req.query.kind) : null;
+  if (orderId && kind === 'receipt') {
+    const orders = loadOrders();
+    const o = orders.find(x => String(x.id) === orderId);
+    if (o && o.status === 'PAID') {
+      return res.json({ total: 1, limit: 1, offset: 0, files: [
+        { id: 'static', orderId: o.id, kind: 'receipt', mime: 'application/pdf', size: null, path: null, publicUrl: STATIC_RECEIPT_PDF_URL, createdAt: o.paidAt || o.createdAt }
+      ]});
+    }
+    return res.json({ total: 0, limit: 1, offset: 0, files: [] });
+  }
+  // Fallback to actual FSDB listing (may be empty)
+  let files = loadFiles();
   if (orderId) files = files.filter(f => String(f.orderId) === orderId);
   if (kind) files = files.filter(f => String(f.kind) === String(kind));
   const total = files.length;
@@ -899,6 +930,14 @@ app.get('/admin/api/files', requireAdminApi, (req, res) => {
 // Admin: list files for a given order
 app.get('/admin/api/orders/:id/files', requireAdminApi, (req, res) => {
   const id = String(req.params.id);
+  const orders = loadOrders();
+  const o = orders.find(x => String(x.id) === id);
+  if (o && o.status === 'PAID') {
+    return res.json({ total: 1, limit: 1, offset: 0, files: [
+      { id: 'static', orderId: o.id, kind: 'receipt', mime: 'application/pdf', size: null, path: null, publicUrl: STATIC_RECEIPT_PDF_URL, createdAt: o.paidAt || o.createdAt }
+    ]});
+  }
+  // fallback to FSDB
   const limit = Math.max(1, Math.min(1000, Number(req.query.limit) || 200));
   const offset = Math.max(0, Number(req.query.offset) || 0);
   let files = loadFiles().filter(f => String(f.orderId) === id);
@@ -1164,7 +1203,7 @@ app.get('/order/:token', (req, res) => {
   .check{width:44px;height:44px;background:#000;color:#fff;display:grid;place-content-center;border:1px solid #000;border-radius:0;}
   h1{margin:0;font-size:24px;font-weight:600;letter-spacing:-0.01em;color:#000;}
   .muted{color:#000;font-size:14px;}
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:18px;margin:26px 0;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin:26px 0;}
   .chip{padding:10px 14px;border-radius:0;background:#fff;border:1px solid #000;font-size:13px;color:#000;}
   .section{margin-top:28px;border-top:1px solid #000;padding-top:22px;}
   .section h3{margin:0 0 12px;font-size:16px;font-weight:600;color:#000;}
@@ -1179,7 +1218,7 @@ app.get('/order/:token', (req, res) => {
   .btn-outline{background:#fff;color:#000;border-color:#000;}
   .btn:hover{transform:none;opacity:1;}
   .note{margin-top:24px;font-size:12px;color:#000;line-height:1.5;}
-  @media(max-width:640px){.card{padding:24px;border-radius:0;}.hero{flex-direction:column;align-items:flex-start;}.actions{flex-direction:column;align-items:stretch;}}
+  @media(max-width:640px){.card{padding:24px;border-radius:0;}.hero{flex-direction:column;align-items:flex-start;gap:12px}.actions{flex-direction:column;align-items:stretch;gap:12px}.btn{width:100%;height:44px;font-size:15px}}
   a{color:#000}
   .page-bg{position:fixed;inset:0;background:#fff !important;z-index:-1;}
 </style>
