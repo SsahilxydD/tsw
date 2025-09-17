@@ -404,6 +404,7 @@ function sanitizeOrder(o) {
     paidPaise: o.paidPaise,
     remainingPaise: o.remainingPaise,
     product: o.product ? { id: o.product.id, name: o.product.name, amountPaise: o.product.amountPaise } : null,
+    lineItems: Array.isArray(o.lineItems) ? o.lineItems.map(it => ({ productId: it.productId, title: it.title, variant: it.variant || null, qty: it.qty || 1, unitAmountPaise: it.unitAmountPaise || 0, imageUrl: it.imageUrl || null, sku: it.sku || null })) : [],
     createdAt: o.createdAt,
     paidAt: o.paidAt || null,
     dispatchBy,
@@ -584,6 +585,7 @@ app.post('/orders', async (req, res) => {
         email: addressIn.email || null,
       } : null,
       product: product ? { id: product.id, name: product.name, amountPaise: amountPaise } : null,
+      lineItems: product ? [{ productId: product.id, title: (product.name || String(product.id)), variant: ((meta && (meta.size || (meta.address && meta.address.size))) ? String(meta.size || meta.address.size) : null), qty: 1, unitAmountPaise: amountPaise, imageUrl: (Array.isArray(product?.images) ? product.images[0] : (Array.isArray(product?.image) ? product.image[0] : product?.image)) || null, sku: product.sku || null }] : [],
       publicViewToken: genViewToken(), // customer-safe token
     };
     orders.push(order);
@@ -658,9 +660,7 @@ app.get('/public/my-orders', (req, res) => {
       if (!o) continue;
       if (ensureFreshStatus(o)) saveOrders(orders);
       if (o.status !== 'PAID') continue; // only show paid orders
-      out.push({
-        id: o.id,
-        totalAmountPaise: o.totalAmountPaise,
+      out.push({ id: o.id, totalAmountPaise: o.totalAmountPaise, status: o.status, publicViewToken: o.publicViewToken, lineItems: Array.isArray(o.lineItems) ? o.lineItems.map(it => ({ title: it.title, imageUrl: it.imageUrl || null, qty: it.qty || 1, unitAmountPaise: it.unitAmountPaise || 0 })) : [],
         paidAt: o.paidAt || null,
         createdAt: o.createdAt || null,
         updatedAt: o.updatedAt || o.createdAt || null,
@@ -1250,3 +1250,7 @@ app.get('*', (req, res, next) => {
   if (fs.existsSync(indexFile)) return res.sendFile(indexFile);
   return next();
 });
+
+
+
+

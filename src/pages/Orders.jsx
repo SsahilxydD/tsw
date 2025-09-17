@@ -37,11 +37,13 @@ export default function Orders() {
           const j = await r.json();
           serverArr = Array.isArray(j.orders) ? j.orders.map(o => ({
             id: o.id,
-            token: o.token,
-            downloadUrl: o.token ? `/order/${o.token}/receipt.pdf` : null,
+            token: o.publicViewToken || o.token,
+            downloadUrl: (o.publicViewToken || o.token) ? `/order/${o.publicViewToken || o.token}/receipt.pdf` : null,
             amountPaise: o.totalAmountPaise,
             paidAt: o.paidAt,
             createdAt: o.createdAt,
+            status: o.status,
+            lineItems: Array.isArray(o.lineItems) ? o.lineItems : [],
           })) : [];
         }
         const combined = merge(serverArr, localArr)
@@ -71,30 +73,34 @@ export default function Orders() {
 
       {!loading && items.length > 0 && (
         <div className='mt-4 divide-y'>
-          {items.map((it, idx) => (
-            <div key={idx} className='py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
-              <div className='min-w-0'>
-                <div className='text-sm text-gray-500'>Order ID</div>
-                <div className='font-mono text-sm break-all'>{it.id}</div>
-                <div className='mt-1 text-xs text-gray-500'>Paid: {it.paidAt ? new Date(it.paidAt).toLocaleString() : '—'}</div>
+          {items.map((it, idx) => {
+            const first = (it.lineItems && it.lineItems[0]) || null;
+            const more = Math.max(0, (it.lineItems?.length || 0) - 1);
+            const thumb = first?.imageUrl || '/favicon.png';
+            return (
+              <div key={idx} className='py-4 flex items-center gap-3 sm:gap-4'>
+                <div className='flex items-center gap-2'>
+                  <img src={thumb} alt={first?.title || 'Product'} className='w-16 h-16 object-cover border rounded-sm' loading='lazy' />
+                  {more > 0 && (
+                    <div className='w-16 h-16 grid place-content-center border rounded-sm text-xs text-gray-600 bg-white'>+{more}</div>
+                  )}
+                </div>
+                <div className='flex-1 min-w-0'>
+                  <div className='font-medium text-sm truncate'>{first?.title || 'Custom payment'}{more > 0 ? ` and ${more} more` : ''}</div>
+                  <div className='text-xs text-gray-500 mt-0.5'>Placed: {it.createdAt ? new Date(it.createdAt).toLocaleString() : '—'} • Status: {it.status || '—'}</div>
+                </div>
+                <div className='flex items-center gap-2 sm:gap-3'>
+                  <div className='text-sm font-semibold'>{fmtRs(it.amountPaise)}</div>
+                  {it.token && (
+                    <>
+                      <a href={`/order/${it.token}`} className='border px-3 py-1.5 text-sm rounded-sm hover:bg-gray-50'>View details</a>
+                      <a href={`/order/${it.token}/receipt.pdf`} target='_blank' rel='noopener' className='border px-3 py-1.5 text-sm rounded-sm hover:bg-gray-50'>View PDF</a>
+                    </>
+                  )}
+                </div>
               </div>
-              <div className='flex items-center gap-4'>
-                <div className='text-sm font-semibold'>{fmtRs(it.amountPaise)}</div>
-                {it.token ? (
-                  <a
-                    href={`/order/${it.token}/receipt.pdf`}
-                    target="_blank"
-                    rel="noopener"
-                    className='border px-4 py-2 text-sm rounded-sm hover:bg-gray-50'
-                    aria-label='View PDF receipt'
-                    title='Opens in a new tab'
-                  >
-                    View PDF
-                  </a>
-                ) : null}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

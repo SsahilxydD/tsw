@@ -260,6 +260,25 @@ export default function Admin() {
                                 )}
                               </div>
                             </div>
+                            <div className="space-y-2">
+                              <h3 className="font-semibold text-sm">Items</h3>
+                              <div className="text-sm text-gray-700 space-y-2">
+                                {Array.isArray(openOrder?.lineItems) && openOrder.lineItems.length > 0 ? (
+                                  openOrder.lineItems.map((it, i) => (
+                                    <div key={i} className="flex items-center gap-3">
+                                      <img src={it.imageUrl || '/favicon.png'} alt={it.title || 'Item'} className="w-12 h-12 object-cover border rounded-sm" />
+                                      <div className="flex-1 min-w-0">
+                                        <div className="truncate">{it.title || 'Item'}{it.variant ? ` (${it.variant})` : ''}</div>
+                                      </div>
+                                      <div className="text-xs text-gray-600">{it.qty || 1} × {fmtRs(it.unitAmountPaise || 0)}</div>
+                                      <div className="text-xs font-medium">{fmtRs((it.unitAmountPaise || 0) * (it.qty || 1))}</div>
+                                    </div>
+                                  ))
+                                ) : (
+                                  <div className="text-xs text-gray-600">Custom payment</div>
+                                )}
+                              </div>
+                            </div>
                           </div>
                         )}
                       </td>
