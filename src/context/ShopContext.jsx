@@ -214,60 +214,7 @@ const ShopContextProvider = (props) => {
             const subLower = String(derivedSub || '').toLowerCase();
             if (subLower === 'footwear' || (!subLower && isShoe)) {
               price = 1850;
-            } else if (subLower === 'topwear') {
-              // Set Topwear discounted price to 750, unless it matches "shirt" → 950
-              price = isShirt ? 950 : 750;
             }
-          }
-
-          // ---- ADDON: hardcoded keywords → force price = 650 (case-insensitive exact phrase match) ----
-          const SHIRT_KEYWORDS = [
-            "Adida S Premium Oversized Tshirt",
-            "Armanni Exchange T Shirt",
-            "Tommy Hilfige r Premium Embroidery Patch Tshirt Red",
-            "Arman i Exchange Petrol Blue Logo Print Premium T Shirt",
-            "CK T shirt",
-            "Hugo Boss Metal Logo Blue Printed Round Neck Premium T shirt",
-            "Adida s Designer Logo Premium T shirt",
-            "Adida s Premium Round Neck Tshirt Biege",
-            "Adida S Printed White Imported Premium T Shirt 1587",
-            "Calvi n Klein CK White Premium Drop Shoulder Round Neck Tshirt",
-            "Calvi n Klein CK Brown Premium Drop Shoulder Round Neck Tshirt 391 Calvi n Klein CK Brown Premium Drop Shoulder Round Neck Tshirt 391",
-            "Lacost e T shirt",
-            "Lacost E Premium Round Neck Tshirt",
-            "Supreme Black Logo Print Imported Oversized T Shirt",
-            "Calvin Klein Black Dragon Print Premium T-Shirt",
-            "Hug o Boss Premium Round Neck Tshirt Green",
-            "Armanni Exchange TShirt",
-            "Air Jordan Premium Drop Shoulder Premium Tshirt",
-            "Lacost E Premium Round Neck Tshirt",
-            "Calvi n klein premium Round Neck Tshirt Maroon",
-            "Calvi n klein premium Round Neck Tshirt Green",
-            "Calvin Klein Red Dragon Print Premium T Shirt",
-            "Calvin Klein Black Round Neck Premium T Shirts With Back Printed",
-            "Arman i exchange",
-            "CK T shirt",
-            "Jordan Sky Off Shoulder Printed Imported T Shirt With Back Print",
-            "Adida s White Premium Printed Round Neck T shirt F2239 A2",
-            "Boss T shirt",
-            "Adi logo t shirt Black M360 BK",
-            "Stussy Premium Dropshoulder Oversize Tshirt",
-            "Calvin Klein White Dragon Print Premium T Shirt",
-            "Calvi n klein premium Round Neck Tshirt Beige",
-            "CK T shirt",
-            "Arman i Exchange T shirt",
-            "Arman i Exchange Navy Blue All Over Print Premium Classic T Shir",
-            "Balmai n Paris Embossed Printed Navy Round Neck Premium Tshirt",
-            "Arman i exchange T shirt",
-            "Calvi n klein premium Round Neck Tshirt",
-            "Armanni exchange T shirt",
-            "Essentia l Oversized T shirt",
-            "Hacket t Premium Round Neck Tshirt Green",
-            "Armanni Exchange Shirt",
-          ];
-          const SHIRT_KEYWORDS_LC = SHIRT_KEYWORDS.map(s => String(s || '').toLowerCase());
-          if (SHIRT_KEYWORDS_LC.some(kw => kw && lcTitle.includes(kw))) {
-            price = 650;
           }
           // ---------------------------------------------------------------------------------------------
 
