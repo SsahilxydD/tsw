@@ -506,6 +506,70 @@ export default function UPICheckout() {
     }
   };
 
+  const downloadReceipt = () => {
+    try {
+      if (!order || order.status !== 'PAID') return;
+      const fmtRs = (p) => `₹${(Math.max(0, Number(p) || 0) / 100).toFixed(2)}`;
+      const fmtDate = (iso) => (iso ? new Date(iso).toLocaleString() : '—');
+      const addrLines = [];
+      if (order?.address?.line1) addrLines.push(order.address.line1);
+      if (order?.address?.line2) addrLines.push(order.address.line2);
+      const loc = [order?.address?.locality, order?.address?.district, order?.address?.state].filter(Boolean).join(', ');
+      if (loc) addrLines.push(loc);
+      const tail = [order?.address?.zip, order?.address?.country].filter(Boolean).join(', ');
+      if (tail) addrLines.push(tail);
+      const contact = [];
+      if (order?.customer?.name || order?.address?.name) contact.push(order?.customer?.name || order?.address?.name);
+      if (order?.customer?.phone || order?.address?.phone) contact.push(`Phone: ${order?.customer?.phone || order?.address?.phone}`);
+      if (order?.customer?.email) contact.push(`Email: ${order.customer.email}`);
+      const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">`
+        + `<title>Order ${order.id} receipt</title>`
+        + `<style>
+            :root{color-scheme:light}
+            html,body{background:#fff;color:#000}
+            body{margin:0;font-family:Inter,Segoe UI,Roboto,Arial,sans-serif}
+            .wrap{max-width:780px;margin:24px auto;padding:16px}
+            .card{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:24px}
+            .hero{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+            .check{width:40px;height:40px;background:#10b981;color:#fff;display:grid;place-content:center;border-radius:50%}
+            h1{margin:0;font-size:22px;font-weight:600}
+            .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin:20px 0}
+            .chip{padding:10px 14px;border-radius:6px;background:#fff;border:1px solid #e5e7eb;font-size:13px;color:#111}
+            .section{margin-top:20px;border-top:1px solid #e5e7eb;padding-top:16px}
+            .section h3{margin:0 0 8px;font-size:15px;font-weight:600}
+            .muted{color:#6b7280;font-size:14px}
+            .text-sm{font-size:14px}
+            .note{margin-top:18px;font-size:12px;color:#6b7280}
+            @media print{.no-print{display:none}}
+          </style></head><body>`
+        + `<div class="wrap"><div class="card">`
+        + `<div class="hero">`
+        + `<div class="check"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>`
+        + `<div><h1>Payment received — thank you!</h1><div class="muted text-sm">Order ${order.id} is confirmed.</div></div>`
+        + `</div>`
+        + `<div class="grid">`
+        + `<div class="chip">Status<br><strong>${order.status}</strong></div>`
+        + `<div class="chip">Total<br><strong>${fmtRs(order.total)}</strong></div>`
+        + `<div class="chip">Paid<br><strong>${fmtRs(order.paid)}</strong></div>`
+        + `<div class="chip">Placed<br><strong>${fmtDate(order.createdAt)}</strong></div>`
+        + (order.paidAt ? `<div class="chip">Paid At<br><strong>${fmtDate(order.paidAt)}</strong></div>` : '')
+        + (order.dispatchBy ? `<div class="chip">Dispatch ETA<br><strong>${fmtDate(order.dispatchBy)}</strong></div>` : '')
+        + (order.product?.name ? `<div class="chip">Product<br><strong>${order.product.name}</strong></div>` : '')
+        + `</div>`
+        + (contact.length ? `<div class="section"><h3>Contact</h3>${contact.map((l)=>`<div class='text-sm'>${l}</div>`).join('')}</div>` : '')
+        + (addrLines.length ? `<div class="section"><h3>Shipping Address</h3>${addrLines.map((l)=>`<div class='text-sm'>${l}</div>`).join('')}</div>` : '')
+        + `<div class="note">Need help? WhatsApp us at ${SUPPORT_WHATSAPP}.</div>`
+        + `</div>`
+        + `<div class="wrap no-print"><button onclick="window.print()" style="margin-top:12px;padding:10px 14px;border:1px solid #111;background:#111;color:#fff;border-radius:6px;">Download PDF</button></div>`
+        + `</div></body></html>`;
+      const w = window.open('', '_blank', 'noopener');
+      if (!w) return;
+      w.document.write(html);
+      w.document.close();
+      setTimeout(() => { try { w.focus(); w.print(); } catch {} }, 250);
+    } catch {}
+  };
+
   const launchPayment = async () => {
     if (!order?.currentUpiLink) return;
     try {
@@ -670,55 +734,55 @@ export default function UPICheckout() {
                 <span key={i} className="confetti" style={{ '--i': i, '--c': i % 3 === 0 ? '#22c55e' : i % 3 === 1 ? '#06b6d4' : '#f59e0b' }} />
               ))}
             </div>
-            <div className="animate-swipe-in-up rounded-none border border-white/20 bg-black text-white shadow-2xl backdrop-blur px-6 py-8 sm:px-10">
+            <div className="animate-swipe-in-up rounded-none border border-gray-200 bg-white text-black shadow-2xl backdrop-blur px-6 py-8 sm:px-10">
               <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                 <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-none bg-white text-black grid place-content-center shadow-lg animate-pop">
                   <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
                 </div>
                 <div>
                   <h2 className="text-2xl font-semibold tracking-tight">Payment received — thank you!</h2>
-                  <p className="text-sm text-gray-300">Order {order?.id} is confirmed. We’ll keep you posted until it ships.</p>
+                  <p className="text-sm text-gray-600">Order {order?.id} is confirmed. We’ll keep you posted until it ships.</p>
                 </div>
               </div>
 
               <div className="mt-6 grid gap-3 sm:grid-cols-3 text-sm">
-                <div className="rounded-none border border-white/20 bg-black/70 p-4">
-                  <div className="text-xs uppercase tracking-wide text-gray-400">Order ID</div>
-                  <div className="mt-1 font-mono text-xs break-all text-white">{order?.id}</div>
-                  <button type="button" onClick={() => order?.id && onCopy(order.id)} className="mt-2 text-xs underline text-gray-300">Copy</button>
+                <div className="rounded-none border border-gray-200 bg-white p-4">
+                  <div className="text-xs uppercase tracking-wide text-gray-500">Order ID</div>
+                  <div className="mt-1 font-mono text-xs break-all text-black">{order?.id}</div>
+                  <button type="button" onClick={() => order?.id && onCopy(order.id)} className="mt-2 text-xs underline text-gray-600">Copy</button>
                 </div>
-                <div className="rounded-none border border-white/20 bg-black/70 p-4">
-                  <div className="text-xs uppercase tracking-wide text-gray-400">Total</div>
+                <div className="rounded-none border border-gray-200 bg-white p-4">
+                  <div className="text-xs uppercase tracking-wide text-gray-500">Total</div>
                   <div className="mt-1 text-base font-semibold">₹{fmt(order?.total)}</div>
-                  <p className="text-xs text-gray-400">Paid: ₹{fmt(order?.paid)}</p>
+                  <p className="text-xs text-gray-600">Paid: ₹{fmt(order?.paid)}</p>
                 </div>
-                <div className="rounded-none border border-white/20 bg-black/70 p-4">
-                  <div className="text-xs uppercase tracking-wide text-gray-400">Status</div>
+                <div className="rounded-none border border-gray-200 bg-white p-4">
+                  <div className="text-xs uppercase tracking-wide text-gray-500">Status</div>
                   <div className="mt-1 text-base font-semibold">{order?.status}</div>
-                  {order?.dispatchBy && <p className="text-xs text-gray-400">Dispatch ETA: {new Date(order.dispatchBy).toLocaleString()}</p>}
+                  {order?.dispatchBy && <p className="text-xs text-gray-500">Dispatch ETA: {new Date(order.dispatchBy).toLocaleString()}</p>}
                 </div>
                 {order?.createdAt && (
-                  <div className="rounded-none border border-white/20 bg-black/70 p-4">
-                    <div className="text-xs uppercase tracking-wide text-gray-400">Placed</div>
-                    <div className="mt-1 text-sm text-white">{new Date(order.createdAt).toLocaleString()}</div>
+                  <div className="rounded-none border border-gray-200 bg-white p-4">
+                    <div className="text-xs uppercase tracking-wide text-gray-500">Placed</div>
+                    <div className="mt-1 text-sm text-black">{new Date(order.createdAt).toLocaleString()}</div>
                   </div>
                 )}
                 {order?.paidAt && (
-                  <div className="rounded-none border border-white/20 bg-black/70 p-4">
-                    <div className="text-xs uppercase tracking-wide text-gray-400">Paid At</div>
-                    <div className="mt-1 text-sm text-white">{new Date(order.paidAt).toLocaleString()}</div>
+                  <div className="rounded-none border border-gray-200 bg-white p-4">
+                    <div className="text-xs uppercase tracking-wide text-gray-500">Paid At</div>
+                    <div className="mt-1 text-sm text-black">{new Date(order.paidAt).toLocaleString()}</div>
                   </div>
                 )}
                 {order?.remaining > 0 && (
-                  <div className="rounded-none border border-white/20 bg-white/10 p-4">
-                    <div className="text-xs uppercase tracking-wide text-gray-200">Amount Due</div>
-                    <div className="mt-1 text-sm text-gray-100">₹{fmt(order.remaining)}</div>
-                    <p className="text-xs text-gray-300">Complete the remaining amount to finish your purchase.</p>
+                  <div className="rounded-none border border-gray-200 bg-white p-4">
+                    <div className="text-xs uppercase tracking-wide text-gray-600">Amount Due</div>
+                    <div className="mt-1 text-sm text-gray-700">₹{fmt(order.remaining)}</div>
+                    <p className="text-xs text-gray-600">Complete the remaining amount to finish your purchase.</p>
                   </div>
                 )}
                 {order?.product?.name && (
-                  <div className="rounded-none border border-white/20 bg-black/70 p-4 sm:col-span-3">
-                    <div className="text-xs uppercase tracking-wide text-gray-400">Product</div>
+                  <div className="rounded-none border border-gray-200 bg-white p-4 sm:col-span-3">
+                    <div className="text-xs uppercase tracking-wide text-gray-500">Product</div>
                     <div className="mt-1 font-medium">{order.product.name}</div>
                   </div>
                 )}
@@ -727,9 +791,9 @@ export default function UPICheckout() {
               {(receiptContactLines.length > 0 || receiptAddressLines.length > 0) && (
                 <div className="mt-6 grid gap-4 sm:grid-cols-2 text-sm">
                   {receiptContactLines.length > 0 && (
-                    <div className="rounded-none border border-white/20 bg-black/70 p-4">
-                      <h3 className="text-sm font-semibold text-white mb-2">Contact</h3>
-                      <ul className="space-y-1 text-gray-300">
+                    <div className="rounded-none border border-gray-200 bg-white p-4">
+                      <h3 className="text-sm font-semibold text-black mb-2">Contact</h3>
+                      <ul className="space-y-1 text-gray-700">
                         {receiptContactLines.map((line, idx) => (
                           <li key={idx}>{line}</li>
                         ))}
@@ -737,9 +801,9 @@ export default function UPICheckout() {
                     </div>
                   )}
                   {receiptAddressLines.length > 0 && (
-                    <div className="rounded-none border border-white/20 bg-black/70 p-4">
-                      <h3 className="text-sm font-semibold text-white mb-2">Shipping Address</h3>
-                      <ul className="space-y-1 text-gray-300">
+                    <div className="rounded-none border border-gray-200 bg-white p-4">
+                      <h3 className="text-sm font-semibold text-black mb-2">Shipping Address</h3>
+                      <ul className="space-y-1 text-gray-700">
                         {receiptAddressLines.map((line, idx) => (
                           <li key={idx}>{line}</li>
                         ))}
@@ -750,33 +814,41 @@ export default function UPICheckout() {
               )}
 
               <div className="mt-8">
-                <h3 className="text-sm font-semibold text-gray-200 uppercase tracking-wide">Our policies</h3>
+                <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Our policies</h3>
                 <ul className="mt-3 grid gap-3 sm:grid-cols-2">
                   {RECEIPT_POLICIES.map((p) => (
-                    <li key={p.title} className="rounded-none border border-white/20 bg-black/70 p-4">
-                      <div className="font-medium text-white">{p.title}</div>
-                      <div className="text-xs text-gray-400 mt-1">{p.subtitle}</div>
+                    <li key={p.title} className="rounded-none border border-gray-200 bg-white p-4">
+                      <div className="font-medium text-black">{p.title}</div>
+                      <div className="text-xs text-gray-600 mt-1">{p.subtitle}</div>
                     </li>
                   ))}
                 </ul>
               </div>
 
               <div className="mt-8 flex flex-wrap gap-3">
-                <button onClick={onContinue} className="px-5 py-2.5 rounded-none bg-white text-black text-sm font-semibold shadow-sm hover:-translate-y-0.5 transition">Continue</button>
+                <button onClick={onContinue} className="px-5 py-2.5 rounded-none bg-black text-white text-sm font-semibold shadow-sm hover:-translate-y-0.5 transition">Continue</button>
                 {order?.publicViewToken && (
-                  <a
-                    className="px-5 py-2.5 rounded-none border border-white text-sm font-semibold text-white hover:-translate-y-0.5 transition"
-                    href={`/order/${order.publicViewToken}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    View receipt
-                  </a>
+                  <>
+                    <a
+                      className="px-5 py-2.5 rounded-none border border-black text-sm font-semibold text-black hover:-translate-y-0.5 transition"
+                      href={`/order/${order.publicViewToken}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      View receipt
+                    </a>
+                    <button
+                      onClick={downloadReceipt}
+                      className="px-5 py-2.5 rounded-none border border-black text-sm font-semibold text-black hover:-translate-y-0.5 transition"
+                    >
+                      Download PDF
+                    </button>
+                  </>
                 )}
-                <a className="px-5 py-2.5 rounded-none border border-white text-sm font-semibold text-white hover:-translate-y-0.5 transition" href={whatsappLink} target="_blank" rel="noreferrer">WhatsApp support</a>
+                <a className="px-5 py-2.5 rounded-none border border-black text-sm font-semibold text-black hover:-translate-y-0.5 transition" href={whatsappLink} target="_blank" rel="noreferrer">WhatsApp support</a>
               </div>
 
-              <p className="mt-4 text-xs text-gray-400">Need help? Message us on WhatsApp at <strong className="text-gray-200">{SUPPORT_WHATSAPP}</strong> or reply to your confirmation email.</p>
+              <p className="mt-4 text-xs text-gray-600">Need help? Message us on WhatsApp at <strong className="text-gray-700">{SUPPORT_WHATSAPP}</strong> or reply to your confirmation email.</p>
             </div>
           </div>
         </div>
