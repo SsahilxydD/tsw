@@ -1,86 +1,110 @@
-// src/pages/Product.jsx
+import React, { useContext, useMemo, useState } from "react";
+import { useParams, Link } from "react-router-dom";
+import Title from "../components/Title";
+import ProductItem from "../components/ProductItem";
+import { ShopContext } from "../context/ShopContext";
 
-            </p>
+export default function Product() {
+  const { id: paramId } = useParams();
+  const { products, addToCart, navigate, currency = "₹" } = useContext(ShopContext);
+
+  const product = useMemo(() => {
+    if (!Array.isArray(products)) return null;
+    return (
+      products.find((p) => String(p._id) === String(paramId)) ||
+      products.find((p) => String(p.slug) === String(paramId)) ||
+      null
+    );
+  }, [products, paramId]);
+
+  const [added, setAdded] = useState(false);
+  const canSubmit = !!product;
+
+  const handleAdd = () => {
+    if (!product) return;
+    const pid = String(product._id ?? product.slug);
+    addToCart(pid, "std");
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1200);
+  };
+
+  if (!product) {
+    return (
+      <div className="border-t pt-10 px-4 max-w-6xl mx-auto">
+        <h1 className="text-xl font-semibold mb-4">Product</h1>
+        <p className="text-sm text-gray-600">This product is unavailable.</p>
+        <div className="mt-4">
+          <Link className="underline" to="/collection">
+            Back to collection
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const related = Array.isArray(products)
+    ? products.filter((p) => String(p._id) !== String(product._id)).slice(0, 12)
+    : [];
+
+  const imageSrc = Array.isArray(product.images)
+    ? product.images[0]
+    : Array.isArray(product.image)
+    ? product.image[0]
+    : product.image;
+
+  return (
+    <div className="border-t pt-10 px-4 max-w-6xl mx-auto">
+      <div className="mb-4">
+        <Title text1={product.name || product.title || "PRODUCT"} text2={""} />
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="rounded-none border bg-white p-4 flex items-center justify-center min-h-[300px]">
+          {imageSrc ? (
+            <img
+              src={imageSrc}
+              alt={product.name || product.title || "Product"}
+              className="w-72 h-72 object-contain"
+            />
           ) : (
-            <p className="mt-2 text-xl font-semibold">
-              {currency}
-              {Number(product.price).toLocaleString()}
-            </p>
+            <div className="text-gray-500">No image</div>
           )}
+        </div>
 
-          {/* Sizes (always show full list; strike-out unavailable) */}
-          {masterSizes.length > 0 && (
-            <div className="mt-5">
-              <p className="text-sm font-medium mb-2">Select Size</p>
-              {/* Single-line, horizontally scrollable size boxes (adjoined) */}
-              <div className="flex overflow-x-auto whitespace-nowrap">
-                {masterSizes.map((sz, i) => {
-                  const SZ = norm(sz);
-                  const available = availableSet.size === 0 ? true : availableSet.has(SZ);
-                  const active = selectedSize === SZ;
-                  const label = SZ.replace(/^UK-/, "");
-                  const lastIdx = masterSizes.length - 1;
-                  const roundClass = i === 0
-                    ? "rounded-l-sm"
-                    : (i === lastIdx ? "rounded-r-sm" : "rounded-none");
-                  return (
-                    <button
-                      key={SZ}
-                      type="button"
-                      onClick={() => available && setSelectedSize(SZ)}
-                      disabled={!available}
-                      className={`h-9 w-9 text-xs border grid place-content-center shrink-0 ${roundClass} ${i>0? 'ml-[-1px]': ''}
-                        ${active ? "bg-black text-white border-black" : "bg-white hover:bg-gray-50"}
-                        ${!available ? "line-through opacity-40 cursor-not-allowed bg-gray-100 hover:bg-gray-100" : ""}`}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
-              {requiresSize && !selectedSize && (
-                <p className="text-xs text-amber-600 mt-2">
-                  Please select a size before ordering.
-                </p>
-              )}
-            </div>
-          )}
+        <div className="rounded-none border bg-white p-4">
+          <h2 className="text-xl font-semibold">{product.name || product.title}</h2>
+          <p className="mt-2 text-xl font-semibold">
+            {currency} {Number(product.price).toLocaleString()}
+          </p>
 
-          
-
-          {/* CTA (replica style) */}
           <div className="mt-6 space-y-3">
-            {/* Add to cart: flat rectangle with thin black border */}
             <button
               onClick={handleAdd}
               disabled={!canSubmit}
-              className={`w-full h-14 px-5 rounded-none border border-black bg-white text-black font-semibold pressable flex items-center justify-center text-[15px] sm:text-base tracking-wide
-                ${!canSubmit ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`w-full h-14 px-5 rounded-none border border-black bg-white text-black font-semibold pressable flex items-center justify-center text-[15px] sm:text-base tracking-wide ${!canSubmit ? "opacity-50 cursor-not-allowed" : ""}`}
             >
-              {blocked ? 'Unavailable' : (added ? 'Added to cart' : 'Add to cart')}
+              {added ? "Added to cart" : "Add to cart"}
             </button>
 
-            {/* Buy Now: flat solid rectangle (no radius) */}
             <button
               type="button"
               disabled={!canSubmit}
               onClick={() => {
                 if (!canSubmit) return;
-                const sizeToSend = hasSizes ? selectedSize : 'std';
                 const pid = String(product._id ?? product.slug);
-                addToCart(pid, sizeToSend);
-                navigate('/address');
+                addToCart(pid, "std");
+                navigate("/address");
               }}
-              className={`w-full h-14 px-5 rounded-none text-white bg-black flex items-center justify-center pressable active:scale-[0.99]
-                ${!canSubmit ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-95'}`}
-              <span className="text-[15px] sm:text-base font-semibold tracking-wide">Buy Now</span></button>
+              className={`w-full h-14 px-5 rounded-none text-white bg-black flex items-center justify-center pressable active:scale-[0.99] ${!canSubmit ? "opacity-50 cursor-not-allowed" : "hover:opacity-95"}`}
+            >
+              <span className="text-[15px] sm:text-base font-semibold tracking-wide">Buy Now</span>
+            </button>
           </div>
 
-          {/* Meta */}
           <div className="mt-6 space-y-1 text-sm text-gray-600">
             {product.category && (
               <p>
-                Category:{" "}
+                Category: {" "}
                 <span className="capitalize">
                   {String(product.category).replaceAll("-", " ")}
                 </span>
@@ -90,9 +114,8 @@
         </div>
       </div>
 
-      {/* Related products */}
       <div className="mt-12">
-        <div className="flex items-end justify-center mb-4">
+        <div className="flex items-end justify-between mb-4">
           <Title text1="RELATED" text2="PRODUCTS" />
           <Link
             to={product.category ? `/category/${String(product.category).toLowerCase()}` : "/collection"}
@@ -101,20 +124,15 @@
             View all
           </Link>
         </div>
-
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 gap-y-6">
-          {related.map((item, index) => (
+          {related.map((item, idx) => (
             <ProductItem
               key={String(item._id ?? item.slug)}
               id={String(item._id ?? item.slug)}
-              image={
-                Array.isArray(item.image)
-                  ? item.image[0]
-                  : (Array.isArray(item.images) ? item.images[0] : item.image)
-              }
+              image={Array.isArray(item.images) ? item.images[0] : (Array.isArray(item.image) ? item.image[0] : item.image)}
               name={item.name || item.title}
               price={item.price}
-              i={index}
+              i={idx}
             />
           ))}
         </div>
@@ -122,8 +140,4 @@
     </div>
   );
 }
-
-
-
-
 
