@@ -170,6 +170,10 @@ const ShopContextProvider = (props) => {
 
           // Pricing rule: add 450 to all non-Discounted items; keep Discounted at base price
           let price = Math.max(0, basePrice + (/\bdiscounted\b/i.test(String(originalCategory || '')) ? 0 : 450));
+          // Override: all Discounted Footwear priced at 2800 as requested
+          if (isDiscounted && isShoe) {
+            price = 2800;
+          }
 
           // Derive Discounted subCategory using hardened Topwear link checks
           // If in Discounted, override subCategory based on source URL and heuristics

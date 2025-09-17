@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Title from '../components/Title';
+import { isFootwearProduct } from '../utils/size';
 
 const fmt = (p) => (Math.max(0, Number(p) || 0) / 100).toFixed(2);
 
@@ -129,6 +130,24 @@ export default function UPICheckout() {
         const r = await fetch('/data/products.json', { cache: 'no-store' });
         const j = await r.json();
         list = Array.isArray(j) ? j : (Array.isArray(j?.products) ? j.products : []);
+        // Apply pricing override to match storefront logic: Discounted Footwear -> 2800
+        if (Array.isArray(list)) {
+          list = list.map((p) => {
+            try {
+              const isDisc = /\bdiscounted\b/i.test(String(p?.category || ''));
+              if (isDisc && isFootwearProduct({
+                category: p?.category,
+                categoryRaw: p?.category,
+                subCategory: p?.subCategory,
+                sizes: p?.sizes,
+                name: p?.name || p?.title,
+              })) {
+                return { ...p, price: 2800 };
+              }
+            } catch {}
+            return p;
+          });
+        }
       } catch {}
       const byId = new Map();
       for (const p of Array.isArray(list) ? list : []) {
