@@ -640,7 +640,7 @@ export default function UPICheckout() {
     }
   };
 
-  const downloadReceipt = () => {
+  const downloadReceiptLegacy = () => {
     try {
       if (!order || order.status !== 'PAID') return;
       const fmtRs = (p) => `₹${(Math.max(0, Number(p) || 0) / 100).toFixed(2)}`;
