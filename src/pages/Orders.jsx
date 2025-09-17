@@ -11,15 +11,6 @@ export default function Orders() {
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    const merge = (a, b) => {
-      const map = new Map();
-      for (const it of [...a, ...b]) {
-        if (!it) continue;
-        const key = it.token || it.url || it.id;
-        if (!map.has(key)) map.set(key, it);
-      }
-      return Array.from(map.values());
-    };
     const fromLocal = () => {
       try {
         const raw = localStorage.getItem('orders.v1');
@@ -27,36 +18,10 @@ export default function Orders() {
         return Array.isArray(arr) ? arr : [];
       } catch { return []; }
     };
-    const init = async () => {
-      setLoading(true);
-      const localArr = fromLocal();
-      try {
-        const r = await fetch('/public/my-orders', { cache: 'no-store', credentials: 'include' });
-        let serverArr = [];
-        if (r.ok) {
-          const j = await r.json();
-          serverArr = Array.isArray(j.orders) ? j.orders.map(o => ({
-            id: o.id,
-            token: o.publicViewToken || o.token,
-            downloadUrl: (o.publicViewToken || o.token) ? `/order/${o.publicViewToken || o.token}/receipt.pdf` : null,
-            amountPaise: o.totalAmountPaise,
-            paidAt: o.paidAt,
-            createdAt: o.createdAt,
-            status: o.status,
-            lineItems: Array.isArray(o.lineItems) ? o.lineItems : [],
-          })) : [];
-        }
-        const combined = merge(serverArr, localArr)
-          .sort((a, b) => String(b.paidAt || '').localeCompare(String(a.paidAt || '')));
-        setItems(combined);
-      } catch {
-        const fallback = localArr.sort((a, b) => String(b.paidAt || '').localeCompare(String(a.paidAt || '')));
-        setItems(fallback);
-      } finally {
-        setLoading(false);
-      }
-    };
-    init();
+    setLoading(true);
+    const localArr = fromLocal().sort((a, b) => String(b.paidAt || '').localeCompare(String(a.paidAt || '')));
+    setItems(localArr);
+    setLoading(false);
   }, []);
 
   return (
@@ -91,12 +56,7 @@ export default function Orders() {
                 </div>
                 <div className='flex items-center gap-2 sm:gap-3'>
                   <div className='text-sm font-semibold'>{fmtRs(it.amountPaise)}</div>
-                  {it.token && (
-                    <>
-                      <a href={`/order/${it.token}`} className='border px-3 py-1.5 text-sm rounded-sm hover:bg-gray-50'>View details</a>
-                      <a href={`/order/${it.token}/receipt.pdf`} target='_blank' rel='noopener' className='border px-3 py-1.5 text-sm rounded-sm hover:bg-gray-50'>View PDF</a>
-                    </>
-                  )}
+                  {/* Server-based receipt links removed in frontend-only mode */}
                 </div>
               </div>
             );
