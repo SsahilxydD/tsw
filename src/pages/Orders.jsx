@@ -8,18 +8,53 @@ function fmtRs(paise, currency = '₹') {
 
 export default function Orders() {
   const [items, setItems] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    try {
-      const raw = localStorage.getItem('orders.v1');
-      const arr = raw ? JSON.parse(raw) : [];
-      if (Array.isArray(arr)) {
-        const sorted = arr.slice().sort((a, b) => String(b.paidAt || '').localeCompare(String(a.paidAt || '')));
-        setItems(sorted);
+    const merge = (a, b) => {
+      const map = new Map();
+      for (const it of [...a, ...b]) {
+        if (!it) continue;
+        const key = it.token || it.url || it.id;
+        if (!map.has(key)) map.set(key, it);
       }
-    } catch {
-      setItems([]);
-    }
+      return Array.from(map.values());
+    };
+    const fromLocal = () => {
+      try {
+        const raw = localStorage.getItem('orders.v1');
+        const arr = raw ? JSON.parse(raw) : [];
+        return Array.isArray(arr) ? arr : [];
+      } catch { return []; }
+    };
+    const init = async () => {
+      setLoading(true);
+      const localArr = fromLocal();
+      try {
+        const r = await fetch('/public/my-orders', { cache: 'no-store', credentials: 'include' });
+        let serverArr = [];
+        if (r.ok) {
+          const j = await r.json();
+          serverArr = Array.isArray(j.orders) ? j.orders.map(o => ({
+            id: o.id,
+            token: o.token,
+            url: o.receiptUrl,
+            amountPaise: o.totalAmountPaise,
+            paidAt: o.paidAt,
+            createdAt: o.createdAt,
+          })) : [];
+        }
+        const combined = merge(serverArr, localArr)
+          .sort((a, b) => String(b.paidAt || '').localeCompare(String(a.paidAt || '')));
+        setItems(combined);
+      } catch {
+        const fallback = localArr.sort((a, b) => String(b.paidAt || '').localeCompare(String(a.paidAt || '')));
+        setItems(fallback);
+      } finally {
+        setLoading(false);
+      }
+    };
+    init();
   }, []);
 
   return (
@@ -28,11 +63,13 @@ export default function Orders() {
         <Title text1={'MY'} text2={'ORDERS'} />
       </div>
 
-      {items.length === 0 && (
+      {loading && <p className='mt-6 text-gray-600'>Loading your orders…</p>}
+
+      {!loading && items.length === 0 && (
         <p className='mt-6 text-gray-600'>No paid orders yet. Your receipts will appear here.</p>
       )}
 
-      {items.length > 0 && (
+      {!loading && items.length > 0 && (
         <div className='mt-4 divide-y'>
           {items.map((it, idx) => (
             <div key={idx} className='py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>

@@ -481,6 +481,21 @@ app.post('/orders', async (req, res) => {
       path: '/',
       maxAge: 7 * 24 * 3600 * 1000
     });
+    // Track this device's orders for the public /public/my-orders endpoint (csv of receipt tokens)
+    try {
+      const cookies = parseCookies(req);
+      const existing = String(cookies['order_tokens'] || '').trim();
+      const list = existing ? existing.split(',').map(s => s.trim()).filter(Boolean) : [];
+      if (!list.includes(order.publicViewToken)) list.unshift(order.publicViewToken);
+      const keep = list.slice(0, 50);
+      appendCookie(res, 'order_tokens', keep.join(','), {
+        httpOnly: true,
+        sameSite: 'Lax',
+        secure: isProduction,
+        path: '/',
+        maxAgeMs: 365 * 24 * 3600 * 1000,
+      });
+    } catch {}
 
     const expiresInMs = Math.max(0, new Date(expiresAt).getTime() - new Date(now).getTime());
       res.json({
@@ -506,6 +521,63 @@ app.get('/orders', (req, res) => {
   const indexFile = path.join(DIST_DIR, 'index.html');
   if (fs.existsSync(indexFile)) return res.sendFile(indexFile);
   return res.status(200).send('Orders page');
+});
+
+// Public: list this device's paid orders using HttpOnly cookie set at checkout
+app.get('/public/my-orders', (req, res) => {
+  try {
+    const cookies = parseCookies(req);
+    const existing = String(cookies['order_tokens'] || '').trim();
+    const tokens = existing ? existing.split(',').map(s => s.trim()).filter(Boolean) : [];
+    if (!tokens.length) return res.json({ orders: [] });
+    const orders = loadOrders();
+    const byToken = new Map(orders.map(o => [o.publicViewToken, o]));
+    const out = [];
+    for (const t of tokens) {
+      const o = byToken.get(t);
+      if (!o) continue;
+      if (ensureFreshStatus(o)) saveOrders(orders);
+      if (o.status !== 'PAID') continue; // only show paid orders
+      out.push({
+        id: o.id,
+        totalAmountPaise: o.totalAmountPaise,
+        paidAt: o.paidAt || null,
+        createdAt: o.createdAt || null,
+        receiptUrl: `/order/${o.publicViewToken}`,
+        token: o.publicViewToken,
+      });
+    }
+    return res.json({ orders: out });
+  } catch (e) {
+    return res.status(200).json({ orders: [] });
+  }
+});
+
+// Public: allow client to link a receipt token to this device after payment
+app.post('/api/link-order', (req, res) => {
+  try {
+    const token = String(req.body?.token || '').trim();
+    if (!token) return res.status(400).json({ error: 'Missing token' });
+    const orders = loadOrders();
+    const o = orders.find(x => x.publicViewToken === token);
+    if (!o) return res.status(404).json({ error: 'Not found' });
+    // append to cookie list
+    const cookies = parseCookies(req);
+    const existing = String(cookies['order_tokens'] || '').trim();
+    const list = existing ? existing.split(',').map(s => s.trim()).filter(Boolean) : [];
+    if (!list.includes(token)) list.unshift(token);
+    const keep = list.slice(0, 50);
+    appendCookie(res, 'order_tokens', keep.join(','), {
+      httpOnly: true,
+      sameSite: 'Lax',
+      secure: isProduction,
+      path: '/',
+      maxAgeMs: 365 * 24 * 3600 * 1000,
+    });
+    return res.json({ ok: true });
+  } catch {
+    return res.json({ ok: true });
+  }
 });
 
 // ===== Admin API moved under /admin/api/* so /orders is gone =====

@@ -222,6 +222,7 @@ export default function UPICheckout() {
           publicViewToken: o.publicViewToken,
         };
         persistPaidOrder(summary);
+        linkOrderToDevice(o.publicViewToken);
       }
     } catch {
       // ignore transient errors
@@ -294,6 +295,7 @@ export default function UPICheckout() {
               publicViewToken: o.publicViewToken,
             };
             persistPaidOrder(summary);
+            linkOrderToDevice(o.publicViewToken);
             setLoading(false);
             return;
           }
@@ -404,6 +406,18 @@ export default function UPICheckout() {
         if (arr.length > 50) arr = arr.slice(0, 50);
         try { localStorage.setItem(key, JSON.stringify(arr)); } catch {}
       }
+    } catch {}
+  };
+
+  const linkOrderToDevice = async (token) => {
+    try {
+      if (!token) return;
+      await fetch('/api/link-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ token }),
+      }).catch(() => {});
     } catch {}
   };
 

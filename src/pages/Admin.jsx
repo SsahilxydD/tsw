@@ -194,6 +194,11 @@ export default function Admin() {
                           QR
                         </a>
                       )}
+                      {o.status === 'PAID' && o.publicViewToken && (
+                        <a className="px-2 py-1 border rounded text-xs" href={`/order/${o.publicViewToken}`} target="_blank" rel="noreferrer" onClick={(e)=>e.stopPropagation()}>
+                          Receipt
+                        </a>
+                      )}
                     </td>
                   </tr>
                   {openId === o.id && (
