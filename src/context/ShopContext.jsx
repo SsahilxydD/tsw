@@ -170,9 +170,19 @@ const ShopContextProvider = (props) => {
 
           // Pricing rule: add 450 to all non-Discounted items; keep Discounted at base price
           let price = Math.max(0, basePrice + (/\bdiscounted\b/i.test(String(originalCategory || '')) ? 0 : 450));
-          // Override: all Discounted Footwear priced at 2800 as requested
+          // Override: Discounted Footwear => default 2800; selected names => 900
           if (isDiscounted && isShoe) {
-            price = 1800;
+            const t = lcTitle;
+            const special900 = [
+              /\buptempo\b.*\bslide(r)?\b/i,        // Nikee Air Uptempo Slider
+              /\boffcourt\b.*\badjust\b.*\bslide\b/i, // Nike Offcourt Adjust Slide
+              /\bbirkenstock\b/i,                    // Birkenstock
+              /\bbrikenstock\b/i,                    // Brikenstock (typo)
+              /\bcrocs?\b/i,                          // croc/crocs
+              /\bcroccs\b/i,                          // croccs (typo)
+              /\badidas\b.*\bslides?\b|\bslides?\b.*\badidas\b/i, // Adidas Slide
+            ].some((re) => re.test(t));
+            price = special900 ? 900 : 2800;
           }
 
           // Derive Discounted subCategory using hardened Topwear link checks

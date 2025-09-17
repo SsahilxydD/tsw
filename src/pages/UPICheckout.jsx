@@ -130,7 +130,8 @@ export default function UPICheckout() {
         const r = await fetch('/data/products.json', { cache: 'no-store' });
         const j = await r.json();
         list = Array.isArray(j) ? j : (Array.isArray(j?.products) ? j.products : []);
-        // Apply pricing override to match storefront logic: Discounted Footwear -> 2800
+        // Apply pricing override to match storefront logic:
+        // Discounted Footwear -> 2800, with specific names at 900
         if (Array.isArray(list)) {
           list = list.map((p) => {
             try {
@@ -142,7 +143,18 @@ export default function UPICheckout() {
                 sizes: p?.sizes,
                 name: p?.name || p?.title,
               })) {
-                return { ...p, price: 2800 };
+                const title = String(p?.name || p?.title || p?.slug_name || '');
+                const t = title.toLowerCase();
+                const special900 = [
+                  /\buptempo\b.*\bslide(r)?\b/i,        // Nikee Air Uptempo Slider
+                  /\boffcourt\b.*\badjust\b.*\bslide\b/i, // Nike Offcourt Adjust Slide
+                  /\bbirkenstock\b/i,
+                  /\bbrikenstock\b/i,
+                  /\bcrocs?\b/i,
+                  /\bcroccs\b/i,
+                  /\badidas\b.*\bslides?\b|\bslides?\b.*\badidas\b/i,
+                ].some((re) => re.test(t));
+                return { ...p, price: special900 ? 900 : 2800 };
               }
             } catch {}
             return p;
