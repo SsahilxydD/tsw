@@ -283,6 +283,28 @@ const ShopContextProvider = (props) => {
     try { localStorage.setItem('cart.v1', JSON.stringify(cartItems)); } catch {}
   }, [cartItems]);
 
+  // Listen for external cart updates (e.g., after payment confirmation)
+  useEffect(() => {
+    const reload = () => {
+      try {
+        const raw = localStorage.getItem('cart.v1');
+        const parsed = raw ? JSON.parse(raw) : {};
+        setCartItems(parsed || {});
+      } catch {}
+    };
+    const onStorage = (e) => {
+      if (!e || e.key !== 'cart.v1') return;
+      reload();
+    };
+    const onCustom = () => reload();
+    window.addEventListener('storage', onStorage);
+    window.addEventListener('cart:updated', onCustom);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('cart:updated', onCustom);
+    };
+  }, []);
+
   const addToCart = async (itemId, size) => {
     if (!size) { notify('Select product size'); return; }
     let cartData = structuredClone(cartItems);

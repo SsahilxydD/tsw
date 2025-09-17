@@ -179,7 +179,7 @@ export default function UPICheckout() {
   }
 
   async function fetchOrder(id) {
-    const r = await fetch(`/orders/${id}`, { cache: 'no-store' });
+    const r = await fetch(`/orders/${id}?t=${Date.now()}`, { cache: 'no-store' });
     if (!r.ok) throw new Error('Order not found');
     return r.json(); // authoritative server fields
   }
@@ -219,6 +219,16 @@ export default function UPICheckout() {
       }
       if (isPaidStatus(o.status)) {
         setShowSuccess(true);
+        // Clear purchased items from local cart exactly once per order
+        try {
+          const clearedKey = 'cart.cleared.orderId';
+          const already = localStorage.getItem(clearedKey);
+          if (already !== o.id) {
+            clearPurchasedFromCart(o);
+            localStorage.setItem(clearedKey, o.id);
+            try { window.dispatchEvent(new CustomEvent('cart:updated')); } catch {}
+          }
+        } catch {}
         // Persist paid order receipt link for /orders page
         const summary = {
           id: o.id,
@@ -234,6 +244,20 @@ export default function UPICheckout() {
     } catch {
       // ignore transient errors
     }
+  }
+
+  function clearPurchasedFromCart(o) {
+    try {
+      const productId = o?.product?.id || o?.product?.productId || null;
+      if (!productId) return;
+      const raw = localStorage.getItem('cart.v1');
+      const data = raw ? JSON.parse(raw) : {};
+      if (!data || typeof data !== 'object') return;
+      if (data[productId]) {
+        delete data[productId];
+        localStorage.setItem('cart.v1', JSON.stringify(data));
+      }
+    } catch {}
   }
 
   async function initOrder() {
@@ -329,25 +353,30 @@ export default function UPICheckout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const seenPaidRef = useRef(false);
+  const visRef = useRef(document.visibilityState !== 'hidden');
   useEffect(() => {
     if (!order?.id) return;
-    // Stop if we already have a token or terminal status
-    if (order?.publicViewToken || isTerminalStatus(order?.status)) return;
-    pollAttemptsRef.current = 0;
+    if (isTerminalStatus(order?.status) && seenPaidRef.current) return; // stop after confirming PAID once
     const tick = async () => {
-      pollAttemptsRef.current += 1;
       const o = await refresh();
-      const tok = o?.publicViewToken || order?.publicViewToken;
-      const terminal = isTerminalStatus(o?.status || order?.status);
-      if (tok || terminal || pollAttemptsRef.current >= 30) {
-        try { if (timerRef.current) clearInterval(timerRef.current); } catch {}
+      const nowTerminal = isTerminalStatus(o?.status || order?.status);
+      if (isPaidStatus(o?.status || order?.status)) seenPaidRef.current = true;
+      if (nowTerminal && seenPaidRef.current) {
+        if (timerRef.current) clearInterval(timerRef.current);
       }
     };
+    const start = () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      const delay = visRef.current ? 2000 : 8000;
+      timerRef.current = setInterval(tick, delay);
+    };
     tick();
-    timerRef.current = setInterval(tick, 2000);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [order?.id, order?.publicViewToken, order?.status]);
+    start();
+    const onVis = () => { visRef.current = document.visibilityState !== 'hidden'; start(); };
+    window.addEventListener('visibilitychange', onVis);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); window.removeEventListener('visibilitychange', onVis); };
+  }, [order?.id, order?.status]);
 
   useEffect(() => {
     try { const saved = localStorage.getItem('user_upi_id'); if (saved) setUpiId(saved); } catch {}
@@ -631,6 +660,9 @@ export default function UPICheckout() {
             {deadlineTs ? mmss(timeLeft) : '—:—'}
           </span>
         </div>
+      )}
+      {!!order && !expired && !isTerminalStatus(order?.status) && (
+        <div className="text-xs text-gray-600 mb-2">Confirming payment…</div>
       )}
 
       {expired && (

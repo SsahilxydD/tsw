@@ -636,6 +636,8 @@ app.get('/orders', (req, res) => {
 
 // Public: list this device's paid orders using HttpOnly cookie set at checkout
 app.get('/public/my-orders', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
   try {
     const cookies = parseCookies(req);
     const existing = String(cookies['order_tokens'] || '').trim();
@@ -654,6 +656,7 @@ app.get('/public/my-orders', (req, res) => {
         totalAmountPaise: o.totalAmountPaise,
         paidAt: o.paidAt || null,
         createdAt: o.createdAt || null,
+        updatedAt: o.updatedAt || o.createdAt || null,
         receiptUrl: `/order/${o.publicViewToken}`,
         token: o.publicViewToken,
       });
@@ -1045,6 +1048,7 @@ app.post('/webhooks/sms', smsLimiter, async (req, res) => {
       matchedOrder.upiLink = matchedOrder.currentUpiLink; // legacy sync
       matchedOrder.qrPath = matchedOrder.currentQr; // legacy sync
     }
+    matchedOrder.updatedAt = nowIso();
 
     // If fully paid, generate receipt
     if (matchedOrder.status === 'PAID') {
@@ -1075,6 +1079,8 @@ app.post('/webhooks/sms', smsLimiter, async (req, res) => {
 // --- Customer-safe endpoints ---
 // Public: get minimal order details by numeric order id
 app.get('/orders/:id', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
   const id = String(req.params.id || '');
   const orders = loadOrders();
   const order = orders.find(o => String(o.id) === id);
@@ -1094,6 +1100,7 @@ app.get('/orders/:id', (req, res) => {
     ...safeOrder,
     expiresAt: order.expiresAt || null,
     serverNow: serverNowVal,
+    updatedAt: order.updatedAt || order.createdAt || serverNowVal,
     expiresInMs,
   });
 });
@@ -1207,6 +1214,7 @@ app.get('/order/:token', (req, res) => {
     <a class="btn btn-outline" href="/">Back to store</a>
   </div>
   <div class="note">Need help? WhatsApp us at <strong>${escapeHtml(SUPPORT_WHATSAPP)}</strong> or reply to your order confirmation email. Policies above mirror what you saw on our home page.</div>
+<script>(function(){try{var oid='${escapeHtml(s.id)}';var pid='${escapeHtml(s.product?.id || '')}';if(!oid)return;var key='cart.cleared.orderId';var done=localStorage.getItem(key);if(done!==oid&&pid){var raw=localStorage.getItem('cart.v1');var data=raw?JSON.parse(raw):{};if(data&&data[pid]){delete data[pid];localStorage.setItem('cart.v1',JSON.stringify(data));localStorage.setItem(key,oid);try{window.dispatchEvent(new CustomEvent('cart:updated'));}catch(e){}}}}catch(e){}})();</script>
 </div></div></body></html>`);
 });
 
