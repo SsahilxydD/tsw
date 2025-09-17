@@ -168,8 +168,8 @@ const ShopContextProvider = (props) => {
           const isDiscounted = /\bdiscounted\b/i.test(lcRaw);
           const isShoe = isFootwearProduct({ category: originalCategory, categoryRaw: originalCategory, sizes: item?.sizes });
 
-          // Use base price from data; specific overrides may apply below
-          let price = Math.max(0, basePrice);
+          // Pricing rule: add 450 to all non-Discounted items; keep Discounted at base price
+          let price = Math.max(0, basePrice + (/\bdiscounted\b/i.test(String(originalCategory || '')) ? 0 : 450));
 
           // Derive Discounted subCategory using hardened Topwear link checks
           // If in Discounted, override subCategory based on source URL and heuristics
@@ -209,13 +209,7 @@ const ShopContextProvider = (props) => {
             }
           }
 
-          // Sales (Discounted) overrides
-          if (isDiscounted) {
-            const subLower = String(derivedSub || '').toLowerCase();
-            if (subLower === 'footwear' || (!subLower && isShoe)) {
-              price = 1850;
-            }
-          }
+          // No special overrides for Discounted: use base price there.
           // ---------------------------------------------------------------------------------------------
 
           const mappedItem = {
