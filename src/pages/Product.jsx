@@ -33,6 +33,15 @@ export default function Product() {
   };
 
   if (!product) {
+    const isLoading = !Array.isArray(products) || products.length === 0;
+    if (isLoading) {
+      return (
+        <div className="border-t pt-10 px-4 max-w-6xl mx-auto">
+          <h1 className="text-xl font-semibold mb-4">Product</h1>
+          <p className="text-sm text-gray-600">Loading product…</p>
+        </div>
+      );
+    }
     return (
       <div className="border-t pt-10 px-4 max-w-6xl mx-auto">
         <h1 className="text-xl font-semibold mb-4">Product</h1>
@@ -198,3 +207,4 @@ export default function Product() {
     </div>
   );
 }
+

@@ -127,9 +127,19 @@ export default function UPICheckout() {
       // Load catalog the same way ShopContext does (/data/products.json)
       let list = [];
       try {
-        const r = await fetch('/data/products.json', { cache: 'no-store' });
-        const j = await r.json();
-        list = Array.isArray(j) ? j : (Array.isArray(j?.products) ? j.products : []);
+        // Try both root and /data locations like the storefront
+        const endpoints = ['/products.json', '/data/products.json'];
+        let loaded = null;
+        for (const url of endpoints) {
+          try {
+            const r = await fetch(url, { cache: 'no-store' });
+            if (!r.ok) continue;
+            const j = await r.json();
+            loaded = Array.isArray(j) ? j : (Array.isArray(j?.products) ? j.products : []);
+            if (loaded) break;
+          } catch {}
+        }
+        list = Array.isArray(loaded) ? loaded : [];
         // Apply pricing override to match storefront logic:
         // Discounted Footwear -> 2800, with specific names at 900
         if (Array.isArray(list)) {

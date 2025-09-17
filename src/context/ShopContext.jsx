@@ -167,6 +167,7 @@ const ShopContextProvider = (props) => {
         setLoadingProducts(true);
         // Try multiple sources to support both root and /data locations
         const sources = [
+          { url: "/products.json", basePrefix: "" },
           { url: "/data/products.json", basePrefix: "/data" },
         ];
         let raw = null;
