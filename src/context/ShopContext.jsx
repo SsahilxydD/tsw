@@ -182,7 +182,7 @@ const ShopContextProvider = (props) => {
               /\bcroccs\b/i,                          // croccs (typo)
               /\badidas\b.*\bslides?\b|\bslides?\b.*\badidas\b/i, // Adidas Slide
             ].some((re) => re.test(t));
-            price = special900 ? 900 : 2800;
+            price = special900 ? 900 : 1800;
           }
 
           // Derive Discounted subCategory using hardened Topwear link checks
