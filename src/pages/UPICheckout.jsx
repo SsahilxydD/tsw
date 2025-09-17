@@ -213,6 +213,15 @@ export default function UPICheckout() {
       }
       if (o.status === 'PAID') {
         setShowSuccess(true);
+        // Persist paid order receipt link for /orders page
+        const summary = {
+          id: o.id,
+          total: o.totalAmountPaise,
+          paidAt: o.paidAt,
+          createdAt: o.createdAt,
+          publicViewToken: o.publicViewToken,
+        };
+        persistPaidOrder(summary);
       }
     } catch {
       // ignore transient errors
@@ -276,6 +285,15 @@ export default function UPICheckout() {
             writeOrderId(orderKey, o.id);
             setOidInUrl(o.id);
             setShowSuccess(true);
+            // Persist immediately if we landed on a PAID order
+            const summary = {
+              id: o.id,
+              total: o.totalAmountPaise,
+              paidAt: o.paidAt,
+              createdAt: o.createdAt,
+              publicViewToken: o.publicViewToken,
+            };
+            persistPaidOrder(summary);
             setLoading(false);
             return;
           }
@@ -360,6 +378,33 @@ export default function UPICheckout() {
     setOrder(null);
     removeOrderId(orderKey);
     // Keep `oid` in URL so refresh honors the expired state. It will be replaced on next create.
+  };
+
+  // Persist a minimal record of a PAID order in localStorage so the user can revisit it from /orders
+  const persistPaidOrder = (summary) => {
+    try {
+      if (!summary) return;
+      const token = summary.publicViewToken || null;
+      if (!token) return; // only persist if a public receipt exists
+      const key = 'orders.v1';
+      const url = `/order/${token}`;
+      const entry = {
+        id: summary.id,
+        token,
+        url,
+        amountPaise: summary.total,
+        paidAt: summary.paidAt || new Date().toISOString(),
+        createdAt: summary.createdAt || null,
+      };
+      let arr = [];
+      try { const raw = localStorage.getItem(key); if (raw) arr = JSON.parse(raw); } catch {}
+      if (!Array.isArray(arr)) arr = [];
+      if (!arr.some((e) => e && e.token === token)) {
+        arr.unshift(entry);
+        if (arr.length > 50) arr = arr.slice(0, 50);
+        try { localStorage.setItem(key, JSON.stringify(arr)); } catch {}
+      }
+    } catch {}
   };
 
   const onContinue = () => {
@@ -704,6 +749,16 @@ export default function UPICheckout() {
 
               <div className="mt-8 flex flex-wrap gap-3">
                 <button onClick={onContinue} className="px-5 py-2.5 rounded-none bg-white text-black text-sm font-semibold shadow-sm hover:-translate-y-0.5 transition">Continue</button>
+                {order?.publicViewToken && (
+                  <a
+                    className="px-5 py-2.5 rounded-none border border-white text-sm font-semibold text-white hover:-translate-y-0.5 transition"
+                    href={`/order/${order.publicViewToken}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    View receipt
+                  </a>
+                )}
                 <a className="px-5 py-2.5 rounded-none border border-white text-sm font-semibold text-white hover:-translate-y-0.5 transition" href={whatsappLink} target="_blank" rel="noreferrer">WhatsApp support</a>
               </div>
 
