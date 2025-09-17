@@ -406,6 +406,20 @@ export default function UPICheckout() {
     try { const saved = localStorage.getItem('user_upi_id'); if (saved) setUpiId(saved); } catch {}
   }, []);
 
+  // Fetch UPI ID from backend for copy convenience
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch('/public/upi-id', { cache: 'no-store' });
+        if (!r.ok) return;
+        const j = await r.json();
+        if (!cancelled && j && j.upiId) setUpiId(String(j.upiId));
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   // Cross-tab hardening: if another tab clears this order id, mark expired here too
   useEffect(() => {
     const onStorage = (e) => {
@@ -708,69 +722,15 @@ export default function UPICheckout() {
 
           <div className="rounded-none border bg-white p-4 sm:col-span-2 shadow-sm">
             <div>
-              <p className="font-semibold mb-2">Pay via</p>
-              <div className="mb-3 text-xs p-2 rounded-none border bg-black text-white">
-                Tip: We copied your Order ID to the clipboard. In your UPI app, paste it into the “Add note/message” field before paying so we can auto-verify instantly.
-                {copiedOrderId && <span className="ml-2 text-[11px] text-white">Order ID copied</span>}
-              </div>
-              <div className="w-full flex items-center justify-between border rounded-none px-3 py-3 bg-white shadow-sm">
-                <span className="flex items-center gap-2">
-                  <span className="inline-grid h-5 w-5 place-content-center rounded-none border text-gray-500">₹</span>
-                  <span className="font-medium">UPI payment</span>
-                </span>
-                <span className="ml-auto mr-2 text-sm font-semibold">₹{fmt(order.total)}</span>
-                <span aria-hidden className="text-gray-500 transition rotate-180">▾</span>
-              </div>
-
-              <div className="mt-3">
-                <div className="grid grid-cols-4 gap-3">
-                  {appDeepLinks.filter(a => ['gpay','phonepe','paytm'].includes(a.key)).map(a => (
-                    <button key={a.key} onClick={() => openWithScheme(a.scheme, a.storeUrl, a.label)} className="flex flex-col items-center gap-2">
-                      <span className="h-14 w-16 grid place-content-center rounded-none border shadow-sm bg-white hover:shadow-md active:scale-[0.98] transition">
-                        <img src={{ gpay:'/gpay.png', phonepe:'/phonepe.png', paytm:'/paytm.png' }[a.key]} alt={a.label} className="h-8 object-contain" />
-                      </span>
-                      <span className="text-[11px] text-gray-600">{a.label}</span>
-                    </button>
-                  ))}
-                  {!isIOS && order?.currentUpiLink && (
-                    <button key="others" onClick={() => { try { window.location.href = order.currentUpiLink; } catch {} }} className="flex flex-col items-center gap-2">
-                      <span className="h-14 w-16 grid place-content-center rounded-none border shadow-sm bg-white hover:shadow-md active:scale-[0.98] transition">
-                        <span className="text-lg">⋯</span>
-                      </span>
-                      <span className="text-[11px] text-gray-600">Others</span>
-                    </button>
-                  )}
-                </div>
-
-                <div className="mt-4 text-center text-xs text-gray-500">Add UPI ID</div>
-                <div className="mt-2 grid sm:grid-cols-[1fr_auto] gap-2">
-                  <input
-                    type="text"
-                    inputMode="email"
-                    autoCapitalize="none"
-                    autoCorrect="off"
-                    placeholder="yourname@bank"
-                    value={upiId}
-                    onChange={(e) => { setUpiId(e.target.value); setUpiStatus('idle'); }}
-                    className="h-10 px-3 rounded-none border focus-ring"
-                  />
-                  <button type="button" onClick={verifyUpiId} className="h-10 px-4 rounded-none bg-black text-white text-sm pressable">
-                    Verify UPI ID
-                  </button>
-                </div>
-                {upiStatus === 'ok' && <p className="mt-1 text-xs text-white">UPI ID looks good. Opening your UPI app…</p>}
-                {upiStatus === 'error' && <p className="mt-1 text-xs text-red-600">Enter a valid UPI ID like name@bank.</p>}
-                {isIOS && storeSuggest && (
-                  <div className="mt-3 p-2 border rounded-none bg-black text-white text-xs">
-                    If the app didn't open, tap here to open {storeSuggest.label} in the App Store.
-                    <a className="ml-2 underline" href={storeSuggest.storeUrl} target="_blank" rel="noopener">Open App Store</a>
-                  </div>
-                )}
+              <p className="font-semibold mb-2">Pay via UPI</p>
+              <p className="text-xs text-gray-600 mb-3">Scan the QR above with any UPI app and complete the payment. Your order will be confirmed automatically after payment is received. For any queries, contact us on WhatsApp.</p>
+              <div className="mt-2 flex items-center gap-2">
+                <code className="px-2 py-1 rounded bg-slate-100 border text-sm select-all">{upiId || 'upi-id'}</code>
+                <button type="button" onClick={async()=>{ try{ await navigator.clipboard.writeText(upiId);}catch{} }} className="px-3 py-1.5 rounded border text-sm">Copy</button>
+                <a href={whatsappLink} target="_blank" rel="noreferrer" className="ml-auto px-3 py-1.5 rounded border text-sm">Contact us on WhatsApp</a>
               </div>
             </div>
-          </div>
-
-          <div className="rounded-none border bg-white p-4 space-y-2">
+          </div>          <div className="rounded-none border bg-white p-4 space-y-2">
             <p>
               <b>Order:</b> {order.id}
               <button type="button" onClick={() => onCopy(order.id)} className="ml-2 px-2 py-0.5 text-xs border rounded-none">Copy</button>

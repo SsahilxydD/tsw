@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useState } from "react";
+import React, { useContext, useEffect, useMemo } from "react";
 import CartSteps from "../components/CartSteps";
 import { ShopContext } from "../context/ShopContext";
 import CartTotal from "../components/CartTotal";
@@ -169,12 +169,11 @@ export default function Payment() {
               <CartTotal />
             </div>
 
-            {/* UPI Payment: linear QR + copy UPI ID */}
-            <UpiSection />
+            {/* UPI payment removed on this page */}
           </div>
         </div>
       </div>
-      {/* Keep original gateway CTA to create order and proceed */}
+      {/* Keep original gateway CTA to create order and proceed */
       <div className="max-w-6xl mx-auto px-4 mt-8 mb-10">
         <div className="border-t pt-6">
           <button
@@ -185,48 +184,6 @@ export default function Payment() {
             PAY SECURELY
           </button>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function UpiSection() {
-  const [upiId, setUpiId] = useState('');
-  const [copied, setCopied] = useState(false);
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const r = await fetch('/public/upi-id', { cache: 'no-store' });
-        if (!r.ok) return;
-        const j = await r.json();
-        if (!cancelled) setUpiId(String(j.upiId || ''));
-      } catch {}
-    })();
-    return () => { cancelled = true; };
-  }, []);
-
-  const onCopy = async () => {
-    try { await navigator.clipboard.writeText(upiId); setCopied(true); setTimeout(()=>setCopied(false), 1500); } catch {}
-  };
-
-  return (
-    <div className="rounded-md border bg-white p-4 mt-4">
-      <h3 className="text-sm font-semibold mb-2">Pay via UPI</h3>
-      <p className="text-xs text-gray-600 mb-3">Scan the code below with any UPI app and complete the payment.</p>
-      <div className="w-full overflow-hidden rounded-sm border bg-white">
-        <img src="/qr.jpeg" alt="UPI QR" className="w-full max-h-28 object-contain" />
-      </div>
-      <div className="mt-3 flex items-center gap-2">
-        <code className="px-2 py-1 rounded bg-slate-100 border text-sm select-all">{upiId || 'upi-id'}</code>
-        <button
-          type="button"
-          onClick={onCopy}
-          disabled={!upiId}
-          className={`px-3 py-1.5 rounded border text-sm ${upiId ? 'hover:bg-gray-50' : 'opacity-50 cursor-not-allowed'}`}
-        >
-          {copied ? 'Copied' : 'Copy'}
-        </button>
       </div>
     </div>
   );
