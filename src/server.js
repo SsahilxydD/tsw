@@ -484,6 +484,13 @@ app.use(express.static(DIST_DIR));
 // Health
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
+// Public: expose UPI ID for client display (cache disabled)
+app.get('/public/upi-id', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  return res.json({ upiId: process.env.UPI_ID || null });
+});
+
 // Optionally disable public receipt endpoints entirely via env switch
 const RECEIPTS_PUBLIC = String(process.env.RECEIPTS_PUBLIC || 'true').toLowerCase() === 'true';
 if (!RECEIPTS_PUBLIC) {
