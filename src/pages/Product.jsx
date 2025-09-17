@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import Title from "../components/Title";
 import ProductItem from "../components/ProductItem";
 import { ShopContext } from "../context/ShopContext";
+import { isFootwearProduct, isJeansProduct, normalizeJeansSizes, uniqueUKLabels, toUKLabel } from "../utils/size";
 
 export default function Product() {
   const { id: paramId } = useParams();
@@ -19,11 +20,14 @@ export default function Product() {
 
   const [added, setAdded] = useState(false);
   const canSubmit = !!product;
+  const [selectedSize, setSelectedSize] = useState("");
 
   const handleAdd = () => {
     if (!product) return;
     const pid = String(product._id ?? product.slug);
-    addToCart(pid, "std");
+    const sz = String(selectedSize || "").trim();
+    if (!sz) return; // guard; button disabled otherwise
+    addToCart(pid, sz);
     setAdded(true);
     setTimeout(() => setAdded(false), 1200);
   };
@@ -52,6 +56,31 @@ export default function Product() {
       if (Array.isArray(product?.image)) return product.image.filter(Boolean);
       return product?.image ? [product.image] : [];
     } catch { return []; }
+  }, [product]);
+
+  // Derive and normalize sizes for the product page
+  const sizeOptions = useMemo(() => {
+    let arr = Array.isArray(product?.sizes) ? product.sizes : [];
+    if (isFootwearProduct(product)) arr = uniqueUKLabels(arr);
+    else if (isJeansProduct(product)) arr = normalizeJeansSizes(arr);
+    else arr = arr.map((s) => String(s)).filter(Boolean);
+    const bad = /^(one\s?size|onesize|os|std)$/i;
+    const seen = new Set();
+    const out = [];
+    for (const s of arr) {
+      const key = (String(s).toUpperCase());
+      if (bad.test(key)) continue;
+      if (!seen.has(key)) { seen.add(key); out.push(String(s)); }
+    }
+    if (out.length === 0) {
+      // Fall back to a standard option; still require an explicit pick
+      return ["STD"];
+    }
+    // For footwear ensure label normalization
+    if (isFootwearProduct(product)) {
+      return out.map((x) => toUKLabel(x) || String(x)).filter(Boolean);
+    }
+    return out;
   }, [product]);
 
   return (
@@ -88,28 +117,49 @@ export default function Product() {
           <div className="mt-6 space-y-3">
             <button
               onClick={handleAdd}
-              disabled={!canSubmit}
-              className={`w-full h-14 px-5 rounded-none border border-black bg-white text-black font-semibold pressable flex items-center justify-center text-[15px] sm:text-base tracking-wide ${!canSubmit ? "opacity-50 cursor-not-allowed" : ""}`}
+              disabled={!canSubmit || !selectedSize}
+              className={`w-full h-14 px-5 rounded-none border border-black bg-white text-black font-semibold pressable flex items-center justify-center text-[15px] sm:text-base tracking-wide ${(!canSubmit || !selectedSize) ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               {added ? "Added to cart" : "Add to cart"}
             </button>
 
             <button
               type="button"
-              disabled={!canSubmit}
+              disabled={!canSubmit || !selectedSize}
               onClick={() => {
                 if (!canSubmit) return;
                 const pid = String(product._id ?? product.slug);
-                addToCart(pid, "std");
+                const sz = String(selectedSize || "").trim();
+                if (!sz) return;
+                addToCart(pid, sz);
                 navigate("/address");
               }}
-              className={`w-full h-14 px-5 rounded-none text-white bg-black flex items-center justify-center pressable active:scale-[0.99] ${!canSubmit ? "opacity-50 cursor-not-allowed" : "hover:opacity-95"}`}
+              className={`w-full h-14 px-5 rounded-none text-white bg-black flex items-center justify-center pressable active:scale-[0.99] ${(!canSubmit || !selectedSize) ? "opacity-50 cursor-not-allowed" : "hover:opacity-95"}`}
             >
               <span className="text-[15px] sm:text-base font-semibold tracking-wide">Buy Now</span>
             </button>
           </div>
 
           <div className="mt-6 space-y-1 text-sm text-gray-600">
+            <div className="mb-3">
+              <p className="text-sm font-medium mb-1">Select size</p>
+              <div className="flex flex-wrap gap-2">
+                {sizeOptions.map((sz) => (
+                  <button
+                    key={String(sz)}
+                    type="button"
+                    onClick={() => setSelectedSize(String(sz).toUpperCase())}
+                    className={`px-3 py-1.5 border rounded-md text-sm tracking-wide ${String(selectedSize).toUpperCase() === String(sz).toUpperCase() ? 'bg-black text-white border-black' : 'bg-white text-black hover:bg-gray-50'}`}
+                    aria-pressed={String(selectedSize).toUpperCase() === String(sz).toUpperCase()}
+                  >
+                    {String(sz).replace(/^UK-/, '')}
+                  </button>
+                ))}
+              </div>
+              {!selectedSize && (
+                <p className="mt-2 text-xs text-red-600">Please select a size to continue.</p>
+              )}
+            </div>
             {product.category && (
               <p>
                 Category: {" "}
