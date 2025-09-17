@@ -46,11 +46,13 @@ export default function Product() {
     ? products.filter((p) => String(p._id) !== String(product._id)).slice(0, 12)
     : [];
 
-  const imageSrc = Array.isArray(product.images)
-    ? product.images[0]
-    : Array.isArray(product.image)
-    ? product.image[0]
-    : product.image;
+  const allImages = useMemo(() => {
+    try {
+      if (Array.isArray(product?.images)) return product.images.filter(Boolean);
+      if (Array.isArray(product?.image)) return product.image.filter(Boolean);
+      return product?.image ? [product.image] : [];
+    } catch { return []; }
+  }, [product]);
 
   return (
     <div className="border-t pt-10 px-4 max-w-6xl mx-auto">
@@ -59,15 +61,21 @@ export default function Product() {
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
-        <div className="rounded-none border bg-white p-4 flex items-center justify-center min-h-[300px]">
-          {imageSrc ? (
-            <img
-              src={imageSrc}
-              alt={product.name || product.title || "Product"}
-              className="w-72 h-72 object-contain"
-            />
+        <div className="rounded-none border bg-white p-4 min-h-[300px]">
+          {allImages.length > 0 ? (
+            <div className="grid grid-cols-1 gap-3">
+              {allImages.map((src, i) => (
+                <img
+                  key={`${i}-${String(src)}`}
+                  src={src}
+                  alt={(product.name || product.title || 'Product') + ` ${i+1}`}
+                  className="w-full max-h-[420px] object-contain rounded-none border"
+                  loading={i === 0 ? 'eager' : 'lazy'}
+                />
+              ))}
+            </div>
           ) : (
-            <div className="text-gray-500">No image</div>
+            <div className="h-full w-full grid place-content-center text-gray-500">No image</div>
           )}
         </div>
 
@@ -140,4 +148,3 @@ export default function Product() {
     </div>
   );
 }
-
