@@ -2,7 +2,7 @@ import React from 'react';
 import * as ReactDOMClient from 'react-dom/client';
 import ReactDOM from 'react-dom';
 import App from './App.jsx';
-import { HelmetProvider } from 'react-helmet';
+import { HelmetProvider } from 'react-helmet-async';
 import './index.css';
 import { BrowserRouter } from 'react-router-dom';
 import ShopContextProvider from './context/ShopContext.jsx';
