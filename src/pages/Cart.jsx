@@ -45,6 +45,7 @@ const Cart = () => {
     setCartData(tempData)
   }, [cartItems])
 
+
   // Remove stale leaving flags when items are gone or re-added
   useEffect(() => {
     setLeaving((prev) => {
@@ -167,6 +168,7 @@ const Cart = () => {
 
         <CartRecommendations />
       </div>
+
 
       {/* Removed sticky bar on cart page to keep CTA near coupon */}
 

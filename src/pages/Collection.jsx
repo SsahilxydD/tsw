@@ -93,6 +93,7 @@ const Collection = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [products, showSearch, debouncedSearch, hasSizes, sizeFilters, sortValue]);
 
+
   // Auto-load more when the sentinel becomes visible
   useEffect(() => {
     const target = sentinelRef.current;
@@ -246,6 +247,7 @@ const Collection = () => {
             </div>
           )}
         </section>
+
       </div>
 
       {/* Mobile drawer (always rendered, even if no sizes) */}

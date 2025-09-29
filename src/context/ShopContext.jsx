@@ -68,13 +68,31 @@ const ShopContextProvider = (props) => {
         for (const src of sources) {
           try {
             const r = await fetch(src.url, { cache: "no-store" });
-            if (!r.ok) { lastErr = new Error(`Failed to load ${src.url}`); continue; }
+            if (!r.ok) { 
+              lastErr = new Error(`Failed to load ${src.url}: ${r.status} ${r.statusText}`); 
+              continue; 
+            }
+            
+            // Check if response is JSON
+            const contentType = r.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+              lastErr = new Error(`Invalid content type for ${src.url}: ${contentType}`);
+              continue;
+            }
+            
             raw = await r.json();
             basePrefix = src.basePrefix;
             break;
-          } catch (e) { lastErr = e; }
+          } catch (e) { 
+            lastErr = e; 
+            console.warn(`Failed to load ${src.url}:`, e.message);
+          }
         }
-        if (!raw) throw lastErr || new Error("No products source available");
+        if (!raw) {
+          console.warn("No products source available, using empty array");
+          setProducts([]);
+          return;
+        }
 
         const mapped = Array.isArray(raw) ? raw.map((item) => {
           const images = Array.isArray(item.images)

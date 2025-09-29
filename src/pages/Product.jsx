@@ -116,6 +116,7 @@ export default function Product() {
     window.scrollTo({ top: 0, behavior: "auto" });
   }, [id]);
 
+
   const product = React.useMemo(() => {
     if (!Array.isArray(products)) return null;
     // Try both _id and slug (supports scraped catalog)

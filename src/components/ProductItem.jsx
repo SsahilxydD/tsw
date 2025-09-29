@@ -1,5 +1,5 @@
 // src/components/ProductItem.jsx
-import React, { useContext, useMemo, useRef } from "react";
+import React, { useContext, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { ShopContext } from "../context/ShopContext";
@@ -13,6 +13,10 @@ const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd =
   const cover = Array.isArray(image) ? (image[0] || "") : (image || "");
   const preloadedRef = useRef(false);
   const [ref, inView] = useInView({ once: true });
+  const [adding, setAdding] = useState(false);
+  const [added, setAdded] = useState(false);
+  const [error, setError] = useState(false);
+  
   const isAdded = useMemo(() => {
     const pid = String(id);
     const c = (cartItems || {})[pid];
@@ -156,7 +160,7 @@ const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd =
       style={linkStyle}
       className={`text-gray-700 group block focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30 transition-transform active:scale-[0.98] hover:shadow-sm hover-lift cv-auto reveal-item ${inView ? 'in' : ''}`}
     >
-      <div className={`relative w-full overflow-hidden bg-gray-100 ${imgHeights} select-none`}>
+      <div className={`relative w-full overflow-hidden bg-gray-100 ${imgHeights} select-none group-hover:bg-gray-50 transition-colors duration-300`}>
         <SafeImg
           src={cover}
           alt={name}
@@ -169,20 +173,30 @@ const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd =
                      group-hover:scale-105 motion-reduce:transform-none"
         />
         {showAdd && (
-          <button
+          <LoadingButton
             type="button"
             aria-label="Add to bag"
-            onClick={(e) => {
+            loading={adding}
+            success={added}
+            error={error}
+            onClick={async (e) => {
               e.preventDefault();
               e.stopPropagation();
+              
+              setAdding(true);
+              setError(false);
+              
               try {
                 const pid = String(id);
                 const p = (products || []).find(pr => String(pr._id ?? pr.slug ?? pr.id) === pid);
                 const sizes = Array.isArray(p?.sizes) ? p.sizes : [];
                 const added = isAdded;
+                
                 if (added) {
                   const c = (cartItems || {})[pid] || {};
-                  for (const sz of Object.keys(c)) updateQuantity(pid, sz, 0);
+                  for (const sz of Object.keys(c)) {
+                    updateQuantity(pid, sz, 0);
+                  }
                 } else {
                   // If size selection is required and sizes exist, open picker
                   if (requireSize && sizes.length > 0 && !sizeHint) {
@@ -191,8 +205,10 @@ const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd =
                       : (isJeansProduct(p) ? normalizeJeansSizes(sizes) : sizes.map(String));
                     setSizesForPick(opts);
                     setPicking(true);
+                    setAdding(false);
                     return;
                   }
+                  
                   const y = window.scrollY;
                   let chosen = sizeHint || 'std';
                   if (!sizeHint && sizes.length > 0) {
@@ -203,7 +219,10 @@ const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd =
                       chosen = String(sizes[0]);
                     }
                   }
-                  addToCart(pid, chosen);
+                  
+                  await addToCart(pid, chosen);
+                  setAdded(true);
+                  
                   // Fly-to-cart animation everywhere except when disabled
                   if (!disableFly) {
                     try {
@@ -236,12 +255,17 @@ const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd =
                   }
                   requestAnimationFrame(() => { try { window.scrollTo({ top: y, left: 0, behavior: 'auto' }); } catch { window.scrollTo(0, y); } });
                 }
-              } catch {}
+              } catch (err) {
+                setError(true);
+                console.error('Failed to add to cart:', err);
+              } finally {
+                setAdding(false);
+              }
             }}
-            className={`absolute bottom-2 right-2 px-2.5 py-1.5 rounded text-[11px] tracking-wide shadow-sm transition-colors duration-200 pressable ${isAdded ? 'bg-white text-black border border-black' : 'bg-black/90 text-white hover:bg-black'}`}
+            className={`absolute bottom-2 right-2 px-3 py-2 rounded-full text-xs font-medium tracking-wide shadow-lg transition-all duration-200 pressable transform hover:scale-105 ${isAdded ? 'bg-green-500 text-white border-2 border-green-600' : 'bg-black/90 text-white hover:bg-black hover:shadow-xl'}`}
           >
             {isAdded ? 'ADDED' : 'ADD'}
-          </button>
+          </LoadingButton>
         )}
 
       </div>

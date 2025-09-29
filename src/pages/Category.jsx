@@ -2,7 +2,6 @@
 import { useParams } from "react-router-dom";
 import Title from "../components/Title";
 import ProductItem from "../components/ProductItem";
-import SkeletonCard from "../components/SkeletonCard";
 import MobileFilters from "../components/MobileFilters";
 import SizeChips from "../components/SizeChips";
 import { isFootwearProduct, isJeansProduct, normalizeJeansSizes, uniqueUKLabels, toUKLabel } from "../utils/size";
@@ -424,23 +423,16 @@ const Category = () => {
           {isEmpty && <p className="text-sm text-gray-500 mb-6">No products match your filters.</p>}
 
           <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {isLoading ? (
-              <>
-                <SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard />
-                <SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard />
-              </>
-            ) : (
-              list.slice(0, visibleCount).map((item, index) => (
-                <ProductItem
-                  key={item._id || item.id || item.slug || index}
-                  id={item._id ?? item.id ?? item.slug}
-                  image={item.image}
-                  name={item.name}
-                  price={item.price}
-                  i={index}
-                />
-              ))
-            )}
+            {list.slice(0, visibleCount).map((item, index) => (
+              <ProductItem
+                key={item._id || item.id || item.slug || index}
+                id={item._id ?? item.id ?? item.slug}
+                image={item.image}
+                name={item.name}
+                price={item.price}
+                i={index}
+              />
+            ))}
           </div>
           {/* Infinite loader sentinel */}
           {!isLoading && (
