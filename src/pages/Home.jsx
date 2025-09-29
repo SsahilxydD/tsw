@@ -14,13 +14,26 @@ const Home = () => {
         canonical={typeof window !== 'undefined' ? window.location.href : ''}
         image="/favicon.png"
         type="website"
-        jsonLd={{
-          "@context": "https://schema.org",
-          "@type": "Organization",
-          "name": "Solo Wardrobe",
-          "url": typeof window !== 'undefined' ? window.location.origin : '',
-          "logo": "/favicon.png"
-        }}
+        jsonLd={[
+          {
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": "Solo Wardrobe",
+            "url": typeof window !== 'undefined' ? window.location.origin : '',
+            "logo": "/favicon.png"
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "SiteNavigationElement",
+            "name": ["Home","About","Contact","Chat on WhatsApp"],
+            "url": [
+              typeof window !== 'undefined' ? window.location.origin + '/' : '/',
+              typeof window !== 'undefined' ? window.location.origin + '/about' : '/about',
+              typeof window !== 'undefined' ? window.location.origin + '/contact' : '/contact',
+              "https://wa.me/919933778870"
+            ]
+          }
+        ]}
       />
       <Hero />
       <Categories />

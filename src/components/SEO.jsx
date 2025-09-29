@@ -36,11 +36,14 @@ export default function SEO({
       {imageUrl ? <meta name="twitter:image" content={imageUrl} /> : null}
 
       {/* JSON-LD */}
-      {jsonLd ? (
-        <script type="application/ld+json">
-          {JSON.stringify(jsonLd)}
-        </script>
-      ) : null}
+      {Array.isArray(jsonLd)
+        ? jsonLd.filter(Boolean).map((obj, i) => (
+            <script key={i} type="application/ld+json">{JSON.stringify(obj)}</script>
+          ))
+        : (jsonLd ? (
+            <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
+          ) : null)
+      }
     </Helmet>
   );
 }
