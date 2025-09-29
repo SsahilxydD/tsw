@@ -83,13 +83,31 @@ const Cart = () => {
             <Title text1={'YOUR'} text2={'CART'} />
           </div>
           <div className='text-sm text-gray-600'>
-            {cartData.filter(i => i.quantity>0).length} item{cartData.filter(i => i.quantity>0).length!==1?'s':''} selected
+            {cartData.filter(i => i && i.quantity > 0).length} item{cartData.filter(i => i && i.quantity > 0).length !== 1 ? 's' : ''} selected
           </div>
         </div>
 
         <div className='space-y-4 max-h-[50vh] overflow-auto pr-1'>
-          {cartData.map((item, index) => {
+          {cartData.filter(item => item && item._id && item.quantity > 0).length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-500 text-lg">Your cart is empty</p>
+              <button 
+                onClick={() => navigate('/collection')}
+                className="mt-4 px-6 py-2 bg-black text-white rounded hover:bg-gray-800 transition-colors"
+              >
+                Continue Shopping
+              </button>
+            </div>
+          ) : (
+            cartData.filter(item => item && item._id && item.quantity > 0).map((item, index) => {
             const productData = products.find((product) => product._id === item._id);
+            
+            // Skip rendering if product not found
+            if (!productData) {
+              console.warn(`Product not found for cart item: ${item._id}`);
+              return null;
+            }
+            
             const cover = Array.isArray(productData?.image)
               ? (productData.image[0] || '')
               : (Array.isArray(productData?.images) ? (productData.images[0] || '') : (productData?.image || ''));
@@ -101,9 +119,16 @@ const Cart = () => {
               key={k}
               className={`rounded-md border bg-white p-4 sm:p-5 text-gray-700 flex items-center gap-4 sm:gap-6 hover:shadow-md transition-all duration-200 ${isLeaving ? 'animate-cart-leave pointer-events-none' : 'animate-soft-reveal'}`}
             >
-              <img className='w-20 h-20 rounded-md object-cover border' src={cover} alt="" />
+              <img 
+                className='w-20 h-20 rounded-md object-cover border' 
+                src={cover || '/placeholder-image.png'} 
+                alt={productData?.name || 'Product'} 
+                onError={(e) => {
+                  e.target.src = '/placeholder-image.png';
+                }}
+              />
               <div className='flex-1 min-w-0'>
-                <p className='text-sm sm:text-base font-medium truncate'>{productData?.name}</p>
+                <p className='text-sm sm:text-base font-medium truncate'>{productData?.name || 'Unknown Product'}</p>
                 <div className='mt-2 flex items-start gap-3 flex-wrap'>
                   <div className='flex flex-col gap-1 w-fit'>
                     {item.size && (
@@ -114,7 +139,7 @@ const Cart = () => {
                       </div>
                     )}
                     <div className='px-2 py-1 text-sm font-semibold border rounded-md bg-white w-fit'>
-                      {currency}{productData?.price}
+                      {currency}{productData?.price || 0}
                     </div>
                   </div>
                 </div>
@@ -140,7 +165,8 @@ const Cart = () => {
               </div>
             </div>
           )
-        })}
+        })
+          )}
         </div>
 
         <div className='mt-8 grid sm:grid-cols-2 gap-4'>
