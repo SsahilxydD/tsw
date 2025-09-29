@@ -2,17 +2,20 @@ import React from 'react';
 import * as ReactDOMClient from 'react-dom/client';
 import ReactDOM from 'react-dom';
 import App from './App.jsx';
+import { HelmetProvider } from 'react-helmet';
 import './index.css';
 import { BrowserRouter } from 'react-router-dom';
 import ShopContextProvider from './context/ShopContext.jsx';
 
 const container = document.getElementById('root');
 const app = (
-  <BrowserRouter>
-    <ShopContextProvider>
-      <App />
-    </ShopContextProvider>
-  </BrowserRouter>
+  <HelmetProvider>
+    <BrowserRouter>
+      <ShopContextProvider>
+        <App />
+      </ShopContextProvider>
+    </BrowserRouter>
+  </HelmetProvider>
 );
 
 if (ReactDOMClient && typeof ReactDOMClient.createRoot === 'function') {
@@ -23,19 +26,7 @@ if (ReactDOMClient && typeof ReactDOMClient.createRoot === 'function') {
   ReactDOM.render(app, container);
 }
 
-// Prevent double-tap to zoom globally (app-like behavior on iOS Safari)
-// Retains normal scrolling and click behavior.
-(() => {
-  let lastTouch = 0;
-  function onTouchEnd(e) {
-    const now = Date.now();
-    if (now - lastTouch <= 300) {
-      try { e.preventDefault(); } catch {}
-    }
-    lastTouch = now;
-  }
-  window.addEventListener('touchend', onTouchEnd, { passive: false });
-})();
+// Remove anti-zoom handler to improve accessibility and SEO signals
 
 // Set a CSS variable for reliable viewport height across iOS/Android
 // Use as var(--rvh) = 1% of the real innerHeight

@@ -5,6 +5,7 @@ import Title from "../components/Title";
 import ProductItem from "../components/ProductItem";
 import { ShopContext } from "../context/ShopContext";
 import { isFootwearProduct, isJeansProduct, normalizeJeansSizes, toUKLabel, uniqueUKLabels, UK_FOOT_RANGE } from "../utils/size";
+import SEO from "../components/SEO";
 
 // --- small helpers (no external deps) ---
 const STOPWORDS = new Set([
@@ -262,6 +263,28 @@ export default function Product() {
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-6">
+      <SEO
+        title={`${product.name || product.title} – Solo Wardrobe`}
+        description={`Buy ${product.name || product.title}${product.brand ? ` by ${product.brand}` : ''} at Solo Wardrobe.`}
+        url={typeof window !== 'undefined' ? window.location.href : ''}
+        canonical={typeof window !== 'undefined' ? window.location.href : ''}
+        type="product"
+        image={Array.isArray(product.images) ? product.images[0] : (Array.isArray(product.image) ? product.image[0] : product.image)}
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "Product",
+          "name": product.name || product.title,
+          "image": Array.isArray(product.images) ? product.images : (Array.isArray(product.image) ? product.image : [product.image]).filter(Boolean),
+          "brand": product.brand ? { "@type": "Brand", "name": product.brand } : undefined,
+          "offers": {
+            "@type": "Offer",
+            "priceCurrency": "INR",
+            "price": String(product.price || 0),
+            "availability": "https://schema.org/InStock",
+            "url": typeof window !== 'undefined' ? window.location.href : ''
+          }
+        }}
+      />
       {/* Product section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Gallery */}
@@ -275,6 +298,7 @@ export default function Product() {
                 alt={product.name || product.title}
                 className="h-full w-full object-contain"
                 loading="eager"
+                decoding="sync"
               />
             ) : (
               <div className="h-full w-full grid place-content-center text-sm text-gray-400">
@@ -300,6 +324,7 @@ export default function Product() {
                     alt={`thumb ${i + 1}`}
                     className="h-full w-full object-cover"
                     loading="lazy"
+                    decoding="async"
                   />
                 </button>
               ))}

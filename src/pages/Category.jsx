@@ -9,6 +9,7 @@ import { isFootwearProduct, isJeansProduct, normalizeJeansSizes, uniqueUKLabels,
 import { ShopContext } from "../context/ShopContext";
 import { assets } from "../assets/assets";
 import useDebouncedValue from "../hooks/useDebouncedValue";
+import SEO from "../components/SEO";
 
 // NEW: session-seeded scramble (adds only â€œFeaturedâ€ ordering)
 import { scrambleProducts } from "../utils/scramble";
@@ -282,6 +283,21 @@ const Category = () => {
 
   return (
     <div className="pt-10 border-t">
+      <SEO
+        title={`${isDiscounted ? 'Sale' : toDisplay(catKey)} – Solo Wardrobe`}
+        description={`Browse ${isDiscounted ? 'discounted' : toDisplay(catKey)} products at Solo Wardrobe.`}
+        url={typeof window !== 'undefined' ? window.location.href : ''}
+        canonical={typeof window !== 'undefined' ? window.location.href : ''}
+        type="website"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {"@type": "ListItem", "position": 1, "name": "Home", "item": typeof window !== 'undefined' ? window.location.origin : ''},
+            {"@type": "ListItem", "position": 2, "name": isDiscounted ? 'Sale' : toDisplay(catKey), "item": typeof window !== 'undefined' ? window.location.href : ''}
+          ]
+        }}
+      />
       <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row gap-6">
         {/* LEFT: Desktop filters */}
         {hasSizes && (!isDiscounted || !!subFilter) && (
