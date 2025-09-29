@@ -4,12 +4,12 @@ import { Link, useLocation } from 'react-router-dom';
 const MobileMenu = ({ isOpen, onClose }) => {
   const location = useLocation();
 
-  // Close menu on route change
+  // Close menu on route change (but not when menu first opens)
   useEffect(() => {
     if (isOpen) {
       onClose();
     }
-  }, [location.pathname, isOpen, onClose]);
+  }, [location.pathname, onClose]);
 
   // Close menu on escape key
   useEffect(() => {
@@ -40,14 +40,14 @@ const MobileMenu = ({ isOpen, onClose }) => {
     <div className="fixed inset-0 z-50 lg:hidden">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-black/50"
+        className="absolute inset-0 bg-black/50 animate-fade-in"
         onClick={onClose}
         aria-hidden="true"
       />
       
       {/* Menu Panel */}
       <div 
-        className="absolute right-0 top-0 h-full w-80 max-w-[85vw] bg-white shadow-2xl transform transition-transform duration-300 ease-out"
+        className="absolute right-0 top-0 h-full w-80 max-w-[85vw] bg-white shadow-2xl transform transition-transform duration-300 ease-out animate-slide-in-right"
         role="dialog"
         aria-modal="true"
         aria-label="Navigation menu"
