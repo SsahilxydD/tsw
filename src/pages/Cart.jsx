@@ -34,16 +34,24 @@ const Cart = () => {
     for (const items in cartItems) {
       for (const item in cartItems[items]) {
         if (cartItems[items][item] > 0) {
-          tempData.push({
-            _id: items,
-            size: item,
-            quantity: cartItems[items][item]
-          })
+          // Check if product exists before adding to cart data
+          const productExists = products.some(product => product._id === items);
+          if (productExists) {
+            tempData.push({
+              _id: items,
+              size: item,
+              quantity: cartItems[items][item]
+            })
+          } else {
+            // Remove invalid cart item
+            console.warn(`Removing invalid cart item: ${items}`);
+            updateQuantity(items, item, 0);
+          }
         }
       }
     }
     setCartData(tempData)
-  }, [cartItems])
+  }, [cartItems, products, updateQuantity])
 
 
   // Remove stale leaving flags when items are gone or re-added

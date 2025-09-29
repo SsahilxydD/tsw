@@ -173,12 +173,10 @@ const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd =
                      group-hover:scale-105 motion-reduce:transform-none"
         />
         {showAdd && (
-          <LoadingButton
+          <button
             type="button"
             aria-label="Add to bag"
-            loading={adding}
-            success={added}
-            error={error}
+            disabled={adding}
             onClick={async (e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -262,10 +260,10 @@ const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd =
                 setAdding(false);
               }
             }}
-            className={`absolute bottom-2 right-2 px-3 py-2 rounded-full text-xs font-medium tracking-wide shadow-lg transition-all duration-200 pressable transform hover:scale-105 ${isAdded ? 'bg-green-500 text-white border-2 border-green-600' : 'bg-black/90 text-white hover:bg-black hover:shadow-xl'}`}
+            className={`absolute bottom-2 right-2 px-3 py-2 rounded-full text-xs font-medium tracking-wide shadow-lg transition-all duration-200 pressable transform hover:scale-105 ${isAdded ? 'bg-green-500 text-white border-2 border-green-600' : 'bg-black/90 text-white hover:bg-black hover:shadow-xl'} ${adding ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            {isAdded ? 'ADDED' : 'ADD'}
-          </LoadingButton>
+            {adding ? 'ADDING...' : (isAdded ? 'ADDED' : 'ADD')}
+          </button>
         )}
 
       </div>
