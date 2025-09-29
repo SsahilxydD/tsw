@@ -139,41 +139,41 @@ const ShopContextProvider = (props) => {
           if (isDiscounted) {
             priceAdj = 0; // Discounted overrides
           } else if (isBelt) {
-            priceAdj = 550;
+            priceAdj = 200;
           } else if (isCap) {
-            priceAdj = 550;
+            priceAdj = 200;
           } else if (isFlipFlop) {
-            priceAdj = 550;
+            priceAdj = 150;
           } else if (isHoodie) {
-            priceAdj = 550;
+            priceAdj = 150;
           } else if (isHandbag) {
-            priceAdj = 550;
+            priceAdj = 100;
           } else if (isJacket) {
-            priceAdj = 550;
+            priceAdj = 150;
           } else if (isJeansProduct({ category: originalCategory, categoryRaw: originalCategory })) {
-            priceAdj = 550;
+            priceAdj = 100;
           } else if (isWomensWatch) {
-            priceAdj = 550;
+            priceAdj = 150;
           } else if (isMensPerfume) {
-            priceAdj = 550;
+            priceAdj = 150;
           } else if (isShirt) {
-            priceAdj = 550;
+            priceAdj = 200;
           } else if (isSunglasses) {
-            priceAdj = 550;
+            priceAdj = 250;
           } else if (isSweatshirt) {
-            priceAdj = 550;
+            priceAdj = 200;
           } else if (isTShirt) {
-            priceAdj = 550;
+            priceAdj = 150;
           } else if (isTrackPant) {
-            priceAdj = 550;
+            priceAdj = 200;
           } else if (isTracksuit) {
-            priceAdj = 550;
+            priceAdj = 150;
           } else if (isWallet) {
-            priceAdj = 550;
+            priceAdj = 150;
           } else if (isMensWatch) {
-            priceAdj = 550;
+            priceAdj = 150;
           } else if (isWomensPerfume) {
-            priceAdj = 550;
+            priceAdj = 150;
           } else if (isShoe) {
             priceAdj = 550;
           } else {
