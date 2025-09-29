@@ -3,20 +3,11 @@ import { Link, useLocation } from "react-router-dom";
 import { assets } from "../assets/assets";
 import { ShopContext } from "../context/ShopContext";
 
-const Navbar = ({ onSearchToggle }) => {
-  const { search, setSearch, showSearch, setShowSearch, getCartCount } = useContext(ShopContext);
+const Navbar = () => {
+  const { getCartCount } = useContext(ShopContext);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
 
-  // Enable search button ONLY on /collection and /category/* routes
-  const enableSearch = /^\/(collection|category)(\/|$)/.test(location.pathname);
-
-  // Close search + clear query on route change
-  useEffect(() => {
-    setShowSearch(false);
-    setSearch("");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname]);
 
   // Subtle shadow after small scroll
   useEffect(() => {
@@ -26,14 +17,6 @@ const Navbar = ({ onSearchToggle }) => {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const inputRef = useRef(null);
-  useEffect(() => {
-    if (!showSearch) return;
-    const onKey = (e) => { if (e.key === 'Escape') setShowSearch(false); };
-    document.addEventListener('keydown', onKey);
-    const t = setTimeout(() => { try { inputRef.current?.focus(); } catch {} }, 0);
-    return () => { document.removeEventListener('keydown', onKey); clearTimeout(t); };
-  }, [showSearch, setShowSearch]);
 
   const count = getCartCount();
   const prevRef = useRef(count);
@@ -91,19 +74,8 @@ const Navbar = ({ onSearchToggle }) => {
           </ul>
         </nav>
 
-        {/* Right controls: search, cart, mobile menu */}
+        {/* Right controls: cart */}
         <div className="flex items-center gap-2">
-          {/* Global Search Button */}
-          <button
-            onClick={onSearchToggle}
-            aria-label="Search products"
-            className="p-2 rounded hover:bg-gray-100 pressable lg:hidden"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </button>
-
           {/* Cart */}
           <Link id="cart-anchor" to="/cart" aria-label="Cart" className="relative p-2 rounded hover:bg-gray-100 pressable">
             {assets.cart_icon ? (
@@ -172,30 +144,6 @@ const Navbar = ({ onSearchToggle }) => {
         </div>
       </nav>
 
-      {/* Revealable search bar (only on listing routes) */}
-      {enableSearch && showSearch && (
-        <div className="border-t bg-white">
-          <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search products…"
-              ref={inputRef}
-              className="flex-1 h-10 border rounded px-3 outline-none focus:ring-2 focus:ring-black/20"
-            />
-            <button
-              type="button"
-              onClick={() => {
-                setSearch("");
-                setShowSearch(false);
-              }}
-              className="h-10 px-3 border rounded pressable"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
     </header>
   );
 };

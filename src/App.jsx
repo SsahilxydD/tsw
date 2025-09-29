@@ -8,7 +8,6 @@ import ScrollEffects from "./components/ScrollEffects";
 import Footer from "./components/Footer";
 import WhatsAppCTA from "./components/WhatsAppCTA";
 import Notice from "./components/Notice";
-import GlobalSearch from "./components/GlobalSearch";
 import { ToastContainer, Slide } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import ScrollToTop from "./components/ScrollToTop";
@@ -29,15 +28,12 @@ import NotFound from "./pages/NotFound";
 
 export default function App() {
   const location = useLocation();
-  const [searchOpen, setSearchOpen] = React.useState(false);
 
   return (
     <>
       <ScrollToTop />
 
-      <Navbar 
-        onSearchToggle={() => setSearchOpen(true)}
-      />
+      <Navbar />
       <ScrollProgress />
       <ScrollEffects />
 
@@ -65,11 +61,6 @@ export default function App() {
       <Footer />
 
 
-      {/* Global Search */}
-      <GlobalSearch 
-        isOpen={searchOpen} 
-        onClose={() => setSearchOpen(false)} 
-      />
 
       {/* Floating WhatsApp CTA (site-wide) */}
       <WhatsAppCTA
