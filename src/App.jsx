@@ -8,7 +8,6 @@ import ScrollEffects from "./components/ScrollEffects";
 import Footer from "./components/Footer";
 import WhatsAppCTA from "./components/WhatsAppCTA";
 import Notice from "./components/Notice";
-import MobileMenu from "./components/MobileMenu";
 import GlobalSearch from "./components/GlobalSearch";
 import { ToastContainer, Slide } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -30,7 +29,6 @@ import NotFound from "./pages/NotFound";
 
 export default function App() {
   const location = useLocation();
-  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [searchOpen, setSearchOpen] = React.useState(false);
 
   return (
@@ -38,7 +36,6 @@ export default function App() {
       <ScrollToTop />
 
       <Navbar 
-        onMobileMenuToggle={() => setMobileMenuOpen(true)}
         onSearchToggle={() => setSearchOpen(true)}
       />
       <ScrollProgress />
@@ -67,11 +64,6 @@ export default function App() {
 
       <Footer />
 
-      {/* Mobile Menu */}
-      <MobileMenu 
-        isOpen={mobileMenuOpen} 
-        onClose={() => setMobileMenuOpen(false)} 
-      />
 
       {/* Global Search */}
       <GlobalSearch 
