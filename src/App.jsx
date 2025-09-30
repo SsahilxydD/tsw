@@ -3,6 +3,7 @@ import React from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
+import SearchBar from "./components/SearchBar";
 import ScrollProgress from "./components/ScrollProgress";
 import ScrollEffects from "./components/ScrollEffects";
 import Footer from "./components/Footer";
@@ -34,6 +35,7 @@ export default function App() {
       <ScrollToTop />
 
       <Navbar />
+      <SearchBar />
       <ScrollProgress />
       <ScrollEffects />
 
