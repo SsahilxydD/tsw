@@ -10,14 +10,10 @@ const SearchBar = () => {
   const { search, setSearch, showSearch, setShowSearch } = useContext(ShopContext);
 
   useEffect(() => {
-
-    if (location.pathname.includes('collection') && showSearch) {
-      setVisible(true)
-    } else {
-      setVisible(false)
-    }
-
-  }, [location])
+    const path = String(location?.pathname || "");
+    const isSearchRoute = /\b(collection|category)\b/i.test(path);
+    setVisible(Boolean(showSearch && isSearchRoute));
+  }, [location, showSearch])
 
   return showSearch && visible ? (
     <div className='border-t border-b bg-gray-50 text-center'>
