@@ -52,18 +52,39 @@ const Category = () => {
   const { products, search, showSearch, setShowSearch, loadingProducts } = useContext(ShopContext);
   const debouncedSearch = useDebouncedValue(search, 250);
 
-  // base list for this category (unchanged logic)
+  // base list for this category (enforce sizes for jeans & discounted)
   const baseProducts = useMemo(() => {
     if (!Array.isArray(products)) return [];
+    const discounted = catKeyLower === 'discounted' || catKeyLower === 'sale';
+
     let list = products.filter(
       (p) =>
         (p.categoryRaw && String(p.categoryRaw).toLowerCase() === catKeyLower) ||
         (!p.categoryRaw && String(p.category).toLowerCase() === catKeyLower)
     );
-    // For jeans category, hide products with no sizes in data
+
+    // Jeans category: require normalized jeans sizes
     if (/\bjeans\b/.test(catKeyLower)) {
       list = list.filter((p) => normalizeJeansSizes(p.sizes).length > 0);
     }
+
+    // Discounted category: only show items that actually have valid sizes
+    if (discounted) {
+      list = list.filter((p) => {
+        const sub = String(p?.subCategory || '').toLowerCase();
+        const sizes = Array.isArray(p?.sizes) ? p.sizes : [];
+        if (sub === 'footwear') {
+          return uniqueUKLabels(sizes).length > 0;
+        }
+        if (sub === 'topwear') {
+          const allowed = new Set(['XS','S','M','L','XL','XXL']);
+          return sizes.some((s) => allowed.has(String(s).toUpperCase().trim()));
+        }
+        // Fallback: require at least one non-empty size token
+        return sizes.some((s) => String(s).trim());
+      });
+    }
+
     return list;
   }, [products, catKeyLower]);
 
@@ -345,8 +366,8 @@ const Category = () => {
                 className="h-9 px-3 border-2 border-gray-300 rounded text-sm"
               >
                 <option value="">Featured</option>
-                <option value="price-high-low">Price: High â†’ Low</option>
-                <option value="price-low-high">Price: Low â†’ High</option>
+                <option value="price-high-low">Price: High → Low</option>
+                <option value="price-low-high">Price: Low → High</option>
               </select>
             </div>
           </div>
@@ -365,8 +386,8 @@ const Category = () => {
               className="h-9 px-3 border-2 border-gray-300 rounded text-sm"
             >
               <option value="">Featured</option>
-              <option value="price-high-low">Price: High â†’ Low</option>
-              <option value="price-low-high">Price: Low â†’ High</option>
+              <option value="price-high-low">Price: High → Low</option>
+              <option value="price-low-high">Price: Low → High</option>
             </select>
           </div>
 
