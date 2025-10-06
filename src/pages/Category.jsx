@@ -70,15 +70,23 @@ const Category = () => {
 
     // Discounted category: only show items that actually have valid sizes
     if (discounted) {
-      // Strict discounted rule: Only Footwear sourced from thesolowardrobes.cartpe.in
+      // Discounted rules:
+      // - Keep Topwear items that have valid apparel sizes (XS..XXL)
+      // - Keep Footwear items ONLY if sourced from thesolowardrobes.cartpe.in and with valid UK sizes
       list = list.filter((p) => {
         const sub = String(p?.subCategory || '').toLowerCase();
-        const src = String(p?.detail_url_src || '').toLowerCase();
-        const fromSoloWardrobes = /\bthesolowardrobes\.cartpe\.in\b/.test(src);
-        if (!(fromSoloWardrobes && sub === 'footwear')) return false;
-        // Require valid UK sizes for footwear
         const sizes = Array.isArray(p?.sizes) ? p.sizes : [];
-        return uniqueUKLabels(sizes).length > 0;
+        if (sub === 'topwear') {
+          const allowed = new Set(['XS','S','M','L','XL','XXL']);
+          return sizes.some((s) => allowed.has(String(s).toUpperCase().trim()));
+        }
+        if (sub === 'footwear') {
+          const src = String(p?.detail_url_src || '').toLowerCase();
+          const fromSoloWardrobes = /\bthesolowardrobes\.cartpe\.in\b/.test(src);
+          return fromSoloWardrobes && uniqueUKLabels(sizes).length > 0;
+        }
+        // Drop non-Topwear/Footwear from Discounted
+        return false;
       });
     }
 
