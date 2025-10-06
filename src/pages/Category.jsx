@@ -70,18 +70,15 @@ const Category = () => {
 
     // Discounted category: only show items that actually have valid sizes
     if (discounted) {
+      // Strict discounted rule: Only Footwear sourced from thesolowardrobes.cartpe.in
       list = list.filter((p) => {
         const sub = String(p?.subCategory || '').toLowerCase();
+        const src = String(p?.detail_url_src || '').toLowerCase();
+        const fromSoloWardrobes = /\bthesolowardrobes\.cartpe\.in\b/.test(src);
+        if (!(fromSoloWardrobes && sub === 'footwear')) return false;
+        // Require valid UK sizes for footwear
         const sizes = Array.isArray(p?.sizes) ? p.sizes : [];
-        if (sub === 'footwear') {
-          return uniqueUKLabels(sizes).length > 0;
-        }
-        if (sub === 'topwear') {
-          const allowed = new Set(['XS','S','M','L','XL','XXL']);
-          return sizes.some((s) => allowed.has(String(s).toUpperCase().trim()));
-        }
-        // Fallback: require at least one non-empty size token
-        return sizes.some((s) => String(s).trim());
+        return uniqueUKLabels(sizes).length > 0;
       });
     }
 
