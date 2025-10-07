@@ -1,5 +1,4 @@
 import React from 'react'
-import Hero from '../components/Hero'
 import OurPolicy from '../components/OurPolicy'
 import Categories from '../components/Categories'
 import SEO from '../components/SEO'
@@ -36,7 +35,6 @@ const Home = () => {
         ]}
       />
       
-      <Hero />
       <Categories />
       <OurPolicy />
     </div>
