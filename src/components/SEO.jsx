@@ -1,6 +1,30 @@
 import React from "react";
 import { Helmet } from "react-helmet-async";
 
+/**
+ * Convert relative image path to absolute HTTPS URL
+ * @param {string} imagePath - Image path (relative or absolute)
+ * @returns {string} Absolute HTTPS URL
+ */
+function toAbsoluteUrl(imagePath) {
+  if (!imagePath) return "";
+
+  // Already absolute URL
+  if (/^https?:\/\//i.test(imagePath)) {
+    return imagePath;
+  }
+
+  // Get base URL (site domain)
+  const baseUrl = "https://thesolowardrobe.com";
+
+  // Handle relative paths
+  if (imagePath.startsWith("/")) {
+    return `${baseUrl}${imagePath}`;
+  }
+
+  return `${baseUrl}/${imagePath}`;
+}
+
 export default function SEO({
   title,
   description,
@@ -9,12 +33,19 @@ export default function SEO({
   type = "website",
   canonical,
   jsonLd,
+  // Product-specific fields
+  price,
+  currency = "INR",
+  imageWidth,
+  imageHeight,
 }) {
   const safeTitle = title ? String(title) : "Solo Wardrobe";
   const safeDesc = description ? String(description) : "Solo Wardrobe – honest prices, curated drops.";
   const pageUrl = url ? String(url) : "";
   const canonicalUrl = canonical || pageUrl || "";
-  const imageUrl = image || "/favicon.png";
+
+  // Convert image to absolute HTTPS URL
+  const imageUrl = toAbsoluteUrl(image || "/favicon.png");
 
   return (
     <Helmet>
@@ -28,6 +59,18 @@ export default function SEO({
       {pageUrl ? <meta property="og:url" content={pageUrl} /> : null}
       <meta property="og:type" content={type} />
       {imageUrl ? <meta property="og:image" content={imageUrl} /> : null}
+      {imageUrl ? <meta property="og:image:secure_url" content={imageUrl} /> : null}
+      {imageWidth ? <meta property="og:image:width" content={String(imageWidth)} /> : null}
+      {imageHeight ? <meta property="og:image:height" content={String(imageHeight)} /> : null}
+      <meta property="og:site_name" content="Solo Wardrobe" />
+
+      {/* Product-specific Open Graph tags */}
+      {type === "product" && price ? (
+        <>
+          <meta property="product:price:amount" content={String(price)} />
+          <meta property="product:price:currency" content={currency} />
+        </>
+      ) : null}
 
       {/* Twitter */}
       <meta name="twitter:card" content="summary_large_image" />

@@ -262,15 +262,43 @@ export default function Product() {
     );
   }
 
+  // Generate a better product description for social media
+  const generateDescription = () => {
+    const name = product.name || product.title || "";
+    const brand = product.brand ? ` by ${product.brand}` : "";
+    const category = product.category ? ` in ${product.category}` : "";
+    const priceText = product.price ? ` for ${currency}${Number(product.price).toLocaleString()}` : "";
+
+    // Create a concise description (max ~160 chars for optimal display)
+    let desc = `Shop ${name}${brand}${category}${priceText} at Solo Wardrobe.`;
+
+    // If we have MRP, add discount info
+    if (product.mrp && product.price && product.mrp > product.price) {
+      const discount = Math.round(((product.mrp - product.price) / product.mrp) * 100);
+      desc += ` Save ${discount}%!`;
+    }
+
+    // Ensure description is not too long (max 160 chars for meta description)
+    if (desc.length > 160) {
+      desc = desc.substring(0, 157) + "...";
+    }
+
+    return desc;
+  };
+
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-6">
       <SEO
         title={`${product.name || product.title} – Solo Wardrobe`}
-        description={`Buy ${product.name || product.title}${product.brand ? ` by ${product.brand}` : ''} at Solo Wardrobe.`}
+        description={generateDescription()}
         url={typeof window !== 'undefined' ? window.location.href : ''}
         canonical={typeof window !== 'undefined' ? window.location.href : ''}
         type="product"
         image={Array.isArray(product.images) ? product.images[0] : (Array.isArray(product.image) ? product.image[0] : product.image)}
+        price={product.price}
+        currency="INR"
+        imageWidth={1200}
+        imageHeight={1200}
         jsonLd={{
           "@context": "https://schema.org",
           "@type": "Product",
