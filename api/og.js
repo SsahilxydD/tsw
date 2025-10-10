@@ -1,24 +1,37 @@
 // Vercel Serverless Function for Product Page Meta Tags
+const https = require('https');
+
+// Helper to fetch URL content
+function fetchUrl(url) {
+  return new Promise((resolve, reject) => {
+    https.get(url, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        if (res.statusCode === 200) {
+          resolve(data);
+        } else {
+          reject(new Error(`HTTP ${res.statusCode}`));
+        }
+      });
+    }).on('error', reject);
+  });
+}
 
 module.exports = async (req, res) => {
   const { id } = req.query;
 
-  // If no ID, serve default page
+  // If no ID, return error
   if (!id) {
+    res.setHeader('Content-Type', 'text/plain');
     return res.status(400).send('Product ID required');
   }
 
   try {
     // Fetch products from live URL
     const productsUrl = 'https://thesolowardrobe.com/data/products.json';
-    const productsResponse = await fetch(productsUrl);
-
-    if (!productsResponse.ok) {
-      console.error('Failed to fetch products');
-      return res.status(500).send('Error loading products');
-    }
-
-    const productsData = await productsResponse.json();
+    const productsJson = await fetchUrl(productsUrl);
+    const productsData = JSON.parse(productsJson);
 
     // Find the product
     const product = productsData.find(p =>
@@ -27,6 +40,7 @@ module.exports = async (req, res) => {
     );
 
     if (!product) {
+      res.setHeader('Content-Type', 'text/plain');
       return res.status(404).send('Product not found');
     }
 
@@ -60,8 +74,7 @@ module.exports = async (req, res) => {
     const productUrl = `${baseUrl}/product/${id}`;
 
     // Fetch the base index.html
-    const htmlResponse = await fetch(`${baseUrl}/index.html`);
-    let html = await htmlResponse.text();
+    const html = await fetchUrl(`${baseUrl}/index.html`);
 
     // Helper to escape HTML
     const escapeHtml = (text) => {
@@ -102,17 +115,18 @@ module.exports = async (req, res) => {
     `;
 
     // Remove existing title and description tags, then inject new meta tags
-    html = html.replace(/<title>.*?<\/title>/i, '');
-    html = html.replace(/<meta\s+name=["']description["'][^>]*>/gi, '');
-    html = html.replace('</head>', `${metaTags}\n</head>`);
+    let modifiedHtml = html.replace(/<title>.*?<\/title>/i, '');
+    modifiedHtml = modifiedHtml.replace(/<meta\s+name=["']description["'][^>]*>/gi, '');
+    modifiedHtml = modifiedHtml.replace('</head>', `${metaTags}\n</head>`);
 
     // Return HTML with proper headers
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
-    return res.status(200).send(html);
+    return res.status(200).send(modifiedHtml);
 
   } catch (error) {
     console.error('Error in OG function:', error);
-    return res.status(500).send('Internal server error');
+    res.setHeader('Content-Type', 'text/plain');
+    return res.status(500).send(`Error: ${error.message}`);
   }
 };
