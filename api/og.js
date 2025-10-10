@@ -1,36 +1,33 @@
 // Vercel Serverless Function for Product Page Meta Tags
-const fs = require('fs');
-const path = require('path');
 
 module.exports = async (req, res) => {
   const { id } = req.query;
 
-  // If no ID, redirect to home
+  // If no ID, serve default page
   if (!id) {
-    return res.redirect(302, '/');
+    return res.status(400).send('Product ID required');
   }
 
   try {
-    // Load products JSON
-    const productsPath = path.join(process.cwd(), 'public', 'data', 'products.json');
-    let productsData = [];
+    // Fetch products from live URL
+    const productsUrl = 'https://thesolowardrobe.com/data/products.json';
+    const productsResponse = await fetch(productsUrl);
 
-    try {
-      const rawData = fs.readFileSync(productsPath, 'utf8');
-      productsData = JSON.parse(rawData);
-    } catch (err) {
-      console.error('Error reading products.json:', err);
-      return res.redirect(302, '/');
+    if (!productsResponse.ok) {
+      console.error('Failed to fetch products');
+      return res.status(500).send('Error loading products');
     }
 
-    // Find product
+    const productsData = await productsResponse.json();
+
+    // Find the product
     const product = productsData.find(p =>
       String(p._id || p.slug) === String(id) ||
       String(p.slug) === String(id)
     );
 
     if (!product) {
-      return res.redirect(302, '/');
+      return res.status(404).send('Product not found');
     }
 
     // Extract product details
@@ -48,7 +45,7 @@ module.exports = async (req, res) => {
     // Generate description
     const brand = product.brand ? ` by ${product.brand}` : '';
     const category = product.category ? ` in ${product.category}` : '';
-    const priceText = product.price ? ` for ₹${Number(product.price).toLocaleString()}` : '';
+    const priceText = product.price ? ` for ₹${Number(product.price).toLocaleString('en-IN')}` : '';
     let description = `Shop ${productName}${brand}${category}${priceText} at Solo Wardrobe.`;
 
     if (product.mrp && product.price && product.mrp > product.price) {
@@ -62,9 +59,21 @@ module.exports = async (req, res) => {
 
     const productUrl = `${baseUrl}/product/${id}`;
 
-    // Read base HTML
-    const htmlPath = path.join(process.cwd(), 'dist', 'index.html');
-    let html = fs.readFileSync(htmlPath, 'utf8');
+    // Fetch the base index.html
+    const htmlResponse = await fetch(`${baseUrl}/index.html`);
+    let html = await htmlResponse.text();
+
+    // Helper to escape HTML
+    const escapeHtml = (text) => {
+      const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      };
+      return String(text).replace(/[&<>"']/g, m => map[m]);
+    };
 
     // Create meta tags
     const metaTags = `
@@ -92,7 +101,9 @@ module.exports = async (req, res) => {
     <meta name="twitter:image" content="${imageUrl}" />
     `;
 
-    // Inject meta tags before </head>
+    // Remove existing title and description tags, then inject new meta tags
+    html = html.replace(/<title>.*?<\/title>/i, '');
+    html = html.replace(/<meta\s+name=["']description["'][^>]*>/gi, '');
     html = html.replace('</head>', `${metaTags}\n</head>`);
 
     // Return HTML with proper headers
@@ -102,18 +113,6 @@ module.exports = async (req, res) => {
 
   } catch (error) {
     console.error('Error in OG function:', error);
-    return res.redirect(302, '/');
+    return res.status(500).send('Internal server error');
   }
 };
-
-// Helper to escape HTML
-function escapeHtml(text) {
-  const map = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#039;'
-  };
-  return String(text).replace(/[&<>"']/g, m => map[m]);
-}
