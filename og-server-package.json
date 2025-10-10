@@ -1,0 +1,11 @@
+{
+  "name": "og-meta-server",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "scripts": {
+    "start": "node og-server.js"
+  }
+}
