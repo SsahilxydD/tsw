@@ -1,5 +1,12 @@
 {
-    "rewrites":  [
-      {"source": "/(.*)", "destination": "/"}
-    ]
-  }
+  "rewrites": [
+    {
+      "source": "/product/:id",
+      "destination": "/api/og?id=:id"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/"
+    }
+  ]
+}
