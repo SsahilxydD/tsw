@@ -282,102 +282,30 @@ export default {
           .replace(/'/g, '&#039;');
       };
 
-      // Create structured data for breadcrumbs and product
-      const structuredData = {
-        "@context": "https://schema.org",
-        "@graph": [
-          {
-            "@type": "BreadcrumbList",
-            "itemListElement": [
-              {
-                "@type": "ListItem",
-                "position": 1,
-                "name": "Home",
-                "item": baseUrl
-              },
-              {
-                "@type": "ListItem",
-                "position": 2,
-                "name": category || "Products",
-                "item": `${baseUrl}/collection`
-              },
-              {
-                "@type": "ListItem",
-                "position": 3,
-                "name": productName,
-                "item": productUrl
-              }
-            ]
-          },
-          {
-            "@type": "Product",
-            "name": productName,
-            "image": imageUrl,
-            "description": description,
-            "sku": productId,
-            "brand": {
-              "@type": "Brand",
-              "name": "Solo Wardrobe"
-            },
-            "offers": {
-              "@type": "Offer",
-              "url": productUrl,
-              "priceCurrency": "INR",
-              "price": displayPrice,
-              "priceValidUntil": new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-              "availability": "https://schema.org/InStock",
-              "itemCondition": "https://schema.org/NewCondition"
-            }
-          }
-        ]
-      };
-
-      // Logo URL
-      const logoUrl = `${baseUrl}/favicon.png`;
-
       // Create meta tags
       const metaTags = `
-    <title>${escapeHtml(productName)} – Solo Wardrobe | Premium Fashion</title>
+    <title>${escapeHtml(productName)} – Solo Wardrobe</title>
     <meta name="description" content="${escapeHtml(description)}" />
     <link rel="canonical" href="${productUrl}" />
 
     <!-- Open Graph -->
-    <meta property="og:locale" content="en_IN" />
-    <meta property="og:type" content="product" />
-    <meta property="og:title" content="${escapeHtml(productName)}" />
+    <meta property="og:title" content="${escapeHtml(productName)} – Solo Wardrobe" />
     <meta property="og:description" content="${escapeHtml(description)}" />
     <meta property="og:url" content="${productUrl}" />
-    <meta property="og:site_name" content="Solo Wardrobe" />
+    <meta property="og:type" content="product" />
     <meta property="og:image" content="${imageUrl}" />
     <meta property="og:image:secure_url" content="${imageUrl}" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="1200" />
-    <meta property="og:image:alt" content="${escapeHtml(productName)}" />
-
-    <!-- Brand Logo -->
-    <meta property="og:logo" content="${logoUrl}" />
-
-    <!-- Product specific -->
+    <meta property="og:site_name" content="Solo Wardrobe" />
     <meta property="product:price:amount" content="${displayPrice}" />
     <meta property="product:price:currency" content="INR" />
-    <meta property="product:availability" content="in stock" />
-    <meta property="product:condition" content="new" />
-    <meta property="product:retailer_item_id" content="${productId}" />
-    ${category ? `<meta property="product:category" content="${escapeHtml(category)}" />` : ''}
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="${escapeHtml(productName)}" />
+    <meta name="twitter:title" content="${escapeHtml(productName)} – Solo Wardrobe" />
     <meta name="twitter:description" content="${escapeHtml(description)}" />
     <meta name="twitter:image" content="${imageUrl}" />
-    <meta name="twitter:image:alt" content="${escapeHtml(productName)}" />
-    <meta name="twitter:label1" content="Price" />
-    <meta name="twitter:data1" content="₹${displayPrice.toLocaleString('en-IN')}" />
-    ${availableSizes.length > 0 ? `<meta name="twitter:label2" content="Sizes Available" />
-    <meta name="twitter:data2" content="${availableSizes.slice(0, 3).map(s => s.replace(/^UK-/, '')).join(', ')}" />` : ''}
-
-    <!-- Structured Data -->
-    <script type="application/ld+json">${JSON.stringify(structuredData)}</script>
     `;
 
       // Inject meta tags
