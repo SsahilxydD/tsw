@@ -47,23 +47,223 @@ export default {
         : (Array.isArray(product.image) ? product.image[0] : product.image);
 
       const baseUrl = 'https://thesolowardrobe.com';
-      const imageUrl = productImage?.startsWith('http')
-        ? productImage
-        : `${baseUrl}${productImage?.startsWith('/') ? productImage : `/${productImage}`}`;
 
-      // Generate description
-      const brand = product.brand ? ` by ${product.brand}` : '';
-      const category = product.category ? ` in ${product.category}` : '';
-      const priceText = product.price ? ` for ₹${Number(product.price).toLocaleString('en-IN')}` : '';
-      let description = `Shop ${productName}${brand}${category}${priceText} at Solo Wardrobe.`;
-
-      if (product.mrp && product.price && product.mrp > product.price) {
-        const discount = Math.round(((product.mrp - product.price) / product.mrp) * 100);
-        description += ` Save ${discount}%!`;
+      // Images are served from /data/images/* path
+      let imageUrl = productImage;
+      if (productImage?.startsWith('http')) {
+        imageUrl = productImage;
+      } else if (productImage?.startsWith('/images/')) {
+        // Need to add /data prefix
+        imageUrl = `${baseUrl}/data${productImage}`;
+      } else if (productImage?.startsWith('/')) {
+        imageUrl = `${baseUrl}${productImage}`;
+      } else {
+        imageUrl = `${baseUrl}/${productImage}`;
       }
 
-      if (description.length > 160) {
-        description = description.substring(0, 157) + '...';
+      // Apply same price adjustments as ShopContext
+      const basePrice = Number(product.price || 0);
+      const originalCategory = product.category || '';
+      const title = product.title || product.slug_name || '';
+      const hint = `${originalCategory} ${product.subCategory || ''} ${title}`.toLowerCase();
+
+      // Category detection (same logic as ShopContext)
+      const any = (regexes) => regexes.some(r => r.test(hint));
+      const isBelt = any([/\bbelts?\b/i]);
+      const isCap = any([/\bcaps?\b/i]);
+      const isFlipFlop = any([/(flip\s*-?\s*flops?)/i, /\bslides?\b/i]);
+      const isHoodie = any([/\bhoodies?\b/i, /hooded\s+sweatshirt/i]);
+      const isHandbag = any([/(hand\s*bags?)/i, /\bhandbag\b/i]);
+      const isJacket = any([/\bjackets?\b/i]);
+      const isShirt = any([/\bshirts?\b/i, /formal\s+shirt/i]);
+      const isSunglasses = any([/(sunglass|sunglasses|shades)\b/i]);
+      const isSweatshirt = any([/\bsweat\s*-?\s*shirts?\b/i, /\bsweatshirt\b/i]);
+      const isTShirt = any([/(t\s*-?\s*shirts?|tshirts?)\b/i, /\btees?\b/i]);
+      const isTrackPant = any([/(track\s*-?\s*pants?|trackpants?)\b/i, /\bjoggers?\b/i]);
+      const isTracksuit = any([/\btrack\s*-?\s*suits?\b/i, /\btracksuits?\b/i]);
+      const isWallet = any([/\bwallets?\b/i]);
+      const isWomensWatch = any([/(women['']s?\s+watch|lad(?:y|ies)\s+watch)/i]);
+      const isMensWatch = /\bwatch\b/i.test(hint) && !isWomensWatch;
+      const isWomensPerfume = any([/(women['']s?\s+perfume|pour\s+femme)/i]);
+      const isMensPerfume = any([/(men['']s?\s+perfume|pour\s+homme)/i]) || (/\b(edp|edt)\b/i.test(hint) && !isWomensPerfume);
+      const isDiscounted = /\bdiscounted\b/i.test(originalCategory.toLowerCase());
+      const isJeans = any([/\bjeans?\b/i, /\bdenim\b/i]);
+      const isShoe = any([/\bshoes?\b/i, /\bsneakers?\b/i, /\bfootwear\b/i, /\bboots?\b/i, /\bsandals?\b/i]);
+
+      // Calculate price adjustment (same logic as ShopContext)
+      let priceAdj = 0;
+      if (isDiscounted) {
+        priceAdj = 0;
+      } else if (isBelt) {
+        priceAdj = 200;
+      } else if (isCap) {
+        priceAdj = 200;
+      } else if (isFlipFlop) {
+        priceAdj = 150;
+      } else if (isHoodie) {
+        priceAdj = 150;
+      } else if (isHandbag) {
+        priceAdj = 100;
+      } else if (isJacket) {
+        priceAdj = 150;
+      } else if (isJeans) {
+        priceAdj = 100;
+      } else if (isWomensWatch) {
+        priceAdj = 150;
+      } else if (isMensPerfume) {
+        priceAdj = 150;
+      } else if (isShirt) {
+        priceAdj = 200;
+      } else if (isSunglasses) {
+        priceAdj = 250;
+      } else if (isSweatshirt) {
+        priceAdj = 200;
+      } else if (isTShirt) {
+        priceAdj = 150;
+      } else if (isTrackPant) {
+        priceAdj = 200;
+      } else if (isTracksuit) {
+        priceAdj = 150;
+      } else if (isWallet) {
+        priceAdj = 150;
+      } else if (isMensWatch) {
+        priceAdj = 150;
+      } else if (isWomensPerfume) {
+        priceAdj = 150;
+      } else if (isShoe) {
+        priceAdj = 550;
+      }
+
+      const displayPrice = Math.max(0, basePrice + priceAdj);
+      const displayMrp = product.mrp ? Math.max(0, Number(product.mrp) + priceAdj) : null;
+
+      // Process sizes (same logic as ProductItem.jsx)
+      const processSizes = (product) => {
+        let sizes = Array.isArray(product.sizes) ? product.sizes : [];
+        if (sizes.length === 0) return [];
+
+        // Helper functions for size processing
+        const toUKLabel = (raw) => {
+          if (!raw) return null;
+          const s = String(raw).toUpperCase().trim();
+
+          // UK format: "UK 7", "UK-7", etc.
+          let m = s.match(/\bUK\s*[-:]?\s*(\d{1,2}(?:\.5)?)\b/);
+          if (m) return `UK-${m[1]}`;
+
+          // M-7 format
+          m = s.match(/^M[-\s]?(\d{1,2}(?:\.5)?)$/);
+          if (m) return `UK-${m[1]}`;
+
+          // Bare number: 5-12 assumed UK shoe sizes
+          m = s.match(/^(\d{1,2})(?:\.5)?$/);
+          if (m) {
+            const n = parseFloat(m[1]);
+            if (n >= 5 && n <= 12) return `UK-${n}`;
+          }
+
+          return null;
+        };
+
+        const normalizeJeansSize = (raw) => {
+          const s = String(raw).toUpperCase().trim();
+          const m = s.match(/\b(\d{2})\b/);
+          if (!m) return null;
+          const n = parseInt(m[1], 10);
+          if (n >= 26 && n <= 48) return String(n);
+          return null;
+        };
+
+        // Process based on category
+        let processed = [];
+        if (isShoe) {
+          // Footwear: convert to UK sizes and filter 5-12
+          for (const sz of sizes) {
+            const uk = toUKLabel(sz);
+            if (uk) {
+              const n = parseFloat(uk.replace(/[^0-9.]/g, ''));
+              if (n >= 5 && n <= 12) processed.push(uk);
+            }
+          }
+          processed.sort((a, b) => {
+            const na = parseFloat(a.replace(/[^0-9.]/g, ''));
+            const nb = parseFloat(b.replace(/[^0-9.]/g, ''));
+            return na - nb;
+          });
+        } else if (isJeans) {
+          // Jeans: extract waist sizes
+          for (const sz of sizes) {
+            const waist = normalizeJeansSize(sz);
+            if (waist) processed.push(waist);
+          }
+          processed.sort((a, b) => parseInt(a) - parseInt(b));
+        } else {
+          // Regular clothing: filter out placeholder sizes
+          processed = sizes.map(s => String(s).trim()).filter(Boolean);
+        }
+
+        // Remove "onesize", "std", "os" placeholders
+        const bad = /^(one\s?size|onesize|os|std)$/i;
+        processed = processed.filter(s => !bad.test(s));
+
+        // Remove duplicates (case-insensitive)
+        const seen = new Set();
+        const unique = [];
+        for (const s of processed) {
+          const key = s.toUpperCase();
+          if (!seen.has(key)) {
+            seen.add(key);
+            unique.push(s);
+          }
+        }
+
+        return unique;
+      };
+
+      const availableSizes = processSizes(product);
+
+      // Generate engaging description with better context
+      const category = product.category || '';
+
+      // Create a compelling opening based on category
+      let opening = '✨ Premium Fashion';
+      if (isShoe) opening = '👟 Step Up Your Style';
+      else if (isTShirt) opening = '👕 Essential Wardrobe Staple';
+      else if (isJeans) opening = '👖 Perfect Fit Denim';
+      else if (isSunglasses) opening = '🕶️ Elevate Your Look';
+      else if (isWallet) opening = '💼 Everyday Essential';
+      else if (isHoodie || isSweatshirt) opening = '🔥 Cozy & Stylish';
+      else if (isBelt) opening = '⚡ Complete Your Outfit';
+
+      // Build size availability text
+      let sizeInfo = '';
+      if (availableSizes.length > 0) {
+        const sizesToShow = availableSizes.slice(0, 4);
+        const formattedSizes = sizesToShow.map(s => s.replace(/^UK-/, '')).join(', ');
+        sizeInfo = `Sizes: ${formattedSizes}`;
+        if (availableSizes.length > 4) {
+          sizeInfo += ` +${availableSizes.length - 4} more`;
+        }
+        sizeInfo = ` | ${sizeInfo}`;
+      }
+
+      // Discount badge
+      let discountBadge = '';
+      if (displayMrp && displayPrice && displayMrp > displayPrice) {
+        const discount = Math.round(((displayMrp - displayPrice) / displayMrp) * 100);
+        discountBadge = ` | 🏷️ ${discount}% OFF`;
+      }
+
+      // Price info
+      const priceInfo = displayPrice ? ` | ₹${displayPrice.toLocaleString('en-IN')}` : '';
+
+      // Category breadcrumb
+      const categoryBreadcrumb = category ? ` in ${category}` : '';
+
+      let description = `${opening} - ${productName}${categoryBreadcrumb}${priceInfo}${sizeInfo}${discountBadge} | Free Shipping | COD Available | Easy Returns`;
+
+      if (description.length > 200) {
+        description = description.substring(0, 197) + '...';
       }
 
       const productUrl = `${baseUrl}/product/${productId}`;
@@ -82,30 +282,102 @@ export default {
           .replace(/'/g, '&#039;');
       };
 
+      // Create structured data for breadcrumbs and product
+      const structuredData = {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": baseUrl
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": category || "Products",
+                "item": `${baseUrl}/collection`
+              },
+              {
+                "@type": "ListItem",
+                "position": 3,
+                "name": productName,
+                "item": productUrl
+              }
+            ]
+          },
+          {
+            "@type": "Product",
+            "name": productName,
+            "image": imageUrl,
+            "description": description,
+            "sku": productId,
+            "brand": {
+              "@type": "Brand",
+              "name": "Solo Wardrobe"
+            },
+            "offers": {
+              "@type": "Offer",
+              "url": productUrl,
+              "priceCurrency": "INR",
+              "price": displayPrice,
+              "priceValidUntil": new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              "availability": "https://schema.org/InStock",
+              "itemCondition": "https://schema.org/NewCondition"
+            }
+          }
+        ]
+      };
+
+      // Logo URL
+      const logoUrl = `${baseUrl}/favicon.png`;
+
       // Create meta tags
       const metaTags = `
-    <title>${escapeHtml(productName)} – Solo Wardrobe</title>
+    <title>${escapeHtml(productName)} – Solo Wardrobe | Premium Fashion</title>
     <meta name="description" content="${escapeHtml(description)}" />
     <link rel="canonical" href="${productUrl}" />
 
     <!-- Open Graph -->
-    <meta property="og:title" content="${escapeHtml(productName)} – Solo Wardrobe" />
+    <meta property="og:locale" content="en_IN" />
+    <meta property="og:type" content="product" />
+    <meta property="og:title" content="${escapeHtml(productName)}" />
     <meta property="og:description" content="${escapeHtml(description)}" />
     <meta property="og:url" content="${productUrl}" />
-    <meta property="og:type" content="product" />
+    <meta property="og:site_name" content="Solo Wardrobe" />
     <meta property="og:image" content="${imageUrl}" />
     <meta property="og:image:secure_url" content="${imageUrl}" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="1200" />
-    <meta property="og:site_name" content="Solo Wardrobe" />
-    <meta property="product:price:amount" content="${product.price || 0}" />
+    <meta property="og:image:alt" content="${escapeHtml(productName)}" />
+
+    <!-- Brand Logo -->
+    <meta property="og:logo" content="${logoUrl}" />
+
+    <!-- Product specific -->
+    <meta property="product:price:amount" content="${displayPrice}" />
     <meta property="product:price:currency" content="INR" />
+    <meta property="product:availability" content="in stock" />
+    <meta property="product:condition" content="new" />
+    <meta property="product:retailer_item_id" content="${productId}" />
+    ${category ? `<meta property="product:category" content="${escapeHtml(category)}" />` : ''}
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="${escapeHtml(productName)} – Solo Wardrobe" />
+    <meta name="twitter:title" content="${escapeHtml(productName)}" />
     <meta name="twitter:description" content="${escapeHtml(description)}" />
     <meta name="twitter:image" content="${imageUrl}" />
+    <meta name="twitter:image:alt" content="${escapeHtml(productName)}" />
+    <meta name="twitter:label1" content="Price" />
+    <meta name="twitter:data1" content="₹${displayPrice.toLocaleString('en-IN')}" />
+    ${availableSizes.length > 0 ? `<meta name="twitter:label2" content="Sizes Available" />
+    <meta name="twitter:data2" content="${availableSizes.slice(0, 3).map(s => s.replace(/^UK-/, '')).join(', ')}" />` : ''}
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">${JSON.stringify(structuredData)}</script>
     `;
 
       // Inject meta tags
