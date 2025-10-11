@@ -1,5 +1,14 @@
 User-agent: *
 Allow: /
-Sitemap: /sitemap.xml
+
+# Block admin/checkout pages from indexing
+Disallow: /cart
+Disallow: /orders
+Disallow: /address
+Disallow: /payment
+Disallow: /place-order
+
+# Sitemap location
+Sitemap: https://thesolowardrobe.com/sitemap.xml
 
 

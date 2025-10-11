@@ -15,6 +15,77 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <meta name="description" content="Solo Wardrobe – honest prices, curated drops. Shop easy-to-wear pieces that last." />
     <title>Solo Wardrobe</title>
+
+    <!-- Structured Data for Google Search Features -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://thesolowardrobe.com/#organization",
+          "name": "Solo Wardrobe",
+          "url": "https://thesolowardrobe.com",
+          "logo": {
+            "@type": "ImageObject",
+            "@id": "https://thesolowardrobe.com/#logo",
+            "url": "https://thesolowardrobe.com/favicon.png",
+            "contentUrl": "https://thesolowardrobe.com/favicon.png",
+            "width": 192,
+            "height": 192,
+            "caption": "Solo Wardrobe"
+          },
+          "image": {
+            "@id": "https://thesolowardrobe.com/#logo"
+          },
+          "description": "Solo Wardrobe – honest prices, curated drops. Shop easy-to-wear pieces that last.",
+          "sameAs": []
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://thesolowardrobe.com/#website",
+          "url": "https://thesolowardrobe.com",
+          "name": "Solo Wardrobe",
+          "description": "Solo Wardrobe – honest prices, curated drops. Shop easy-to-wear pieces that last.",
+          "publisher": {
+            "@id": "https://thesolowardrobe.com/#organization"
+          },
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": "https://thesolowardrobe.com/collection?search={search_term_string}"
+            },
+            "query-input": "required name=search_term_string"
+          }
+        },
+        {
+          "@type": "WebPage",
+          "@id": "https://thesolowardrobe.com/#webpage",
+          "url": "https://thesolowardrobe.com",
+          "name": "Solo Wardrobe - Premium Fashion at Honest Prices",
+          "isPartOf": {
+            "@id": "https://thesolowardrobe.com/#website"
+          },
+          "about": {
+            "@id": "https://thesolowardrobe.com/#organization"
+          },
+          "description": "Solo Wardrobe – honest prices, curated drops. Shop easy-to-wear pieces that last.",
+          "inLanguage": "en-IN"
+        }
+      ]
+    }
+    </script>
+
+    <!-- Enhanced SEO Meta Tags -->
+    <meta property="og:site_name" content="Solo Wardrobe" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://thesolowardrobe.com" />
+    <meta property="og:title" content="Solo Wardrobe - Premium Fashion at Honest Prices" />
+    <meta property="og:description" content="Solo Wardrobe – honest prices, curated drops. Shop easy-to-wear pieces that last." />
+    <meta property="og:image" content="https://thesolowardrobe.com/favicon.png" />
+    <meta property="og:locale" content="en_IN" />
+
     <script>
       // Clean up deprecated apple meta and block any GA/gtm network calls (from stale SW or third-parties)
       (function(){
