@@ -60,9 +60,18 @@ async function sendNewShoesToWhatsApp(env) {
 
     console.log(`Found ${newShoes.length} new shoes to send`);
 
+    // LIMIT: Only send max 10 products per run to avoid Cloudflare subrequest limits
+    // Hourly cron will gradually send all new products
+    const MAX_PER_RUN = 10;
+    const shoesToSend = newShoes.slice(0, MAX_PER_RUN);
+
+    if (shoesToSend.length < newShoes.length) {
+      console.log(`Limiting to ${MAX_PER_RUN} products this run. ${newShoes.length - MAX_PER_RUN} will be sent in next hourly runs.`);
+    }
+
     // Send each new shoe to WhatsApp
     let successCount = 0;
-    for (const shoe of newShoes) {
+    for (const shoe of shoesToSend) {
       const sent = await sendToWhatsApp(shoe, env);
       if (sent) {
         await markAsSent(shoe.slug, env);
