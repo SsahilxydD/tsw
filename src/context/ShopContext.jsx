@@ -269,21 +269,74 @@ const ShopContextProvider = (props) => {
 
           // Canonicalize categoryRaw for UI routing/grouping (case-proof, handles concatenations)
           const canonicalCategory = (() => {
-            const key = String(originalCategory || "")
+            const src = String(originalCategory || '');
+            const key = src
               .toLowerCase()
+              .normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, '')
               .replace(/[^a-z0-9]+/g, '');
-            if (/(^|\b)(discounted|sale)(\b|$)/i.test(String(originalCategory || ''))) return 'Discounted';
-            if (/^men(perfume|sperfume|fragrance|sfragrance)$/.test(key)) return 'MensPerfume';
-            if (/^(women|womens|ladies)(perfume|fragrance)$/.test(key)) return 'WomensPerfume';
+
+            // Global buckets
+            if (/(^|\b)(discounted|sale)(\b|$)/i.test(src)) return 'Discounted';
+            if (/^men$/.test(key)) return 'Men';
+            if (/^(women|lady|ladies|womens)$/.test(key)) return 'Women';
+            if (/^kid|kids$/.test(key)) return 'Kids';
+
+            // Specific product-type categories (many concatenated and spaced variants)
+            if (/^(belt|belts|waistbelt|waistbelts)$/.test(key)) return 'Belts';
+            if (/^(cap|caps|hat|hats|beanie|beanies)$/.test(key)) return 'Caps';
+            if (/^(handbag|handbags|purse|purses|tote|totes|slingbag|slingbags|shoulderbag|shoulderbags)$/.test(key)) return 'Handbags';
+            if (/^(jacket|jackets|windcheater|windcheaters|blazer|blazers|coat|coats)$/.test(key)) return 'Jackets';
+            if (/^(shirt|shirts|formalshirt|casualshirt|linenshirt|overshirt|overshirts)$/.test(key)) return 'Shirts';
+            if (/^(sunglass|sunglasses|shades|goggles|spectacles|specs|aviator|aviators)$/.test(key)) return 'Sunglasses';
+            if (/^(sweatshirt|sweatshirts)$/.test(key)) return 'Sweatshirts';
+            if (/^(tshirt|tshirts|tshirtmen|tshirtwomen|tshirtkids|tshirtboy|tshirtgirl|tshirtunisex|tshirttee|tee|tees)$/.test(key)) return 'TShirts';
+            if (/^(trackpant|trackpants|jogger|joggers|tracks)$/.test(key)) return 'TrackPants';
+            if (/^(tracksuit|tracksuits)$/.test(key)) return 'Tracksuits';
+            if (/^(wallet|wallets|cardholder|cardholders)$/.test(key)) return 'Wallets';
+            if (/^(watch|watches|menswatch|menswatches|menwatch)$/.test(key)) return 'MensWatches';
+            if (/^(womenwatch|womenswatch|ladieswatch|womenswatches|womenwatches)$/.test(key)) return 'WomensWatches';
+            if (/^(menperfume|mensperfume|menfragrance|mensfragrance)$/.test(key)) return 'MensPerfume';
+            if (/^(womenperfume|womensperfume|ladiesperfume|womenfragrance|womensfragrance)$/.test(key)) return 'WomensPerfume';
+            if (/^(jeans|denim|denims|trouser|trousers|pant|pants|chino|chinos|bottomwear|bottoms)$/.test(key)) return 'Bottomwear';
+            if (/^(shoe|shoes|sneaker|sneakers|loafer|loafers|boot|boots|footwear|sandals|slides|slippers|clog|clogs|flipflop|flipflops)$/.test(key)) return 'Footwear';
+            if (/^(topwear|tops)$/.test(key)) return 'Topwear';
+            if (/^(accessory|accessories)$/.test(key)) return 'Accessories';
+
             // Default: title-case with separators normalized for readability
-            const pretty = String(originalCategory || '')
+            const pretty = src
               .replace(/[_-]+/g, ' ')
-              .replace(/\s+/g, ' ') 
+              .replace(/\s+/g, ' ')
               .trim()
               .toLowerCase()
               .replace(/\b([a-z])/g, (m, a) => a.toUpperCase());
             return pretty || originalCategory || '';
           })();
+
+          // If the canonical category is still generic, use detected flags to specialize
+          const specializeIfGeneric = (current) => {
+            const genericSet = new Set(['Men','Women','Kids','Topwear','Bottomwear','Footwear','Accessories','Discounted','']);
+            if (!genericSet.has(current)) return current;
+            if (isBelt) return 'Belts';
+            if (isCap) return 'Caps';
+            if (isHandbag) return 'Handbags';
+            if (isJacket) return 'Jackets';
+            if (isShirt) return 'Shirts';
+            if (isSunglasses) return 'Sunglasses';
+            if (isSweatshirt) return 'Sweatshirts';
+            if (isTShirt) return 'TShirts';
+            if (isTrackPant) return 'TrackPants';
+            if (isTracksuit) return 'Tracksuits';
+            if (isWallet) return 'Wallets';
+            if (isMensWatch) return 'MensWatches';
+            if (isWomensWatch) return 'WomensWatches';
+            if (isMensPerfume) return 'MensPerfume';
+            if (isWomensPerfume) return 'WomensPerfume';
+            if (isJeansProduct({ category: originalCategory, categoryRaw: originalCategory })) return 'Bottomwear';
+            if (isShoe || isFootwearProduct({ category: originalCategory, categoryRaw: originalCategory, sizes: item?.sizes })) return 'Footwear';
+            return current;
+          };
+          const finalCategoryRaw = specializeIfGeneric(canonicalCategory);
 
           const mappedItem = {
             _id: (item.slug ?? item.slug_name ?? item.title)?.toString(),
@@ -293,7 +346,7 @@ const ShopContextProvider = (props) => {
             image: images[0] ?? "",
             images,
             category,
-            categoryRaw: canonicalCategory,
+            categoryRaw: finalCategoryRaw,
             subCategory: derivedSub,
             sizes: Array.isArray(item.sizes) ? item.sizes : [],
             bestseller: Boolean(item.bestseller ?? false),
