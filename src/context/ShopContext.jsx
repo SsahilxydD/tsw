@@ -144,7 +144,11 @@ const ShopContextProvider = (props) => {
 
           const isCap = any([/\bcaps?\b/i, /\bhat(s)?\b/i, /\bbeanie\b/i]);
           const isBelt = any([/\bbelts?\b/i, /waist\s*belt/i]);
-          const isFlipFlop = any([/(flip\s*-?\s*flops?)/i, /\bslides?\b/i, /\bslippers?\b/i, /\bclogs?\b/i, /\bsandals?\b/i]);
+          const isFlipFlop = any([/(flip\s*-?\s*flops?)/i]);
+          const isSlide = any([/\bslides?\b/i]);
+          const isSlipper = any([/\bslippers?\b/i]);
+          const isClog = any([/\bclogs?\b/i]);
+          const isSandal = any([/\bsandals?\b/i]);
           const isHoodie = any([/\bhoodies?\b/i, /hooded\s+sweatshirt/i, /zip\s*hoodie/i]);
           const isHandbag = any([/(hand\s*bags?)/i, /\bhandbag\b/i, /\btote\b/i]);
           const isJacket = any([/\bjackets?\b/i, /\bwindcheaters?\b/i, /\bblazers?\b/i]);
@@ -153,6 +157,9 @@ const ShopContextProvider = (props) => {
           const isSweatshirt = any([/\bsweat\s*-?\s*shirts?\b/i, /\bsweatshirt\b/i]);
           const isTShirt = any([/(t\s*-?\s*shirts?|t-?shirts?|tshirt|t\s*shirt)\b/i, /\btees?\b/i, /crew\s*neck/i, /round\s*neck/i]);
           const isTrackPant = any([/(track\s*-?\s*pants?|trackpants?)\b/i, /\bjoggers?\b/i, /\btracks?\b/i]);
+          const isTrouser = any([/\btrousers?\b/i]);
+          const isPant = any([/\bpants?\b/i]);
+          const isChino = any([/\bchinos?\b/i]);
           const isTracksuit = any([/\btrack\s*-?\s*suits?\b/i, /\btracksuits?\b/i]);
           const isWallet = any([/\bwallets?\b/i, /card\s*holder/i]);
           const isWomensWatch = any([/(women['’]s?\s+watch|lad(?:y|ies)\s+watch)/i]);
@@ -298,8 +305,19 @@ const ShopContextProvider = (props) => {
             if (/^(womenwatch|womenswatch|ladieswatch|womenswatches|womenwatches)$/.test(key)) return 'WomensWatches';
             if (/^(menperfume|mensperfume|menfragrance|mensfragrance)$/.test(key)) return 'MensPerfume';
             if (/^(womenperfume|womensperfume|ladiesperfume|womenfragrance|womensfragrance)$/.test(key)) return 'WomensPerfume';
-            if (/^(jeans|denim|denims|trouser|trousers|pant|pants|chino|chinos|bottomwear|bottoms)$/.test(key)) return 'Bottomwear';
-            if (/^(shoe|shoes|sneaker|sneakers|loafer|loafers|boot|boots|footwear|sandals|slides|slippers|clog|clogs|flipflop|flipflops)$/.test(key)) return 'Footwear';
+            // Bottomwear subtypes first
+            if (/^(jeans|denim|denims)$/.test(key)) return 'Jeans';
+            if (/^(trouser|trousers)$/.test(key)) return 'Trousers';
+            if (/^(pant|pants)$/.test(key)) return 'Pants';
+            if (/^(chino|chinos)$/.test(key)) return 'Chinos';
+            if (/^(bottomwear|bottoms)$/.test(key)) return 'Bottomwear';
+            // Footwear subtypes first
+            if (/^(flipflop|flipflops)$/.test(key)) return 'FlipFlops';
+            if (/^slides?$/.test(key)) return 'Slides';
+            if (/^slippers?$/.test(key)) return 'Slippers';
+            if (/^(clog|clogs)$/.test(key)) return 'Clogs';
+            if (/^sandals?$/.test(key)) return 'Sandals';
+            if (/^(shoe|shoes|sneaker|sneakers|loafer|loafers|boot|boots|footwear)$/.test(key)) return 'Shoes';
             if (/^(topwear|tops)$/.test(key)) return 'Topwear';
             if (/^(accessory|accessories)$/.test(key)) return 'Accessories';
 
@@ -326,14 +344,22 @@ const ShopContextProvider = (props) => {
             if (isSweatshirt) return 'Sweatshirts';
             if (isTShirt) return 'TShirts';
             if (isTrackPant) return 'TrackPants';
+            if (isTrouser) return 'Trousers';
+            if (isPant) return 'Pants';
+            if (isChino) return 'Chinos';
             if (isTracksuit) return 'Tracksuits';
             if (isWallet) return 'Wallets';
             if (isMensWatch) return 'MensWatches';
             if (isWomensWatch) return 'WomensWatches';
             if (isMensPerfume) return 'MensPerfume';
             if (isWomensPerfume) return 'WomensPerfume';
-            if (isJeansProduct({ category: originalCategory, categoryRaw: originalCategory })) return 'Bottomwear';
-            if (isShoe || isFootwearProduct({ category: originalCategory, categoryRaw: originalCategory, sizes: item?.sizes })) return 'Footwear';
+            if (isJeansProduct({ category: originalCategory, categoryRaw: originalCategory })) return 'Jeans';
+            if (isFlipFlop) return 'FlipFlops';
+            if (isSlide) return 'Slides';
+            if (isSlipper) return 'Slippers';
+            if (isClog) return 'Clogs';
+            if (isSandal) return 'Sandals';
+            if (isShoe || isFootwearProduct({ category: originalCategory, categoryRaw: originalCategory, sizes: item?.sizes })) return 'Shoes';
             return current;
           };
           const finalCategoryRaw = specializeIfGeneric(canonicalCategory);
