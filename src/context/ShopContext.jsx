@@ -157,8 +157,19 @@ const ShopContextProvider = (props) => {
           const isWallet = any([/\bwallets?\b/i, /card\s*holder/i]);
           const isWomensWatch = any([/(women['’]s?\s+watch|lad(?:y|ies)\s+watch)/i]);
           const isMensWatch = /\bwatch\b/i.test(hint) && !isWomensWatch;
-          const isWomensPerfume = any([/(women['’]s?\s+perfume|pour\s+femme)/i, /\bfragrance\b/i]);
-          const isMensPerfume = any([/(men['’]s?\s+perfume|pour\s+homme)/i]) || (/\b(edp|edt|eau\s+de\s+parfum|eau\s+de\s+toilette)\b/i.test(hint) && !isWomensPerfume);
+          const isWomensPerfume = any([
+            /(women['’]s?\s+perfume|pour\s+femme)/i,
+            /\bfragrance\b/i,
+            /\bwomen\s*perfume\b/i,
+            /\bwomens\s*perfume\b/i,
+            /\bwomens?perfume\b/i
+          ]);
+          const isMensPerfume = any([
+            /(men['’]s?\s+perfume|pour\s+homme)/i,
+            /\bmen\s*perfume\b/i,
+            /\bmens\s*perfume\b/i,
+            /\bmenperfume\b/i
+          ]) || (/\b(edp|edt|eau\s+de\s+parfum|eau\s+de\s+toilette)\b/i.test(hint) && !isWomensPerfume);
           // Treat both "discounted" and "sale" as discounted bucket
           const isDiscounted = /\b(discounted|sale)\b/i.test(lcRaw);
           const isShoe = isFootwearProduct({ category: originalCategory, categoryRaw: originalCategory, sizes: item?.sizes });
@@ -256,6 +267,24 @@ const ShopContextProvider = (props) => {
             }
           }
 
+          // Canonicalize categoryRaw for UI routing/grouping (case-proof, handles concatenations)
+          const canonicalCategory = (() => {
+            const key = String(originalCategory || "")
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, '');
+            if (/(^|\b)(discounted|sale)(\b|$)/i.test(String(originalCategory || ''))) return 'Discounted';
+            if (/^men(perfume|sperfume|fragrance|sfragrance)$/.test(key)) return 'MensPerfume';
+            if (/^(women|womens|ladies)(perfume|fragrance)$/.test(key)) return 'WomensPerfume';
+            // Default: title-case with separators normalized for readability
+            const pretty = String(originalCategory || '')
+              .replace(/[_-]+/g, ' ')
+              .replace(/\s+/g, ' ') 
+              .trim()
+              .toLowerCase()
+              .replace(/\b([a-z])/g, (m, a) => a.toUpperCase());
+            return pretty || originalCategory || '';
+          })();
+
           const mappedItem = {
             _id: (item.slug ?? item.slug_name ?? item.title)?.toString(),
             name: formatName(item.title ?? item.slug_name ?? ""),
@@ -264,7 +293,7 @@ const ShopContextProvider = (props) => {
             image: images[0] ?? "",
             images,
             category,
-            categoryRaw: originalCategory,
+            categoryRaw: canonicalCategory,
             subCategory: derivedSub,
             sizes: Array.isArray(item.sizes) ? item.sizes : [],
             bestseller: Boolean(item.bestseller ?? false),

@@ -92,8 +92,19 @@ export default {
       const isWallet = any([/\bwallets?\b/i, /card\s*holder/i]);
       const isWomensWatch = any([/(women['']s?\s+watch|lad(?:y|ies)\s+watch)/i]);
       const isMensWatch = /\bwatch\b/i.test(hint) && !isWomensWatch;
-      const isWomensPerfume = any([/(women['']s?\s+perfume|pour\s+femme)/i, /\bfragrance\b/i]);
-      const isMensPerfume = any([/(men['']s?\s+perfume|pour\s+homme)/i]) || (/\b(edp|edt|eau\s+de\s+parfum|eau\s+de\s+toilette)\b/i.test(hint) && !isWomensPerfume);
+      const isWomensPerfume = any([
+        /(women['']s?\s+perfume|pour\s+femme)/i,
+        /\bfragrance\b/i,
+        /\bwomen\s*perfume\b/i,
+        /\bwomens\s*perfume\b/i,
+        /\bwomens?perfume\b/i
+      ]);
+      const isMensPerfume = any([
+        /(men['']s?\s+perfume|pour\s+homme)/i,
+        /\bmen\s*perfume\b/i,
+        /\bmens\s*perfume\b/i,
+        /\bmenperfume\b/i
+      ]) || (/\b(edp|edt|eau\s+de\s+parfum|eau\s+de\s+toilette)\b/i.test(hint) && !isWomensPerfume);
       const isDiscounted = /\b(discounted|sale)\b/i.test((originalCategory || '').toLowerCase());
       const isJeans = any([/\bjeans?\b/i, /\bdenim\b/i]);
       const isShoe = any([/\bshoes?\b/i, /\bsneakers?\b/i, /\bfootwear\b/i, /\bboots?\b/i, /\bsandals?\b/i]);
