@@ -127,30 +127,40 @@ const ShopContextProvider = (props) => {
           const lcTitle = title.toLowerCase();
 
           // Combined hint for keyword detection (raw category + sub + title)
-          const hint = `${lcRaw} ${lcSub} ${lcTitle}`;
+          // Normalize to improve matching across variants (diacritics, underscores, dashes, extra spaces)
+          const normalize = (s) => String(s || "")
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '') // strip diacritics
+            .replace(/[_]/g, ' ')
+            .replace(/[–—]/g, '-')
+            .replace(/\s+/g, ' ')
+            .trim();
+          const hint = normalize(`${originalCategory} ${item?.subCategory ?? ''} ${title}`);
 
           // Quick keyword flags
           // Helper to match any of a list of regexes
           const any = (regexes) => regexes.some((r) => r.test(hint));
 
-          const isCap = any([/\bcaps?\b/i]);
-          const isBelt = any([/\bbelts?\b/i]);
-          const isFlipFlop = any([/(flip\s*-?\s*flops?)/i, /\bslides?\b/i]);
-          const isHoodie = any([/\bhoodies?\b/i, /hooded\s+sweatshirt/i]);
-          const isHandbag = any([/(hand\s*bags?)/i, /\bhandbag\b/i]);
-          const isJacket = any([/\bjackets?\b/i]);
-          const isShirt = any([/\bshirts?\b/i, /formal\s+shirt/i]);
-          const isSunglasses = any([/(sunglass|sunglasses|shades)\b/i]);
+          const isCap = any([/\bcaps?\b/i, /\bhat(s)?\b/i, /\bbeanie\b/i]);
+          const isBelt = any([/\bbelts?\b/i, /waist\s*belt/i]);
+          const isFlipFlop = any([/(flip\s*-?\s*flops?)/i, /\bslides?\b/i, /\bslippers?\b/i, /\bclogs?\b/i, /\bsandals?\b/i]);
+          const isHoodie = any([/\bhoodies?\b/i, /hooded\s+sweatshirt/i, /zip\s*hoodie/i]);
+          const isHandbag = any([/(hand\s*bags?)/i, /\bhandbag\b/i, /\btote\b/i]);
+          const isJacket = any([/\bjackets?\b/i, /\bwindcheaters?\b/i, /\bblazers?\b/i]);
+          const isShirt = any([/\bshirts?\b/i, /formal\s+shirt/i, /casual\s+shirt/i, /linen\s+shirt/i]);
+          const isSunglasses = any([/(sunglass|sunglasses|shades)\b/i, /\bgoggles\b/i, /\bspectacles\b/i, /\bspecs\b/i, /\baviators?\b/i]);
           const isSweatshirt = any([/\bsweat\s*-?\s*shirts?\b/i, /\bsweatshirt\b/i]);
-          const isTShirt = any([/(t\s*-?\s*shirts?|tshirts?)\b/i, /\btees?\b/i]);
-          const isTrackPant = any([/(track\s*-?\s*pants?|trackpants?)\b/i, /\bjoggers?\b/i]);
+          const isTShirt = any([/(t\s*-?\s*shirts?|t-?shirts?|tshirt|t\s*shirt)\b/i, /\btees?\b/i, /crew\s*neck/i, /round\s*neck/i]);
+          const isTrackPant = any([/(track\s*-?\s*pants?|trackpants?)\b/i, /\bjoggers?\b/i, /\btracks?\b/i]);
           const isTracksuit = any([/\btrack\s*-?\s*suits?\b/i, /\btracksuits?\b/i]);
-          const isWallet = any([/\bwallets?\b/i]);
+          const isWallet = any([/\bwallets?\b/i, /card\s*holder/i]);
           const isWomensWatch = any([/(women['’]s?\s+watch|lad(?:y|ies)\s+watch)/i]);
           const isMensWatch = /\bwatch\b/i.test(hint) && !isWomensWatch;
-          const isWomensPerfume = any([/(women['’]s?\s+perfume|pour\s+femme)/i]);
-          const isMensPerfume = any([/(men['’]s?\s+perfume|pour\s+homme)/i]) || (/\b(edp|edt)\b/i.test(hint) && !isWomensPerfume);
-          const isDiscounted = /\bdiscounted\b/i.test(lcRaw);
+          const isWomensPerfume = any([/(women['’]s?\s+perfume|pour\s+femme)/i, /\bfragrance\b/i]);
+          const isMensPerfume = any([/(men['’]s?\s+perfume|pour\s+homme)/i]) || (/\b(edp|edt|eau\s+de\s+parfum|eau\s+de\s+toilette)\b/i.test(hint) && !isWomensPerfume);
+          // Treat both "discounted" and "sale" as discounted bucket
+          const isDiscounted = /\b(discounted|sale)\b/i.test(lcRaw);
           const isShoe = isFootwearProduct({ category: originalCategory, categoryRaw: originalCategory, sizes: item?.sizes });
 
           let priceAdj = 0;
