@@ -138,45 +138,100 @@ const ShopContextProvider = (props) => {
             .trim();
           const hint = normalize(`${originalCategory} ${item?.subCategory ?? ''} ${title}`);
 
-          // Quick keyword flags
+          // Quick keyword flags with robust, non-overlapping detection
           // Helper to match any of a list of regexes
           const any = (regexes) => regexes.some((r) => r.test(hint));
+          
+          // Helper to check original category name for exact matches
+          const categoryMatches = (patterns) => {
+            const catLower = String(originalCategory || '').toLowerCase();
+            return patterns.some(p => p.test(catLower));
+          };
 
-          const isCap = any([/\bcaps?\b/i, /\bhat(s)?\b/i, /\bbeanie\b/i]);
-          const isBelt = any([/\bbelts?\b/i, /waist\s*belt/i]);
-          const isFlipFlop = any([/(flip\s*-?\s*flops?)/i]);
-          const isSlide = any([/\bslides?\b/i]);
+          // More specific checks - prevent overlap by checking context and category first
+          // Check original category name first (most reliable)
+          const catKey = String(originalCategory || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '');
+          
+          // Category-specific checks with exclusion patterns to prevent false matches
+          const isCap = categoryMatches([/^caps?$/, /^hats?$/, /^beanies?$/]) || 
+                       (any([/\bcaps?\b/i, /\bhats?\b/i, /\bbeanies?\b/i]) && 
+                        !any([/\bhandbag/i, /\bbelt/i, /\bwallet/i, /\bcap\s*holder/i, /\bcap\s*p/i]));
+          
+          const isBelt = categoryMatches([/^belts?$/, /^waistbelt$/]) || 
+                        (any([/\bbelts?\b/i, /waist\s*belt/i]) && 
+                         !any([/\bhandbag/i, /\bwallet/i, /\bcap/i, /\bshoe/i, /\bbelt\s*(loop|buckle|holder)/i]));
+          
+          const isFlipFlop = categoryMatches([/^flipflops?$/]) || 
+                            (any([/(^|\s|^)(flip\s*-?\s*flops?)(\s|$|s$)/i]) &&
+                            !any([/\bshoe/i, /\bsandal/i]));
+          
+          const isSlide = any([/\bslides?\b/i]) && !any([/\bsunglass/i]);
           const isSlipper = any([/\bslippers?\b/i]);
           const isClog = any([/\bclogs?\b/i]);
-          const isSandal = any([/\bsandals?\b/i]);
-          const isHoodie = any([/\bhoodies?\b/i, /hooded\s+sweatshirt/i, /zip\s*hoodie/i]);
-          const isHandbag = any([/(hand\s*bags?)/i, /\bhandbag\b/i, /\btote\b/i]);
-          const isJacket = any([/\bjackets?\b/i, /\bwindcheaters?\b/i, /\bblazers?\b/i]);
-          const isShirt = any([/\bshirts?\b/i, /formal\s+shirt/i, /casual\s+shirt/i, /linen\s+shirt/i]);
-          const isSunglasses = any([/(sunglass|sunglasses|shades)\b/i, /\bgoggles\b/i, /\bspectacles\b/i, /\bspecs\b/i, /\baviators?\b/i]);
-          const isSweatshirt = any([/\bsweat\s*-?\s*shirts?\b/i, /\bsweatshirt\b/i]);
-          const isTShirt = any([/(t\s*-?\s*shirts?|t-?shirts?|tshirt|t\s*shirt)\b/i, /\btees?\b/i, /crew\s*neck/i, /round\s*neck/i]);
-          const isTrackPant = any([/(track\s*-?\s*pants?|trackpants?)\b/i, /\bjoggers?\b/i, /\btracks?\b/i]);
+          const isSandal = any([/\bsandals?\b/i]) && !any([/\bsunglass/i]);
+          
+          const isHoodie = categoryMatches([/^hoodies?$/]) || 
+                          (any([/\bhoodies?\b/i, /hooded\s+sweatshirt/i, /zip\s*hoodie/i]) && 
+                           !any([/\bsweatshirt\b/i, /\bjacket/i]));
+          
+          const isHandbag = categoryMatches([/^handbags?$/, /^hand\s*bags?$/]) || 
+                           (any([/(^|\s)(hand\s*bags?|handbag|tote|sling\s*bag|shoulder\s*bag)(\s|$|s$)/i]) && 
+                            !any([/\bbelt/i, /\bwallet/i, /\bcap/i, /\bwatch/i]));
+          
+          const isJacket = categoryMatches([/^jackets?$/, /^windcheaters?$/, /^blazers?$/]) || 
+                         (any([/\bjackets?\b/i, /\bwindcheaters?\b/i, /\bblazers?\b/i]) && 
+                          !any([/\bhoodie/i, /\bsweatshirt/i]));
+          
+          const isShirt = categoryMatches([/^shirts?$/, /^formal\s*shirts?$/, /^casual\s*shirts?$/]) || 
+                         (any([/\bshirts?\b/i, /formal\s+shirt/i, /casual\s+shirt/i, /linen\s+shirt/i]) && 
+                          !any([/\bt\s*-?\s*shirt/i, /\btees?/i, /\bsweatshirt/i]));
+          
+          const isSunglasses = categoryMatches([/^sunglasses?$/, /^shades?$/]) || 
+                             (any([/(^|\s)(sunglass(?:es)?|shades?|goggles?|spectacles?|specs?|aviators?)(\s|$|s$)/i]) && 
+                              !any([/\bsandal/i, /\bslide/i]));
+          
+          const isSweatshirt = categoryMatches([/^sweatshirts?$/, /^sweat\s*shirts?$/]) || 
+                              (any([/\bsweat\s*-?\s*shirts?\b/i, /\bsweatshirt\b/i]) && 
+                               !any([/\bhoodie/i, /\bjacket/i]));
+          
+          const isTShirt = categoryMatches([/^t\s*-?\s*shirts?$/, /^tshirts?$/, /^tees?$/]) || 
+                          (any([/(^|\s)(t\s*-?\s*shirts?|t-?shirts?|tshirt|t\s*shirt|tees?|crew\s*neck|round\s*neck)(\s|$|s$)/i]) && 
+                           !any([/\bshirt\b/i, /\bsweatshirt/i]));
+          
+          const isTrackPant = categoryMatches([/^trackpants?$/, /^track\s*pants?$/, /^joggers?$/]) || 
+                            (any([/(track\s*-?\s*pants?|trackpants?|joggers?)(\s|$|s$)/i]) && 
+                             !any([/\btracksuit/i, /\btrousers?/i]));
+          
           const isTrouser = any([/\btrousers?\b/i]);
-          const isPant = any([/\bpants?\b/i]);
+          const isPant = any([/\bpants?\b/i]) && !any([/\btrackpants?/i, /\bjeans?/i]);
           const isChino = any([/\bchinos?\b/i]);
-          const isTracksuit = any([/\btrack\s*-?\s*suits?\b/i, /\btracksuits?\b/i]);
-          const isWallet = any([/\bwallets?\b/i, /card\s*holder/i]);
-          const isWomensWatch = any([/(women['’]s?\s+watch|lad(?:y|ies)\s+watch)/i]);
-          const isMensWatch = /\bwatch\b/i.test(hint) && !isWomensWatch;
-          const isWomensPerfume = any([
-            /(women['’]s?\s+perfume|pour\s+femme)/i,
-            /\bfragrance\b/i,
-            /\bwomen\s*perfume\b/i,
-            /\bwomens\s*perfume\b/i,
-            /\bwomens?perfume\b/i
-          ]);
-          const isMensPerfume = any([
-            /(men['’]s?\s+perfume|pour\s+homme)/i,
-            /\bmen\s*perfume\b/i,
-            /\bmens\s*perfume\b/i,
-            /\bmenperfume\b/i
-          ]) || (/\b(edp|edt|eau\s+de\s+parfum|eau\s+de\s+toilette)\b/i.test(hint) && !isWomensPerfume);
+          
+          const isTracksuit = categoryMatches([/^tracksuits?$/, /^track\s*suits?$/]) || 
+                             (any([/(track\s*-?\s*suits?|tracksuits?)(\s|$|s$)/i]) && 
+                              !any([/\btrackpants?/i]));
+          
+          const isWallet = categoryMatches([/^wallets?$/, /^card\s*holders?$/]) || 
+                          (any([/\bwallets?\b/i, /card\s*holder/i]) && 
+                           !any([/\bhandbag/i, /\bbelt/i, /\bcap/i]));
+          
+          const isWomensWatch = categoryMatches([/^ladies?\s*watches?$/, /^women\s*['']s?\s*watches?$/, /^womens?\s*watches?$/]) || 
+                               (any([/(women['']s?\s+watch|lad(?:y|ies)\s+watch)/i]) && 
+                                !any([/\bmen\s*watch/i]));
+          
+          const isMensWatch = categoryMatches([/^watches?$/, /^mens?\s*watches?$/, /^men\s*['']s?\s*watches?$/]) || 
+                             (/\bwatch\b/i.test(hint) && !isWomensWatch && 
+                              !any([/\bhandbag/i, /\bbelt/i, /\bwallet/i]));
+          
+          const isWomensPerfume = categoryMatches([/^womens?\s*perfumes?$/, /^women\s*['']s?\s*perfumes?$/, /^ladies?\s*perfumes?$/, /^perfume\s*for\s*women$/]) || 
+                                 (any([
+                                   /(women['']s?\s+perfume|pour\s+femme|women\s+perfume|womens\s+perfume|womens?perfume|perfume\s+for\s+women)/i
+                                 ]) && !any([/\bmen\s*perfume/i]));
+          
+          const isMensPerfume = categoryMatches([/^mens?\s*perfumes?$/, /^men\s*['']s?\s*perfumes?$/, /^menperfume$/]) || 
+                               ((any([
+                                 /(men['']s?\s+perfume|pour\s+homme|men\s+perfume|mens\s+perfume|menperfume)/i
+                               ]) || (/\b(edp|edt|eau\s+de\s+parfum|eau\s+de\s+toilette)\b/i.test(hint) && !isWomensPerfume)) &&
+                               !any([/\bwomen\s*perfume/i]));
           // Treat both "discounted" and "sale" as discounted bucket
           const isDiscounted = /\b(discounted|sale)\b/i.test(lcRaw);
           const isShoe = isFootwearProduct({ category: originalCategory, categoryRaw: originalCategory, sizes: item?.sizes });
@@ -275,60 +330,64 @@ const ShopContextProvider = (props) => {
           }
 
           // Map to exact category names - only use these specific categories
+          // Prioritize original category name (most reliable), then use detection flags
           const finalCategoryRaw = (() => {
-            // Check if product is in Discounted category first
-            if (isDiscounted) return 'Discounted';
-
-            // Map to exact category names based on detection flags
-            // Order matters - more specific first
-            if (isWomensWatch) return 'ladieswatches';
-            if (isMensWatch) return 'watches';
-            if (isWomensPerfume) return 'womensperfume';
-            if (isMensPerfume) return 'menperfume';
-            if (isTShirt) return 't-shirts';
-            if (isShirt) return 'shirts';
-            if (isSunglasses) return 'sunglasses';
-            if (isSweatshirt) return 'sweatshirts';
-            if (isTracksuit) return 'tracksuits';
-            if (isHoodie) return 'hoodies';
-            if (isTrackPant) return 'trackpants';
-            if (isJeansProduct({ category: originalCategory, categoryRaw: originalCategory })) return 'jeans';
-            if (isJacket) return 'jackets';
-            if (isBelt) return 'belts';
-            if (isCap) return 'caps';
-            if (isHandbag) return 'handbags';
-            if (isWallet) return 'wallets';
-            if (isFlipFlop) return 'flipflops';
-            if (isShoe || isFootwearProduct({ category: originalCategory, categoryRaw: originalCategory, sizes: item?.sizes })) return 'shoes';
-
-            // Default: try to match from original category name
-            const src = String(originalCategory || '').toLowerCase();
+            // First: Check original category name directly (highest priority)
+            const src = String(originalCategory || '').toLowerCase().trim();
             const key = src
               .normalize('NFD')
               .replace(/[\u0300-\u036f]/g, '')
               .replace(/[^a-z0-9]+/g, '');
 
-            // Match exact category names (case-insensitive)
+            // Exact category name matches (most reliable)
             if (/^(discounted|sale)$/.test(key)) return 'Discounted';
-            if (/^(shoes?|sneaker|sneakers|loafer|loafers|boot|boots|footwear)$/.test(key)) return 'shoes';
-            if (/^(tshirt|tshirts|tee|tees|tshirt)$/.test(key)) return 't-shirts';
-            if (/^(shirt|shirts)$/.test(key)) return 'shirts';
+            if (/^(ladieswatch|ladieswatches|womenswatch|womenswatches)$/.test(key)) return 'ladieswatches';
+            if (/^(womensperfume|womenperfume|women['']s?perfume|perfumeforwomen)$/.test(key)) return 'womensperfume';
+            if (/^(mensperfume|menperfume|men['']s?perfume)$/.test(key)) return 'menperfume';
+            if (/^(tshirt|tshirts|tee|tees|tshirt|tshirt)$/.test(key)) return 't-shirts';
+            if (/^(shirt|shirts|formalshirt|casualshirt)$/.test(key)) return 'shirts';
             if (/^(sunglass|sunglasses|shades|goggles)$/.test(key)) return 'sunglasses';
-            if (/^(watch|watches)$/.test(key)) return 'watches';
-            if (/^(menperfume|mensperfume)$/.test(key)) return 'menperfume';
-            if (/^(womenperfume|womensperfume)$/.test(key)) return 'womensperfume';
-            if (/^(flipflop|flipflops)$/.test(key)) return 'flipflops';
-            if (/^(handbag|handbags)$/.test(key)) return 'handbags';
-            if (/^(cap|caps)$/.test(key)) return 'caps';
-            if (/^(belt|belts)$/.test(key)) return 'belts';
-            if (/^(wallet|wallets)$/.test(key)) return 'wallets';
-            if (/^(ladieswatch|ladieswatches|womenswatch)$/.test(key)) return 'ladieswatches';
+            if (/^(watch|watches|menswatch|menswatches|menwatch)$/.test(key) && !/^(ladies|women)/i.test(src)) return 'watches';
+            if (/^(flipflop|flipflops|flipflop)$/.test(key)) return 'flipflops';
+            if (/^(handbag|handbags|handbag)$/.test(key)) return 'handbags';
+            if (/^(cap|caps|hat|hats|beanie)$/.test(key)) return 'caps';
+            if (/^(belt|belts|waistbelt)$/.test(key)) return 'belts';
+            if (/^(wallet|wallets|cardholder)$/.test(key)) return 'wallets';
             if (/^(jeans?|denim)$/.test(key)) return 'jeans';
-            if (/^(jacket|jackets)$/.test(key)) return 'jackets';
-            if (/^(sweatshirt|sweatshirts)$/.test(key)) return 'sweatshirts';
-            if (/^(tracksuit|tracksuits)$/.test(key)) return 'tracksuits';
+            if (/^(jacket|jackets|windcheater|blazer)$/.test(key)) return 'jackets';
+            if (/^(sweatshirt|sweatshirts|sweatshirt)$/.test(key)) return 'sweatshirts';
+            if (/^(tracksuit|tracksuits|tracksuit)$/.test(key)) return 'tracksuits';
             if (/^(hoodie|hoodies)$/.test(key)) return 'hoodies';
-            if (/^(trackpant|trackpants)$/.test(key)) return 'trackpants';
+            if (/^(trackpant|trackpants|trackpant|jogger)$/.test(key)) return 'trackpants';
+            if (/^(shoes?|sneaker|sneakers|loafer|loafers|boot|boots|footwear)$/.test(key) && !/^(flipflop|sandal|slide)/i.test(src)) return 'shoes';
+
+            // Second: Check if product is in Discounted category
+            if (isDiscounted) return 'Discounted';
+
+            // Third: Use detection flags (as fallback, but only if they match strongly)
+            // Order matters - more specific first, and require confirmation from original category or title
+            if (isWomensWatch && (categoryMatches([/ladies?|women/i]) || /\b(ladies?|women)\s*watch/i.test(hint))) return 'ladieswatches';
+            if (isMensWatch && !isWomensWatch && (categoryMatches([/watch/i]) || /\bmen\s*watch/i.test(hint))) return 'watches';
+            if (isWomensPerfume && (categoryMatches([/women|ladies/i]) || /\b(women|ladies)\s*perfume/i.test(hint))) return 'womensperfume';
+            if (isMensPerfume && !isWomensPerfume && (categoryMatches([/men/i]) || /\bmen\s*perfume/i.test(hint))) return 'menperfume';
+            if (isTShirt && !isShirt && !isSweatshirt) return 't-shirts';
+            if (isShirt && !isTShirt && !isSweatshirt) return 'shirts';
+            if (isSunglasses) return 'sunglasses';
+            if (isSweatshirt && !isHoodie && !isJacket) return 'sweatshirts';
+            if (isTracksuit && !isTrackPant) return 'tracksuits';
+            if (isHoodie && !isSweatshirt && !isJacket) return 'hoodies';
+            if (isTrackPant && !isTracksuit) return 'trackpants';
+            if (isJeansProduct({ category: originalCategory, categoryRaw: originalCategory })) return 'jeans';
+            if (isJacket && !isHoodie && !isSweatshirt) return 'jackets';
+            if (isBelt && !isHandbag && !isWallet) return 'belts';
+            if (isCap && !isHandbag && !isWallet && !isBelt) return 'caps';
+            if (isHandbag && !isBelt && !isWallet && !isCap) return 'handbags';
+            if (isWallet && !isHandbag && !isBelt && !isCap) return 'wallets';
+            if (isFlipFlop && !isShoe) return 'flipflops';
+            if (isShoe || isFootwearProduct({ category: originalCategory, categoryRaw: originalCategory, sizes: item?.sizes })) {
+              // Only return shoes if it's clearly not a flipflop
+              if (!isFlipFlop) return 'shoes';
+            }
 
             // If no match, return empty string (will be filtered out or handled elsewhere)
             return '';
