@@ -445,8 +445,9 @@ const ShopContextProvider = (props) => {
               return null;
             }
             
-            // For shoes and womenshoes: filter to UK sizes 5-12 (minimum size requirement)
-            if (finalCategoryRaw === 'shoes' || finalCategoryRaw === 'womenshoes') {
+            // For shoes only: filter to UK sizes 5-12 (minimum size requirement)
+            // womenshoes uses raw sizes from products.json
+            if (finalCategoryRaw === 'shoes') {
               const ukSizes = uniqueUKLabels(mappedItem.sizes);
               if (ukSizes.length === 0) {
                 return null;

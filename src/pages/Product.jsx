@@ -73,8 +73,8 @@ function inferMasterSizes(p) {
   // If no sizes are provided, do not render a size selector at all.
   if (ps.length === 0) return [];
 
-  // Check for footwear products (shoes and womenshoes)
-  if (isFootwearProduct(p) || cat === 'womenshoes') {
+  // Check for footwear products (shoes only; womenshoes uses raw sizes)
+  if (isFootwearProduct(p)) {
     // For footwear, show a consistent UK range and strike-out unavailable.
     return UK_FOOT_RANGE;
   }

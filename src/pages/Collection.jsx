@@ -20,8 +20,8 @@ const Collection = () => {
   // sizes available across the whole catalog
   const normalizeSizesForProduct = (p) => {
     let arr = Array.isArray(p?.sizes) ? p.sizes : [];
-    const catRaw = String(p?.categoryRaw || '').toLowerCase();
-    if (isFootwearProduct(p) || catRaw === 'womenshoes') return uniqueUKLabels(arr);
+    // Apply UK conversion for footwear only (womenshoes uses raw sizes)
+    if (isFootwearProduct(p)) return uniqueUKLabels(arr);
     if (isJeansProduct(p)) return normalizeJeansSizes(arr);
     return arr.map((s) => String(s)).filter(Boolean);
   };
