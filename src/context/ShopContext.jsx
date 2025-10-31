@@ -274,95 +274,65 @@ const ShopContextProvider = (props) => {
             }
           }
 
-          // Canonicalize categoryRaw for UI routing/grouping (case-proof, handles concatenations)
-          const canonicalCategory = (() => {
-            const src = String(originalCategory || '');
+          // Map to exact category names - only use these specific categories
+          const finalCategoryRaw = (() => {
+            // Check if product is in Discounted category first
+            if (isDiscounted) return 'Discounted';
+
+            // Map to exact category names based on detection flags
+            // Order matters - more specific first
+            if (isWomensWatch) return 'ladieswatches';
+            if (isMensWatch) return 'watches';
+            if (isWomensPerfume) return 'womensperfume';
+            if (isMensPerfume) return 'menperfume';
+            if (isTShirt) return 't-shirts';
+            if (isShirt) return 'shirts';
+            if (isSunglasses) return 'sunglasses';
+            if (isSweatshirt) return 'sweatshirts';
+            if (isTracksuit) return 'tracksuits';
+            if (isHoodie) return 'hoodies';
+            if (isTrackPant) return 'trackpants';
+            if (isJeansProduct({ category: originalCategory, categoryRaw: originalCategory })) return 'jeans';
+            if (isJacket) return 'jackets';
+            if (isBelt) return 'belts';
+            if (isCap) return 'caps';
+            if (isHandbag) return 'handbags';
+            if (isWallet) return 'wallets';
+            if (isFlipFlop) return 'flipflops';
+            if (isShoe || isFootwearProduct({ category: originalCategory, categoryRaw: originalCategory, sizes: item?.sizes })) return 'shoes';
+
+            // Default: try to match from original category name
+            const src = String(originalCategory || '').toLowerCase();
             const key = src
-              .toLowerCase()
               .normalize('NFD')
               .replace(/[\u0300-\u036f]/g, '')
               .replace(/[^a-z0-9]+/g, '');
 
-            // Global buckets
-            if (/(^|\b)(discounted|sale)(\b|$)/i.test(src)) return 'Discounted';
-            if (/^men$/.test(key)) return 'Men';
-            if (/^(women|lady|ladies|womens)$/.test(key)) return 'Women';
-            if (/^kid|kids$/.test(key)) return 'Kids';
+            // Match exact category names (case-insensitive)
+            if (/^(discounted|sale)$/.test(key)) return 'Discounted';
+            if (/^(shoes?|sneaker|sneakers|loafer|loafers|boot|boots|footwear)$/.test(key)) return 'shoes';
+            if (/^(tshirt|tshirts|tee|tees|tshirt)$/.test(key)) return 't-shirts';
+            if (/^(shirt|shirts)$/.test(key)) return 'shirts';
+            if (/^(sunglass|sunglasses|shades|goggles)$/.test(key)) return 'sunglasses';
+            if (/^(watch|watches)$/.test(key)) return 'watches';
+            if (/^(menperfume|mensperfume)$/.test(key)) return 'menperfume';
+            if (/^(womenperfume|womensperfume)$/.test(key)) return 'womensperfume';
+            if (/^(flipflop|flipflops)$/.test(key)) return 'flipflops';
+            if (/^(handbag|handbags)$/.test(key)) return 'handbags';
+            if (/^(cap|caps)$/.test(key)) return 'caps';
+            if (/^(belt|belts)$/.test(key)) return 'belts';
+            if (/^(wallet|wallets)$/.test(key)) return 'wallets';
+            if (/^(ladieswatch|ladieswatches|womenswatch)$/.test(key)) return 'ladieswatches';
+            if (/^(jeans?|denim)$/.test(key)) return 'jeans';
+            if (/^(jacket|jackets)$/.test(key)) return 'jackets';
+            if (/^(sweatshirt|sweatshirts)$/.test(key)) return 'sweatshirts';
+            if (/^(tracksuit|tracksuits)$/.test(key)) return 'tracksuits';
+            if (/^(hoodie|hoodies)$/.test(key)) return 'hoodies';
+            if (/^(trackpant|trackpants)$/.test(key)) return 'trackpants';
 
-            // Specific product-type categories (many concatenated and spaced variants)
-            if (/^(belt|belts|waistbelt|waistbelts)$/.test(key)) return 'Belts';
-            if (/^(cap|caps|hat|hats|beanie|beanies)$/.test(key)) return 'Caps';
-            if (/^(handbag|handbags|purse|purses|tote|totes|slingbag|slingbags|shoulderbag|shoulderbags)$/.test(key)) return 'Handbags';
-            if (/^(jacket|jackets|windcheater|windcheaters|blazer|blazers|coat|coats)$/.test(key)) return 'Jackets';
-            if (/^(shirt|shirts|formalshirt|casualshirt|linenshirt|overshirt|overshirts)$/.test(key)) return 'Shirts';
-            if (/^(sunglass|sunglasses|shades|goggles|spectacles|specs|aviator|aviators)$/.test(key)) return 'Sunglasses';
-            if (/^(sweatshirt|sweatshirts)$/.test(key)) return 'Sweatshirts';
-            if (/^(tshirt|tshirts|tshirtmen|tshirtwomen|tshirtkids|tshirtboy|tshirtgirl|tshirtunisex|tshirttee|tee|tees)$/.test(key)) return 'TShirts';
-            if (/^(trackpant|trackpants|jogger|joggers|tracks)$/.test(key)) return 'TrackPants';
-            if (/^(tracksuit|tracksuits)$/.test(key)) return 'Tracksuits';
-            if (/^(wallet|wallets|cardholder|cardholders)$/.test(key)) return 'Wallets';
-            if (/^(watch|watches|menswatch|menswatches|menwatch)$/.test(key)) return 'MensWatches';
-            if (/^(womenwatch|womenswatch|ladieswatch|womenswatches|womenwatches)$/.test(key)) return 'WomensWatches';
-            if (/^(menperfume|mensperfume|menfragrance|mensfragrance)$/.test(key)) return 'MensPerfume';
-            if (/^(womenperfume|womensperfume|ladiesperfume|womenfragrance|womensfragrance)$/.test(key)) return 'WomensPerfume';
-            // Bottomwear subtypes first
-            if (/^(jeans|denim|denims)$/.test(key)) return 'Jeans';
-            if (/^(trouser|trousers)$/.test(key)) return 'Trousers';
-            if (/^(pant|pants)$/.test(key)) return 'Pants';
-            if (/^(chino|chinos)$/.test(key)) return 'Chinos';
-            if (/^(bottomwear|bottoms)$/.test(key)) return 'Bottomwear';
-            // Footwear subtypes first
-            if (/^(flipflop|flipflops)$/.test(key)) return 'FlipFlops';
-            if (/^slides?$/.test(key)) return 'Slides';
-            if (/^slippers?$/.test(key)) return 'Slippers';
-            if (/^(clog|clogs)$/.test(key)) return 'Clogs';
-            if (/^sandals?$/.test(key)) return 'Sandals';
-            if (/^(shoe|shoes|sneaker|sneakers|loafer|loafers|boot|boots|footwear)$/.test(key)) return 'Shoes';
-            if (/^(topwear|tops)$/.test(key)) return 'Topwear';
-            if (/^(accessory|accessories)$/.test(key)) return 'Accessories';
-
-            // Default: title-case with separators normalized for readability
-            const pretty = src
-              .replace(/[_-]+/g, ' ')
-              .replace(/\s+/g, ' ')
-              .trim()
-              .toLowerCase()
-              .replace(/\b([a-z])/g, (m, a) => a.toUpperCase());
-            return pretty || originalCategory || '';
+            // If no match, return empty string (will be filtered out or handled elsewhere)
+            return '';
           })();
-
-          // If the canonical category is still generic, use detected flags to specialize
-          const specializeIfGeneric = (current) => {
-            const genericSet = new Set(['Men','Women','Kids','Topwear','Bottomwear','Footwear','Accessories','Discounted','']);
-            if (!genericSet.has(current)) return current;
-            if (isBelt) return 'Belts';
-            if (isCap) return 'Caps';
-            if (isHandbag) return 'Handbags';
-            if (isJacket) return 'Jackets';
-            if (isShirt) return 'Shirts';
-            if (isSunglasses) return 'Sunglasses';
-            if (isSweatshirt) return 'Sweatshirts';
-            if (isTShirt) return 'TShirts';
-            if (isTrackPant) return 'TrackPants';
-            if (isTrouser) return 'Trousers';
-            if (isPant) return 'Pants';
-            if (isChino) return 'Chinos';
-            if (isTracksuit) return 'Tracksuits';
-            if (isWallet) return 'Wallets';
-            if (isMensWatch) return 'MensWatches';
-            if (isWomensWatch) return 'WomensWatches';
-            if (isMensPerfume) return 'MensPerfume';
-            if (isWomensPerfume) return 'WomensPerfume';
-            if (isJeansProduct({ category: originalCategory, categoryRaw: originalCategory })) return 'Jeans';
-            if (isFlipFlop) return 'FlipFlops';
-            if (isSlide) return 'Slides';
-            if (isSlipper) return 'Slippers';
-            if (isClog) return 'Clogs';
-            if (isSandal) return 'Sandals';
-            if (isShoe || isFootwearProduct({ category: originalCategory, categoryRaw: originalCategory, sizes: item?.sizes })) return 'Shoes';
-            return current;
-          };
-          const finalCategoryRaw = specializeIfGeneric(canonicalCategory);
 
           const mappedItem = {
             _id: (item.slug ?? item.slug_name ?? item.title)?.toString(),
