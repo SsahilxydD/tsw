@@ -25,6 +25,9 @@ const CategoryCard = ({ name, count, image, i }) => {
     // Also promote plural when singular watch appears after gendered term
     s = s.replace(/\b(women['’]s|mens|men's|ladies)\s+watch\b/g, "$1 watches");
 
+    // Women's shoes - specific handling (before possessive form replacement)
+    s = s.replace(/womenshoes?/g, "women's shoes");
+    
     // Split concatenations like womensperfume -> womens perfume
     s = s.replace(/womens?perfume/g, "womens perfume");
     s = s.replace(/mens?perfume/g, "mens perfume");
@@ -33,7 +36,7 @@ const CategoryCard = ({ name, count, image, i }) => {
     s = s.replace(/\bt\s?-?\s?shirts?\b/g, "t shirts");
     s = s.replace(/\bt\s?-?\s?shirt\b/g, "t shirt");
 
-    // Prefer possessive forms
+    // Prefer possessive forms (after specific replacements)
     s = s.replace(/\bwomens\b/g, "women's");
     s = s.replace(/\bmens\b/g, "men's");
 

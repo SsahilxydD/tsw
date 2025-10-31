@@ -96,7 +96,9 @@ const Category = () => {
   // sizes present in this category
   const normalizeSizesForProduct = (p) => {
     let arr = Array.isArray(p?.sizes) ? p.sizes : [];
-    if (isFootwearProduct(p)) return uniqueUKLabels(arr);
+    const catRaw = String(p?.categoryRaw || '').toLowerCase();
+    // Apply UK size conversion for footwear products and womenshoes
+    if (isFootwearProduct(p) || catRaw === 'womenshoes') return uniqueUKLabels(arr);
     if (isJeansProduct(p)) return normalizeJeansSizes(arr);
     return arr.map((s) => String(s)).filter(Boolean);
   };

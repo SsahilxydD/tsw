@@ -1,5 +1,5 @@
 import { createContext, useEffect, useRef, useState } from "react";
-import { isJeansProduct, isFootwearProduct, normalizeJeansSizes } from "../utils/size";
+import { isJeansProduct, isFootwearProduct, normalizeJeansSizes, uniqueUKLabels, toUKLabel } from "../utils/size";
 import { useNavigate } from "react-router-dom";
 
 export const ShopContext = createContext();
@@ -443,6 +443,16 @@ const ShopContextProvider = (props) => {
           if (categoriesRequiringSizes.includes(finalCategoryRaw)) {
             if (!Array.isArray(mappedItem.sizes) || mappedItem.sizes.length === 0) {
               return null;
+            }
+            
+            // For shoes and womenshoes: filter to UK sizes 5-12 (minimum size requirement)
+            if (finalCategoryRaw === 'shoes' || finalCategoryRaw === 'womenshoes') {
+              const ukSizes = uniqueUKLabels(mappedItem.sizes);
+              if (ukSizes.length === 0) {
+                return null;
+              }
+              // Update sizes to only include valid UK sizes 5-12
+              mappedItem.sizes = ukSizes;
             }
           }
 
