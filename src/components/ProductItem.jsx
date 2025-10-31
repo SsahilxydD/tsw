@@ -40,8 +40,9 @@ const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd =
 
   const tileSizes = useMemo(() => {
     let arr = Array.isArray(productObj?.sizes) ? productObj.sizes : [];
+    const catRaw = String(productObj?.categoryRaw || productObj?.category || '').toLowerCase();
     // Apply UK conversion for footwear only (womenshoes uses raw sizes)
-    if (isFootwearProduct(productObj)) arr = uniqueUKLabels(arr);
+    if (isFootwearProduct(productObj) && catRaw !== 'womenshoes') arr = uniqueUKLabels(arr);
     else if (isJeansProduct(productObj)) arr = normalizeJeansSizes(arr);
     else arr = arr.map((s) => String(s)).filter(Boolean);
     const bad = /^(one\s?size|onesize|os|std)$/i;
@@ -199,7 +200,8 @@ const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd =
                 } else {
                   // If size selection is required and sizes exist, open picker
                   if (requireSize && sizes.length > 0 && !sizeHint) {
-                    const opts = isFootwearProduct(p)
+                    const catRaw = String(p?.categoryRaw || p?.category || '').toLowerCase();
+                    const opts = (isFootwearProduct(p) && catRaw !== 'womenshoes')
                       ? uniqueUKLabels(sizes)
                       : (isJeansProduct(p) ? normalizeJeansSizes(sizes) : sizes.map(String));
                     setSizesForPick(opts);
@@ -211,7 +213,8 @@ const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd =
                   const y = window.scrollY;
                   let chosen = sizeHint || 'std';
                   if (!sizeHint && sizes.length > 0) {
-                    if (isFootwearProduct(p)) {
+                    const catRaw = String(p?.categoryRaw || p?.category || '').toLowerCase();
+                    if (isFootwearProduct(p) && catRaw !== 'womenshoes') {
                       const first = toUKLabel(sizes[0]);
                       chosen = first || 'std';
                     } else {
