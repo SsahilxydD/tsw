@@ -354,6 +354,12 @@ const ShopContextProvider = (props) => {
           if (isJeansProduct(mappedItem) && normalizeJeansSizes(mappedItem.sizes).length === 0) {
             return null;
           }
+
+          // Drop flipflops products with no size options
+          if (finalCategoryRaw === 'flipflops' && (!Array.isArray(mappedItem.sizes) || mappedItem.sizes.length === 0)) {
+            return null;
+          }
+
           return mappedItem;
         }) : [];
 
