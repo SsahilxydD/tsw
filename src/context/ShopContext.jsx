@@ -355,9 +355,23 @@ const ShopContextProvider = (props) => {
             return null;
           }
 
-          // Drop flipflops products with no size options
-          if (finalCategoryRaw === 'flipflops' && (!Array.isArray(mappedItem.sizes) || mappedItem.sizes.length === 0)) {
-            return null;
+          // Drop products with no size options for categories that require sizes
+          const categoriesRequiringSizes = [
+            'flipflops',
+            'hoodies',
+            'jackets',
+            'jeans',
+            'shirts',
+            'shoes',
+            't-shirts',
+            'trackpants',
+            'tracksuits'
+          ];
+          
+          if (categoriesRequiringSizes.includes(finalCategoryRaw)) {
+            if (!Array.isArray(mappedItem.sizes) || mappedItem.sizes.length === 0) {
+              return null;
+            }
           }
 
           return mappedItem;
