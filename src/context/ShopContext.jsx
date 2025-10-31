@@ -232,9 +232,17 @@ const ShopContextProvider = (props) => {
                                  /(men['']s?\s+perfume|pour\s+homme|men\s+perfume|mens\s+perfume|menperfume)/i
                                ]) || (/\b(edp|edt|eau\s+de\s+parfum|eau\s+de\s+toilette)\b/i.test(hint) && !isWomensPerfume)) &&
                                !any([/\bwomen\s*perfume/i]));
+          // Detect women's shoes - robust detection with exclusion checks
+          const isWomensShoe = categoryMatches([/^womenshoes?$/, /^women\s*['']s?\s*shoes?$/, /^ladies?\s*shoes?$/, /^women\s*footwear$/, /^ladies?\s*footwear$/]) ||
+                              (isFootwearProduct({ category: originalCategory, categoryRaw: originalCategory, sizes: item?.sizes }) &&
+                               (any([/(women['']s?\s+shoe|ladies?\s+shoe|women\s+footwear|ladies?\s+footwear|women\s+sneaker|ladies?\s+sneaker)/i]) ||
+                                categoryMatches([/^women/i, /^ladies?/i])) &&
+                               !any([/\bmen\s*shoe/i, /\bmen\s*footwear/i]) &&
+                               !isFlipFlop && !isSandal && !isSlide && !isSlipper && !isClog);
+          
           // Treat both "discounted" and "sale" as discounted bucket
           const isDiscounted = /\b(discounted|sale)\b/i.test(lcRaw);
-          const isShoe = isFootwearProduct({ category: originalCategory, categoryRaw: originalCategory, sizes: item?.sizes });
+          const isShoe = isFootwearProduct({ category: originalCategory, categoryRaw: originalCategory, sizes: item?.sizes }) && !isWomensShoe;
 
           let priceAdj = 0;
           if (isDiscounted) {
@@ -275,6 +283,8 @@ const ShopContextProvider = (props) => {
             priceAdj = 150;
           } else if (isWomensPerfume) {
             priceAdj = 150;
+          } else if (isWomensShoe) {
+            priceAdj = 550;
           } else if (isShoe) {
             priceAdj = 550;
           } else {
@@ -359,7 +369,8 @@ const ShopContextProvider = (props) => {
             if (/^(tracksuit|tracksuits|tracksuit)$/.test(key)) return 'tracksuits';
             if (/^(hoodie|hoodies)$/.test(key)) return 'hoodies';
             if (/^(trackpant|trackpants|trackpant|jogger)$/.test(key)) return 'trackpants';
-            if (/^(shoes?|sneaker|sneakers|loafer|loafers|boot|boots|footwear)$/.test(key) && !/^(flipflop|sandal|slide)/i.test(src)) return 'shoes';
+            if (/^(womenshoes?|women\s*['']s?\s*shoes?|ladies?\s*shoes?)$/.test(key)) return 'womenshoes';
+            if (/^(shoes?|sneaker|sneakers|loafer|loafers|boot|boots|footwear)$/.test(key) && !/^(flipflop|sandal|slide|women|ladies)/i.test(src)) return 'shoes';
 
             // Second: Check if product is in Discounted category
             if (isDiscounted) return 'Discounted';
@@ -383,10 +394,11 @@ const ShopContextProvider = (props) => {
             if (isCap && !isHandbag && !isWallet && !isBelt) return 'caps';
             if (isHandbag && !isBelt && !isWallet && !isCap) return 'handbags';
             if (isWallet && !isHandbag && !isBelt && !isCap) return 'wallets';
-            if (isFlipFlop && !isShoe) return 'flipflops';
-            if (isShoe || isFootwearProduct({ category: originalCategory, categoryRaw: originalCategory, sizes: item?.sizes })) {
-              // Only return shoes if it's clearly not a flipflop
-              if (!isFlipFlop) return 'shoes';
+            if (isFlipFlop && !isShoe && !isWomensShoe) return 'flipflops';
+            if (isWomensShoe && !isFlipFlop && !isSandal && !isSlide && !isSlipper && !isClog) return 'womenshoes';
+            if (isShoe || (isFootwearProduct({ category: originalCategory, categoryRaw: originalCategory, sizes: item?.sizes }) && !isWomensShoe)) {
+              // Only return shoes if it's clearly not a flipflop or women's shoes
+              if (!isFlipFlop && !isWomensShoe) return 'shoes';
             }
 
             // If no match, return empty string (will be filtered out or handled elsewhere)
@@ -424,7 +436,8 @@ const ShopContextProvider = (props) => {
             'shoes',
             't-shirts',
             'trackpants',
-            'tracksuits'
+            'tracksuits',
+            'womenshoes'
           ];
           
           if (categoriesRequiringSizes.includes(finalCategoryRaw)) {
