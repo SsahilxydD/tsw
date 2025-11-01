@@ -335,7 +335,7 @@ const ShopContextProvider = (props) => {
           if (isDiscounted) {
             const subLower = String(derivedSub || '').toLowerCase();
             if (subLower === 'footwear' || (!subLower && isShoe)) {
-              price = 2800;
+              price = 1999;
             }
           }
 
