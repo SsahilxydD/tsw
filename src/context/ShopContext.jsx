@@ -335,7 +335,26 @@ const ShopContextProvider = (props) => {
           if (isDiscounted) {
             const subLower = String(derivedSub || '').toLowerCase();
             if (subLower === 'footwear' || (!subLower && isShoe)) {
-              price = 1999;
+              // Check for specific keywords that should be priced at 1399
+              const titleForCheck = hint.toLowerCase();
+              const keywords1399 = [
+                'brikenstock',
+                'birkenstock',
+                'croccs',
+                'crocs',
+                /\bslide\b/i,
+                'nike offcourt adjust slide',
+                'nikee air uptempo slider'
+              ];
+              
+              const hasKeyword = keywords1399.some(keyword => {
+                if (keyword instanceof RegExp) {
+                  return keyword.test(titleForCheck);
+                }
+                return titleForCheck.includes(keyword.toLowerCase());
+              });
+              
+              price = hasKeyword ? 1399 : 1999;
             }
           }
 
