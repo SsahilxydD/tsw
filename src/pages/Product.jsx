@@ -6,6 +6,7 @@ import ProductItem from "../components/ProductItem";
 import { ShopContext } from "../context/ShopContext";
 import { isFootwearProduct, isJeansProduct, normalizeJeansSizes, toUKLabel, uniqueUKLabels, UK_FOOT_RANGE } from "../utils/size";
 import SEO from "../components/SEO";
+import SplitText from "../components/SplitText";
 
 // --- small helpers (no external deps) ---
 const STOPWORDS = new Set([
@@ -109,7 +110,7 @@ function inferMasterSizes(p) {
 
 export default function Product() {
   const { id } = useParams();
-  const { products, currency, addToCart, navigate } = React.useContext(ShopContext);
+  const { products, currency, addToCart, navigate, loadingProducts } = React.useContext(ShopContext);
   const [added, setAdded] = React.useState(false);
 
   // scroll to top on product change (prevents jumping)
@@ -245,6 +246,27 @@ export default function Product() {
 
     return [...topFour, ...randomTwo].slice(0, 6);
   }, [product, products]);
+
+  if (loadingProducts || !Array.isArray(products)) {
+    return (
+      <div className="px-4 py-24 flex justify-center">
+        <SplitText
+          text="Loading"
+          className="text-3xl font-semibold text-gray-700"
+          delay={80}
+          duration={0.7}
+          ease="power3.out"
+          splitType="chars"
+          from={{ opacity: 0, y: 40 }}
+          to={{ opacity: 1, y: 0 }}
+          threshold={0.1}
+          rootMargin="-80px"
+          textAlign="center"
+          tag="h2"
+        />
+      </div>
+    );
+  }
 
   if (!product) {
     return (
