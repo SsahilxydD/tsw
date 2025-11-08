@@ -6,7 +6,7 @@ import ProductItem from "../components/ProductItem";
 import { ShopContext } from "../context/ShopContext";
 import { isFootwearProduct, isJeansProduct, normalizeJeansSizes, toUKLabel, uniqueUKLabels, UK_FOOT_RANGE } from "../utils/size";
 import SEO from "../components/SEO";
-import SplitText from "../components/SplitText";
+import CircularText from "../components/CircularText";
 
 // --- small helpers (no external deps) ---
 const STOPWORDS = new Set([
@@ -249,20 +249,12 @@ export default function Product() {
 
   if (loadingProducts || !Array.isArray(products)) {
     return (
-      <div className="px-4 py-24 flex justify-center">
-        <SplitText
-          text="Loading"
-          className="text-3xl font-semibold text-gray-700"
-          delay={80}
-          duration={0.7}
-          ease="power3.out"
-          splitType="chars"
-          from={{ opacity: 0, y: 40 }}
-          to={{ opacity: 1, y: 0 }}
-          threshold={0.1}
-          rootMargin="-80px"
-          textAlign="center"
-          tag="h2"
+      <div className="px-4 py-24 flex justify-center items-center">
+        <CircularText
+          text="LOADING*"
+          onHover="speedUp"
+          spinDuration={18}
+          className="text-gray-800"
         />
       </div>
     );
