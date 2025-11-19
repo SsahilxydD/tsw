@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scroll Restoration Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 3px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .log {
+            background: #f5f5f5;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 3px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .pass { color: green; }
+        .fail { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Scroll Restoration Test Suite</h1>
+    
+    <div class="test-section">
+        <h2>Manual Test Instructions</h2>
+        <ol>
+            <li>Open your app in a browser</li>
+            <li>Navigate to a category/collection page (e.g., /collection or /category/topwear)</li>
+            <li>Scroll down to find a product</li>
+            <li>Note the scroll position (you can use browser DevTools)</li>
+            <li>Click on a product to navigate to product page</li>
+            <li>Press the browser back button</li>
+            <li><strong>Expected:</strong> Page should restore to the exact scroll position where you clicked</li>
+            <li><strong>Actual:</strong> Check if it scrolls to top or restores position</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>Automated Test (Run in Browser Console)</h2>
+        <p>Open browser DevTools Console and run this test:</p>
+        <button onclick="runTest()">Run Automated Test</button>
+        <div id="test-results" class="log"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Debug Information</h2>
+        <button onclick="checkScrollStorage()">Check Scroll Storage</button>
+        <button onclick="clearScrollStorage()">Clear Scroll Storage</button>
+        <div id="debug-info" class="log"></div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const results = document.getElementById('test-results');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'pass' ? 'pass' : type === 'fail' ? 'fail' : '';
+            results.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            results.scrollTop = results.scrollHeight;
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        function checkScrollStorage() {
+            const debug = document.getElementById('debug-info');
+            debug.innerHTML = '<h3>Session Storage Contents:</h3>';
+            
+            for (let i = 0; i < sessionStorage.length; i++) {
+                const key = sessionStorage.key(i);
+                if (key.startsWith('scroll_')) {
+                    const value = sessionStorage.getItem(key);
+                    debug.innerHTML += `<div><strong>${key}:</strong> ${value}px</div>`;
+                }
+            }
+            
+            if (debug.innerHTML === '<h3>Session Storage Contents:</h3>') {
+                debug.innerHTML += '<div>No scroll positions found in storage</div>';
+            }
+        }
+
+        function clearScrollStorage() {
+            const keys = [];
+            for (let i = 0; i < sessionStorage.length; i++) {
+                const key = sessionStorage.key(i);
+                if (key.startsWith('scroll_')) {
+                    keys.push(key);
+                }
+            }
+            keys.forEach(key => sessionStorage.removeItem(key));
+            log(`Cleared ${keys.length} scroll positions from storage`, 'info');
+            checkScrollStorage();
+        }
+
+        async function runTest() {
+            const results = document.getElementById('test-results');
+            results.innerHTML = '<h3>Starting Test...</h3>';
+            
+            log('Test 1: Check if scroll restoration utilities exist', 'info');
+            if (typeof window.__scroll_restoring__ !== 'undefined') {
+                log('✓ Restoration flag system exists', 'pass');
+            } else {
+                log('✗ Restoration flag system not found', 'fail');
+            }
+
+            log('Test 2: Check sessionStorage access', 'info');
+            try {
+                sessionStorage.setItem('test', 'value');
+                sessionStorage.removeItem('test');
+                log('✓ sessionStorage is accessible', 'pass');
+            } catch (e) {
+                log('✗ sessionStorage not accessible: ' + e.message, 'fail');
+            }
+
+            log('Test 3: Check current scroll position', 'info');
+            const currentScroll = window.scrollY || window.pageYOffset || 0;
+            log(`Current scroll position: ${currentScroll}px`, 'info');
+
+            log('Test 4: Simulate scroll position save', 'info');
+            const testPath = window.location.pathname;
+            const testKey = `scroll_${testPath}`;
+            sessionStorage.setItem(testKey, currentScroll.toString());
+            const saved = sessionStorage.getItem(testKey);
+            if (saved === currentScroll.toString()) {
+                log('✓ Scroll position saved successfully', 'pass');
+            } else {
+                log(`✗ Scroll position save failed. Expected: ${currentScroll}, Got: ${saved}`, 'fail');
+            }
+
+            log('Test 5: Simulate scroll position restore', 'info');
+            const savedPos = parseInt(saved, 10);
+            if (!isNaN(savedPos)) {
+                window.scrollTo({ top: savedPos, left: 0, behavior: 'auto' });
+                setTimeout(() => {
+                    const restored = window.scrollY || window.pageYOffset || 0;
+                    if (Math.abs(restored - savedPos) < 10) {
+                        log('✓ Scroll position restored successfully', 'pass');
+                    } else {
+                        log(`✗ Scroll position restore failed. Expected: ${savedPos}, Got: ${restored}`, 'fail');
+                    }
+                }, 100);
+            }
+
+            log('Test Complete!', 'info');
+        }
+
+        // Auto-run on load
+        window.addEventListener('load', () => {
+            log('Test page loaded. Ready to test scroll restoration.', 'info');
+        });
+    </script>
+</body>
+</html>
+

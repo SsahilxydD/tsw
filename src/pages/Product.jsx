@@ -119,22 +119,22 @@ export default function Product() {
   // scroll to top on product change only for forward navigation (prevents jumping)
   // Don't scroll on back navigation (POP) to allow scroll restoration
   React.useEffect(() => {
-    // Never scroll if we're restoring scroll position
-    if (isRestoring()) {
+    // CRITICAL: Never scroll on POP navigation or when restoring
+    if (navType === "POP" || isRestoring()) {
       return;
     }
     
-    // Only scroll to top on forward navigation (PUSH/REPLACE), never on POP
+    // Only scroll to top on forward navigation (PUSH/REPLACE)
     if (navType === "PUSH" || navType === "REPLACE") {
-      // Use requestAnimationFrame to ensure this happens after any restoration logic
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          // Double-check we're still not restoring
-          if (!isRestoring()) {
-            window.scrollTo({ top: 0, behavior: "auto" });
-          }
-        });
-      });
+      // Add a small delay to ensure restoration logic has run first
+      const timeoutId = setTimeout(() => {
+        // Triple-check we're still not restoring
+        if (!isRestoring() && navType !== "POP") {
+          window.scrollTo({ top: 0, behavior: "auto" });
+        }
+      }, 50);
+      
+      return () => clearTimeout(timeoutId);
     }
     // On POP navigation, do nothing - let ScrollToTop component handle restoration
   }, [id, navType]);

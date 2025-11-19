@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useLocation, useNavigationType } from "react-router-dom";
-import { saveScrollPosition, restoreScrollPosition, setupLinkInterception, setRestoring, isRestoring } from "../utils/scrollRestoration";
+import { saveScrollPosition, getScrollPosition, setupLinkInterception, setRestoring, isRestoring } from "../utils/scrollRestoration";
 
 export default function ScrollToTop() {
   const { pathname } = useLocation();
@@ -20,8 +20,65 @@ export default function ScrollToTop() {
 
     if (navType === "POP") {
       // Back/forward navigation - restore scroll position
-      // restoreScrollPosition will set the restoring flag internally
-      restoreScrollPosition(pathname, 150);
+      const savedPos = getScrollPosition(pathname);
+      
+      // Debug logging
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[ScrollRestore] POP navigation detected for ${pathname}, saved position: ${savedPos}px`);
+      }
+      
+      if (savedPos !== null && savedPos >= 0) {
+        // Set restoring flag immediately
+        setRestoring(true);
+        
+        // Restore with multiple delays to ensure DOM is ready
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            setTimeout(() => {
+              // Double check we're still on the same page
+              if (window.location.pathname === pathname) {
+                window.scrollTo({ top: savedPos, left: 0, behavior: 'auto' });
+                
+                // Debug logging
+                if (process.env.NODE_ENV === 'development') {
+                  console.log(`[ScrollRestore] Attempting to restore to ${savedPos}px`);
+                }
+                
+                // Verify restoration worked
+                setTimeout(() => {
+                  const actualPos = window.scrollY || window.pageYOffset || 0;
+                  if (process.env.NODE_ENV === 'development') {
+                    console.log(`[ScrollRestore] Actual position after restore: ${actualPos}px`);
+                  }
+                  
+                  if (Math.abs(actualPos - savedPos) > 50) {
+                    // Restoration didn't work, try again
+                    if (process.env.NODE_ENV === 'development') {
+                      console.log(`[ScrollRestore] Restoration failed, retrying...`);
+                    }
+                    window.scrollTo({ top: savedPos, left: 0, behavior: 'auto' });
+                  }
+                  
+                  // Clear restoring flag after restoration completes
+                  setTimeout(() => {
+                    setRestoring(false);
+                    if (process.env.NODE_ENV === 'development') {
+                      console.log(`[ScrollRestore] Restoration complete`);
+                    }
+                  }, 100);
+                }, 50);
+              } else {
+                setRestoring(false);
+              }
+            }, 200); // Increased delay for more reliable restoration
+          });
+        });
+      } else {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[ScrollRestore] No saved position found for ${pathname}`);
+        }
+        setRestoring(false);
+      }
     } else if (pathChanged) {
       // Forward navigation (PUSH/REPLACE)
       // Ensure we're not in a restoring state
@@ -30,10 +87,8 @@ export default function ScrollToTop() {
       // Save previous page's scroll position (if not already saved by click handler)
       if (prevPath) {
         const currentScroll = window.scrollY || window.pageYOffset || 0;
-        // Only save if we have a meaningful scroll position
-        if (currentScroll > 0) {
-          saveScrollPosition(prevPath);
-        }
+        // Always save, even if 0 (in case page was at top)
+        saveScrollPosition(prevPath);
       }
 
       // Scroll to top for new pages, but NOT for product pages (they handle it themselves)
