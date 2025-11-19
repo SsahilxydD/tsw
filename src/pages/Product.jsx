@@ -1,6 +1,6 @@
 // src/pages/Product.jsx
 import React from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigationType } from "react-router-dom";
 import Title from "../components/Title";
 import ProductItem from "../components/ProductItem";
 import { ShopContext } from "../context/ShopContext";
@@ -111,13 +111,17 @@ function inferMasterSizes(p) {
 
 export default function Product() {
   const { id } = useParams();
+  const navType = useNavigationType();
   const { products, currency, addToCart, navigate, loadingProducts } = React.useContext(ShopContext);
   const [added, setAdded] = React.useState(false);
 
-  // scroll to top on product change (prevents jumping)
+  // scroll to top on product change only for forward navigation (prevents jumping)
+  // Don't scroll on back navigation (POP) to allow scroll restoration
   React.useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "auto" });
-  }, [id]);
+    if (navType !== "POP") {
+      window.scrollTo({ top: 0, behavior: "auto" });
+    }
+  }, [id, navType]);
 
 
   const product = React.useMemo(() => {
