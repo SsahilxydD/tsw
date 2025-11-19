@@ -42,7 +42,7 @@ export default function App() {
       <ScrollEffects />
 
       <main id="main-content" className="min-h-[60vh]">
-        <div key={location.pathname} className="animate-page">
+        <div className="animate-page">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/collection" element={<Collection />} />

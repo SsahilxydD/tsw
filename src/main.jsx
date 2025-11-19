@@ -71,6 +71,7 @@ if ('scrollRestoration' in window.history) {
   };
   
   // Restore scroll position on page load if it was a back navigation
+  // Simplified - restore immediately without waiting for content
   const restoreOnLoad = () => {
     const navType = sessionStorage.getItem('__nav_type__');
     if (navType === 'back') {
@@ -79,69 +80,28 @@ if ('scrollRestoration' in window.history) {
       if (savedPos) {
         const pos = parseInt(savedPos, 10);
         if (!isNaN(pos) && pos >= 0) {
-          // Wait for page to be fully loaded and content rendered
-          const doRestore = () => {
-            let attempts = 0;
-            const maxAttempts = 20; // More attempts for slow-loading content
+          // Restore immediately - React Router will handle component mounting
+          const restore = () => {
+            window.scrollTo({ top: pos, left: 0, behavior: 'auto' });
             
-            const tryRestore = () => {
-              attempts++;
-              
-              // Check if page is ready and has content
-              const body = document.body;
-              const hasContent = body && body.offsetHeight > 500; // Page has substantial content
-              const isReady = document.readyState === 'complete';
-              
-              // For category/collection pages, wait for product grid to be visible
-              const productGrid = document.querySelector('.grid.grid-cols-2, .grid.grid-cols-3');
-              const hasProducts = !productGrid || productGrid.children.length > 0;
-              
-              // Check if we need to wait for more products to load (infinite scroll)
-              // But don't wait too long - if we have 12+ products, that's enough
-              const savedVisibleCount = sessionStorage.getItem(`scroll_${currentPath}_visibleCount`);
-              let hasEnoughProducts = true;
-              if (savedVisibleCount && productGrid && attempts < 8) {
-                // Only wait for products in first few attempts
-                const requiredCount = parseInt(savedVisibleCount, 10);
-                const currentCount = productGrid.children.length;
-                // Wait until we have at least the required number of products (capped at 48)
-                hasEnoughProducts = currentCount >= Math.min(requiredCount, 48) || currentCount >= 12;
+            // Verify after a short delay and retry once if needed
+            setTimeout(() => {
+              const actualPos = window.scrollY || window.pageYOffset || 0;
+              if (Math.abs(actualPos - pos) > 50) {
+                requestAnimationFrame(() => {
+                  window.scrollTo({ top: pos, left: 0, behavior: 'auto' });
+                });
               }
-              
-              if (isReady && hasContent && hasProducts && (hasEnoughProducts || attempts >= 8)) {
-                // Page is ready, restore scroll position
-                window.scrollTo({ top: pos, left: 0, behavior: 'auto' });
-                
-                // Verify it worked after a short delay
-                setTimeout(() => {
-                  const actualPos = window.scrollY || window.pageYOffset || 0;
-                  const diff = Math.abs(actualPos - pos);
-                  
-                  if (diff > 50 && attempts < maxAttempts) {
-                    // Retry if not accurate enough
-                    tryRestore();
-                  }
-                }, 100);
-              } else if (attempts < maxAttempts) {
-                // Page not ready yet, wait and retry
-                setTimeout(tryRestore, 150);
-              } else {
-                // Max attempts reached, restore anyway
-                window.scrollTo({ top: pos, left: 0, behavior: 'auto' });
-              }
-            };
-            
-            // Start restoration attempts after initial delay
-            setTimeout(tryRestore, 200);
+            }, 100);
           };
           
-          // Wait for page to be interactive
+          // Wait for DOM to be ready, then restore
           if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => {
-              setTimeout(doRestore, 200);
-            });
+            document.addEventListener('DOMContentLoaded', restore);
           } else {
-            setTimeout(doRestore, 200);
+            requestAnimationFrame(() => {
+              requestAnimationFrame(restore);
+            });
           }
         }
       }

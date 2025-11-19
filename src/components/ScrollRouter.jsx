@@ -48,85 +48,40 @@ function ScrollRouterContent({ children }) {
     }
 
     if (navType === "POP") {
-      // Back/forward navigation - restore scroll position
+      // Back/forward navigation - restore scroll position instantly
+      // Since we removed the key prop, components may already be rendered
       const savedPos = getScrollPosition(currentPath);
       
       if (savedPos !== null && savedPos >= 0) {
         setRestoring(true);
         
-        // Restore scroll position with multiple attempts, waiting for content to load
-        const attemptRestore = (attempt = 0) => {
-          if (attempt > 10) {
-            setRestoring(false);
-            return;
-          }
+        // Try to restore immediately - components should already be rendered
+        const restoreImmediately = () => {
+          window.scrollTo({ top: savedPos, left: 0, behavior: 'auto' });
           
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-              setTimeout(() => {
-                // Verify we're still on the same page
-                if (window.location.pathname === currentPath) {
-                  // Check if page content is ready
-                  const body = document.body;
-                  const mainContent = document.getElementById('main-content');
-                  const hasContent = body && body.offsetHeight > 500;
-                  
-                  // For category/collection pages, wait for product grid
-                  const productGrid = document.querySelector('.grid.grid-cols-2, .grid.grid-cols-3');
-                  const hasProducts = !productGrid || productGrid.children.length > 0;
-                  
-                  // Check if we need to wait for more products to load (infinite scroll)
-                  const savedVisibleCount = sessionStorage.getItem(`scroll_${currentPath}_visibleCount`);
-                  let hasEnoughProducts = true;
-                  if (savedVisibleCount && productGrid) {
-                    const requiredCount = parseInt(savedVisibleCount, 10);
-                    const currentCount = productGrid.children.length;
-                    // Wait until we have at least the required number of products (but don't wait forever)
-                    // If we have at least 12 products, that's good enough to restore scroll
-                    hasEnoughProducts = currentCount >= Math.min(requiredCount, 48) || currentCount >= 12;
-                  }
-                  
-                  // Only restore if content is ready
-                  if (hasContent && hasProducts && hasEnoughProducts) {
-                    const currentScroll = window.scrollY || window.pageYOffset || 0;
-                    
-                    // Only restore if we're not already at the right position
-                    if (Math.abs(currentScroll - savedPos) > 10) {
-                      window.scrollTo({ top: savedPos, left: 0, behavior: 'auto' });
-                      
-                      // Verify it worked
-                      setTimeout(() => {
-                        const actualPos = window.scrollY || window.pageYOffset || 0;
-                        const diff = Math.abs(actualPos - savedPos);
-                        
-                        if (diff > 50 && attempt < 5) {
-                          // Retry if restoration didn't work
-                          attemptRestore(attempt + 1);
-                        } else {
-                          setRestoring(false);
-                        }
-                      }, 100);
-                    } else {
-                      setRestoring(false);
-                    }
-                  } else if (attempt < 10) {
-                    // Content not ready yet, wait and retry
-                    attemptRestore(attempt + 1);
-                  } else {
-                    // Max attempts, restore anyway
-                    window.scrollTo({ top: savedPos, left: 0, behavior: 'auto' });
-                    setRestoring(false);
-                  }
-                } else {
+          // Verify after a short delay
+          setTimeout(() => {
+            const actualPos = window.scrollY || window.pageYOffset || 0;
+            const diff = Math.abs(actualPos - savedPos);
+            
+            // If not accurate and page might still be loading, retry once
+            if (diff > 50) {
+              requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                  window.scrollTo({ top: savedPos, left: 0, behavior: 'auto' });
                   setRestoring(false);
-                }
-              }, 100 + (attempt * 50)); // Increase delay with each attempt
-            });
-          });
+                });
+              });
+            } else {
+              setRestoring(false);
+            }
+          }, 50);
         };
         
-        // Start restoration after initial delay
-        setTimeout(() => attemptRestore(), 100);
+        // Restore immediately - no waiting for content
+        requestAnimationFrame(() => {
+          requestAnimationFrame(restoreImmediately);
+        });
       } else {
         setRestoring(false);
       }
