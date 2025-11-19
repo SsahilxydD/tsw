@@ -11,6 +11,7 @@ function ScrollRouterContent({ children }) {
   const navType = useNavigationType();
   const prevPathnameRef = useRef(location.pathname);
   const isInitialMount = useRef(true);
+  const restorationAttempted = useRef(false);
 
   useEffect(() => {
     const currentPath = location.pathname;
@@ -21,6 +22,28 @@ function ScrollRouterContent({ children }) {
     if (isInitialMount.current) {
       isInitialMount.current = false;
       prevPathnameRef.current = currentPath;
+      
+      // Check if this is a page load after back navigation
+      const navType = sessionStorage.getItem('__nav_type__');
+      if (navType === 'back') {
+        restorationAttempted.current = true;
+        const savedPos = getScrollPosition(currentPath);
+        if (savedPos !== null && savedPos >= 0) {
+          setRestoring(true);
+          // Restore after a delay to ensure DOM is ready
+          setTimeout(() => {
+            window.scrollTo({ top: savedPos, left: 0, behavior: 'auto' });
+            setTimeout(() => {
+              const actualPos = window.scrollY || window.pageYOffset || 0;
+              if (Math.abs(actualPos - savedPos) > 50) {
+                window.scrollTo({ top: savedPos, left: 0, behavior: 'auto' });
+              }
+              setRestoring(false);
+            }, 50);
+          }, 200);
+        }
+        sessionStorage.removeItem('__nav_type__');
+      }
       return;
     }
 
@@ -31,54 +54,47 @@ function ScrollRouterContent({ children }) {
       if (savedPos !== null && savedPos >= 0) {
         setRestoring(true);
         
-        // CRITICAL: Wait longer for DOM to be fully ready after back navigation
-        // Back navigation might cause a brief reload, so we need more time
-        requestAnimationFrame(() => {
+        // Restore scroll position with multiple attempts
+        const attemptRestore = (attempt = 0) => {
+          if (attempt > 5) {
+            setRestoring(false);
+            return;
+          }
+          
           requestAnimationFrame(() => {
-            // Wait for any potential reload to complete
-            setTimeout(() => {
-              // Double-check we're still on the same page and DOM is ready
-              if (window.location.pathname === currentPath && document.readyState === 'complete') {
-                // Ensure page is fully loaded before restoring
-                if (document.body && document.body.offsetHeight > 0) {
-                  window.scrollTo({ top: savedPos, left: 0, behavior: 'auto' });
+            requestAnimationFrame(() => {
+              setTimeout(() => {
+                // Verify we're still on the same page
+                if (window.location.pathname === currentPath) {
+                  const currentScroll = window.scrollY || window.pageYOffset || 0;
                   
-                  // Verify restoration worked and clear flag
-                  setTimeout(() => {
-                    const actualPos = window.scrollY || window.pageYOffset || 0;
-                    if (Math.abs(actualPos - savedPos) > 50) {
-                      // Retry if restoration didn't work
-                      window.scrollTo({ top: savedPos, left: 0, behavior: 'auto' });
-                      
-                      // Final retry after another delay
-                      setTimeout(() => {
-                        const finalPos = window.scrollY || window.pageYOffset || 0;
-                        if (Math.abs(finalPos - savedPos) > 50) {
-                          window.scrollTo({ top: savedPos, left: 0, behavior: 'auto' });
-                        }
+                  // Only restore if we're not already at the right position
+                  if (Math.abs(currentScroll - savedPos) > 10) {
+                    window.scrollTo({ top: savedPos, left: 0, behavior: 'auto' });
+                    
+                    // Verify it worked
+                    setTimeout(() => {
+                      const actualPos = window.scrollY || window.pageYOffset || 0;
+                      if (Math.abs(actualPos - savedPos) > 50 && attempt < 3) {
+                        // Retry if restoration didn't work
+                        attemptRestore(attempt + 1);
+                      } else {
                         setRestoring(false);
-                      }, 100);
-                    } else {
-                      setRestoring(false);
-                    }
-                  }, 100);
+                      }
+                    }, 50);
+                  } else {
+                    setRestoring(false);
+                  }
                 } else {
-                  // DOM not ready yet, wait more
-                  setTimeout(() => {
-                    if (window.location.pathname === currentPath) {
-                      window.scrollTo({ top: savedPos, left: 0, behavior: 'auto' });
-                      setTimeout(() => setRestoring(false), 200);
-                    } else {
-                      setRestoring(false);
-                    }
-                  }, 200);
+                  setRestoring(false);
                 }
-              } else {
-                setRestoring(false);
-              }
-            }, 100); // Reduced initial delay, but added more checks
+              }, 50 + (attempt * 50)); // Increase delay with each attempt
+            });
           });
-        });
+        };
+        
+        // Start restoration
+        attemptRestore();
       } else {
         setRestoring(false);
       }
