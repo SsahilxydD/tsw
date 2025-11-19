@@ -1,66 +1,59 @@
 import { useEffect, useRef } from "react";
 import { useLocation, useNavigationType } from "react-router-dom";
+import { saveScrollPosition, restoreScrollPosition, setupLinkInterception, setRestoring, isRestoring } from "../utils/scrollRestoration";
 
 export default function ScrollToTop() {
   const { pathname } = useLocation();
   const navType = useNavigationType();
   const prevPathnameRef = useRef(pathname);
 
+  // Setup link click interception to save scroll position before navigation
   useEffect(() => {
-    const scrollKey = `scroll_${pathname}`;
+    const cleanup = setupLinkInterception();
+    return cleanup;
+  }, []);
+
+  // Main scroll restoration logic
+  useEffect(() => {
     const prevPath = prevPathnameRef.current;
+    const pathChanged = prevPath !== pathname;
 
     if (navType === "POP") {
-      // Restore scroll position on back/forward navigation
-      // DO NOT scroll to top on back navigation
-      const savedScroll = sessionStorage.getItem(scrollKey);
-      if (savedScroll) {
-        const scrollPos = parseInt(savedScroll, 10);
-        if (!isNaN(scrollPos) && scrollPos >= 0) {
-          // Use requestAnimationFrame + timeout to ensure DOM is fully ready
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-              // Double RAF ensures layout is complete, then add small delay for content rendering
-              setTimeout(() => {
-                // Only restore if we're still on the same page (prevent race conditions)
-                if (window.location.pathname === pathname) {
-                  window.scrollTo({ top: scrollPos, left: 0, behavior: "auto" });
-                }
-              }, 100);
-            });
-          });
-        }
-      } else {
-        // If no saved scroll position, don't scroll to top - let the page stay where it is
-        // This prevents unwanted scroll-to-top on back navigation
-      }
-    } else {
-      // Save scroll position of the previous page BEFORE navigating away
-      // This must happen before any scrolling occurs
-      if (prevPath && prevPath !== pathname) {
-        const prevScrollKey = `scroll_${prevPath}`;
-        // Get scroll position immediately - it's still from the previous page
-        const currentScroll = window.scrollY;
-        // Only save if we have a valid scroll position (not already at top due to other effects)
-        if (currentScroll > 0 || !sessionStorage.getItem(prevScrollKey)) {
-          sessionStorage.setItem(prevScrollKey, currentScroll.toString());
+      // Back/forward navigation - restore scroll position
+      // restoreScrollPosition will set the restoring flag internally
+      restoreScrollPosition(pathname, 150);
+    } else if (pathChanged) {
+      // Forward navigation (PUSH/REPLACE)
+      // Ensure we're not in a restoring state
+      setRestoring(false);
+      
+      // Save previous page's scroll position (if not already saved by click handler)
+      if (prevPath) {
+        const currentScroll = window.scrollY || window.pageYOffset || 0;
+        // Only save if we have a meaningful scroll position
+        if (currentScroll > 0) {
+          saveScrollPosition(prevPath);
         }
       }
 
-      // Scroll to top for new navigation (PUSH/REPLACE) - but only if not a product page
-      // Product pages handle their own scroll-to-top logic
+      // Scroll to top for new pages, but NOT for product pages (they handle it themselves)
       const isProductPage = pathname.startsWith('/product/');
-      if (!isProductPage) {
-        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      if (!isProductPage && !isRestoring()) {
+        // Small delay to ensure we're not interfering with restoration
+        requestAnimationFrame(() => {
+          if (!isRestoring()) {
+            window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+          }
+        });
       }
     }
 
-    // Update previous pathname for next navigation (do this last)
+    // Update previous pathname
     prevPathnameRef.current = pathname;
 
-    // Move focus to main content for keyboard/screen-reader users (but don't scroll)
+    // Move focus to main content for accessibility (but don't scroll)
     const main = document.getElementById("main-content");
-    if (main) {
+    if (main && !isRestoring()) {
       const prevTabIndex = main.getAttribute("tabindex");
       main.setAttribute("tabindex", "-1");
       main.focus({ preventScroll: true });
@@ -68,32 +61,43 @@ export default function ScrollToTop() {
     }
   }, [pathname, navType]);
 
-  // Save scroll position on scroll events (debounced) for more reliable saving
-  // Also save immediately when pathname changes to catch navigation events
+  // Continuously save scroll position as user scrolls
   useEffect(() => {
-    // Save current scroll position immediately when pathname changes (before navigation completes)
-    const currentPath = window.location.pathname;
-    const scrollKey = `scroll_${currentPath}`;
-    const currentScroll = window.scrollY;
-    if (currentScroll >= 0) {
-      sessionStorage.setItem(scrollKey, currentScroll.toString());
-    }
-
-    // Also save on scroll events (debounced) for continuous updates
     let timeoutId;
+    let rafId;
+    let lastSaved = 0;
+
+    const saveScroll = () => {
+      const currentPath = window.location.pathname;
+      const currentScroll = window.scrollY || window.pageYOffset || 0;
+      
+      // Only save if scroll position changed significantly (avoid unnecessary saves)
+      if (Math.abs(currentScroll - lastSaved) > 50 || currentScroll === 0) {
+        saveScrollPosition(currentPath);
+        lastSaved = currentScroll;
+      }
+    };
+
     const handleScroll = () => {
-      clearTimeout(timeoutId);
+      // Cancel any pending save
+      if (timeoutId) clearTimeout(timeoutId);
+      if (rafId) cancelAnimationFrame(rafId);
+
+      // Save after scroll stops (debounced)
       timeoutId = setTimeout(() => {
-        const currentPath = window.location.pathname;
-        const scrollKey = `scroll_${currentPath}`;
-        sessionStorage.setItem(scrollKey, window.scrollY.toString());
-      }, 150);
+        rafId = requestAnimationFrame(saveScroll);
+      }, 100);
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
+    
+    // Also save on initial mount
+    saveScroll();
+
     return () => {
       window.removeEventListener("scroll", handleScroll);
-      clearTimeout(timeoutId);
+      if (timeoutId) clearTimeout(timeoutId);
+      if (rafId) cancelAnimationFrame(rafId);
     };
   }, [pathname]);
 

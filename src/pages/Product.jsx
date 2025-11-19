@@ -1,6 +1,7 @@
 // src/pages/Product.jsx
 import React from "react";
 import { useParams, Link, useNavigationType } from "react-router-dom";
+import { isRestoring } from "../utils/scrollRestoration";
 import Title from "../components/Title";
 import ProductItem from "../components/ProductItem";
 import { ShopContext } from "../context/ShopContext";
@@ -118,9 +119,22 @@ export default function Product() {
   // scroll to top on product change only for forward navigation (prevents jumping)
   // Don't scroll on back navigation (POP) to allow scroll restoration
   React.useEffect(() => {
+    // Never scroll if we're restoring scroll position
+    if (isRestoring()) {
+      return;
+    }
+    
     // Only scroll to top on forward navigation (PUSH/REPLACE), never on POP
     if (navType === "PUSH" || navType === "REPLACE") {
-      window.scrollTo({ top: 0, behavior: "auto" });
+      // Use requestAnimationFrame to ensure this happens after any restoration logic
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          // Double-check we're still not restoring
+          if (!isRestoring()) {
+            window.scrollTo({ top: 0, behavior: "auto" });
+          }
+        });
+      });
     }
     // On POP navigation, do nothing - let ScrollToTop component handle restoration
   }, [id, navType]);
