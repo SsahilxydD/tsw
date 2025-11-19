@@ -1,188 +1,106 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-* {
-  font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, 'Noto Sans', 'Helvetica Neue', sans-serif;
-  font-feature-settings: 'liga','kern','pnum','tnum';
-}
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-html, body {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-}
+  body {
+    @apply text-primary bg-background font-sans;
+  }
 
-/* App-like touch behavior: remove tap highlight and prevent odd zoom/jank *//* Buttons/links behave like native apps (no double-tap zoom, faster taps) */
-button, [role="button"], a {
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-}
-
-img { -webkit-user-drag: none; }
-
-/* Avoid iOS autofocus zoom by ensuring controls use 16px or larger */
-input, select, textarea { font-size: 16px; }
-
-/* ===== Premium minimal animations (respect reduced motion) ===== */
-@keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
-@keyframes slideUp { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: translateY(0) } }
-@keyframes pop { 0% { transform: scale(.96); opacity:.6 } 100% { transform: scale(1); opacity:1 } }
-@keyframes pageFade { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: translateY(0) } }
-@keyframes shimmer { 0% { background-position: -200% 0 } 100% { background-position: 200% 0 } }
-@keyframes blurUp { from { opacity: 0; transform: translateY(3px); filter: blur(2px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }
-@keyframes softReveal { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes blurPop { 0% { transform: translateZ(0) scale(.98); filter: blur(4px); opacity:.6 } 100% { transform: translateZ(0) scale(1); filter: blur(0); opacity:1 } }
-
-/* Cart item transitions */
-@keyframes cartEnter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-
-/* Shimmer effect for loading states */
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-.animate-shimmer {
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 2s infinite;
-}
-
-/* Accessibility classes */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-.sr-only:focus {
-  position: static;
-  width: auto;
-  height: auto;
-  padding: inherit;
-  margin: inherit;
-  overflow: visible;
-  clip: auto;
-  white-space: normal;
-}
-
-/* High contrast mode */
-.high-contrast {
-  filter: contrast(150%) brightness(120%);
-}
-
-.high-contrast * {
-  border-color: currentColor !important;
-}
-
-/* Reduced motion */
-.reduce-motion * {
-  animation-duration: 0.01ms !important;
-  animation-iteration-count: 1 !important;
-  transition-duration: 0.01ms !important;
-}
-
-.reduce-motion *:before,
-.reduce-motion *:after {
-  animation-duration: 0.01ms !important;
-  animation-iteration-count: 1 !important;
-  transition-duration: 0.01ms !important;
-}
-@keyframes cartLeave { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(6px); } }
-
-.animate-fade-in { animation: fadeIn .35s ease-out both; }
-.animate-slide-up { animation: slideUp .35s ease-out both; }
-.animate-pop { animation: pop .25s ease-out both; }
-.animate-page { animation: pageFade .35s ease-out both; }
-.animate-blur-up { animation: blurUp .32s cubic-bezier(.22,.8,.24,1) both; will-change: transform, filter, opacity; }
-.animate-soft-reveal { animation: softReveal .28s cubic-bezier(.22,.8,.24,1) both; will-change: transform, opacity; }
-.reveal-base { opacity: .06; transform: translateY(3px); }
-
-.animate-cart-enter { animation: cartEnter .32s cubic-bezier(.22,.8,.24,1) both; }
-.animate-cart-leave { animation: cartLeave .24s ease-out both; }
-
-/* Transition-based reveal (snappy, no ghosting) */
-:root { --reveal-dur: 220ms; }
-.reveal-item { opacity: .2; transform: translateY(2px); will-change: opacity, transform, filter; }
-.reveal-item.in { opacity: 1; transform: translateY(0); transition: opacity var(--reveal-dur) ease-out, transform var(--reveal-dur) cubic-bezier(.22,.8,.24,1), filter 160ms ease-out; }
-
-/* Subtle motion blur hint during fast scroll */
-.scrolling-fast .reveal-item:not(.in) img, .scrolling-fast .reveal-item img { filter: blur(.6px); }
-.reveal-item.in img { filter: blur(0); }
-.animate-blur-pop { animation: blurPop .28s ease-out both; will-change: transform, filter, opacity; }
-
-.skeleton-shimmer {
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 37%, #f3f4f6 63%);
-  background-size: 400% 100%;
-  animation: shimmer 1.4s ease-in-out infinite;
-}
-
-/* ===== Microinteraction utilities ===== */
-.pressable { transition: transform 160ms ease, opacity 160ms ease, box-shadow 160ms ease; }
-.pressable:active { transform: translateY(0.5px) scale(0.985); }
-.hover-lift { transition: transform 220ms cubic-bezier(.22,.8,.24,1), box-shadow 220ms ease; }
-.hover-lift:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0,0,0,0.07); }
-.focus-ring:focus-visible { outline: none !important; box-shadow: 0 0 0 3px rgba(0,0,0,0.14); border-color: rgba(0,0,0,0.22); }
-
-@media (prefers-reduced-motion: reduce) {
-  .animate-fade-in, .animate-slide-up, .animate-pop, .animate-page, .animate-blur-up, .animate-soft-reveal, .animate-blur-pop, .animate-cart-enter, .animate-cart-leave, .skeleton-shimmer { animation: none !important; }
-  .reveal-item.in { transition: none !important; }
-}
-
-/* Performance: avoid off-screen paints on large lists */
-.cv-auto { content-visibility: auto; contain-intrinsic-size: 300px 380px; }
-
-/* ===== Toast (elegant + minimal) ===== */
-.toast-min {
-  background: rgba(17,17,17,0.86) !important;
-  color: #fff !important;
-  border-radius: 12px !important;
-  border: 1px solid rgba(255,255,255,0.06) !important;
-  padding: 8px 12px !important;
-  min-height: auto !important;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.18) !important;
-  backdrop-filter: blur(6px);
-}
-.toast-min-body { margin: 0 !important; font-size: 13px; letter-spacing: .2px; }
-.Toastify__toast-container--bottom-center { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 64px) !important; }
-
-.prata-regular {
-  font-family: "Source Serif 4", Georgia, "Times New Roman", serif;
-  font-weight: 600;
-  font-style: normal;
-}
-
-a.active hr {
-  display: block;
-}
-
-::-webkit-scrollbar {
-  display: none;
-}
-
-@media (max-width:640px) {
-  a.active {
-    background-color: black;
-    color: white;
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-serif;
   }
 }
 
-/* ===== Announcement marquee ===== */
-.annc-wrap { position: relative; overflow: hidden; }
-.annc-track { display: flex; width: max-content; white-space: nowrap; animation: anncMarquee 22s linear infinite; will-change: transform; }
-.group:hover .annc-track { animation-play-state: paused; }
-.annc-seq { display: flex; gap: 2rem; padding-right: 2rem; }
-@keyframes anncMarquee { from { transform: translate3d(0,0,0); } to { transform: translate3d(-50%,0,0); } }
+@layer utilities {
+  .glass {
+    @apply bg-white/80 backdrop-blur-md border-b border-white/20;
+  }
 
+  .text-balance {
+    text-wrap: balance;
+  }
+}
 
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
 
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400;
+}
+
+/* Smooth Reveal Animation Classes */
+.reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal.active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Selection Color */
+::selection {
+  @apply bg-primary text-white;
+}
+
+/* Marquee Animation */
+.annc-wrap {
+  display: flex;
+  overflow: hidden;
+  user-select: none;
+  mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+}
+
+.annc-track {
+  display: flex;
+  gap: 2rem;
+  width: max-content;
+  animation: marquee 30s linear infinite;
+}
+
+.annc-track:hover {
+  animation-play-state: paused;
+}
+
+.annc-seq {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex-shrink: 0;
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
+}

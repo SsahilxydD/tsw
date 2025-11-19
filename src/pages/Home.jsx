@@ -24,7 +24,7 @@ const Home = () => {
           {
             "@context": "https://schema.org",
             "@type": "SiteNavigationElement",
-            "name": ["Home","About","Contact","Chat on WhatsApp"],
+            "name": ["Home", "About", "Contact", "Chat on WhatsApp"],
             "url": [
               typeof window !== 'undefined' ? window.location.origin + '/' : '/',
               typeof window !== 'undefined' ? window.location.origin + '/about' : '/about',
@@ -34,9 +34,14 @@ const Home = () => {
           }
         ]}
       />
-      
-      <Categories />
-      <OurPolicy />
+
+      <div className="animate-slide-up opacity-0" style={{ animationDelay: '0.6s', animationFillMode: 'forwards' }}>
+        <Categories />
+      </div>
+
+      <div className="animate-slide-up opacity-0" style={{ animationDelay: '0.8s', animationFillMode: 'forwards' }}>
+        <OurPolicy />
+      </div>
     </div>
   )
 }
