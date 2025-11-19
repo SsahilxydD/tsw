@@ -49,38 +49,30 @@ function ScrollRouterContent({ children }) {
 
     if (navType === "POP") {
       // Back/forward navigation - restore scroll position instantly
-      // Since we removed the key prop, components may already be rendered
+      // Components are cached and already rendered, so scroll should be instant
       const savedPos = getScrollPosition(currentPath);
       
       if (savedPos !== null && savedPos >= 0) {
         setRestoring(true);
         
-        // Try to restore immediately - components should already be rendered
-        const restoreImmediately = () => {
-          window.scrollTo({ top: savedPos, left: 0, behavior: 'auto' });
-          
-          // Verify after a short delay
-          setTimeout(() => {
-            const actualPos = window.scrollY || window.pageYOffset || 0;
-            const diff = Math.abs(actualPos - savedPos);
-            
-            // If not accurate and page might still be loading, retry once
-            if (diff > 50) {
-              requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                  window.scrollTo({ top: savedPos, left: 0, behavior: 'auto' });
-                  setRestoring(false);
-                });
-              });
-            } else {
-              setRestoring(false);
-            }
-          }, 50);
-        };
-        
-        // Restore immediately - no waiting for content
+        // Restore immediately - cached components are already in DOM
+        // Use requestAnimationFrame to ensure DOM is ready
         requestAnimationFrame(() => {
-          requestAnimationFrame(restoreImmediately);
+          requestAnimationFrame(() => {
+            window.scrollTo({ top: savedPos, left: 0, behavior: 'auto' });
+            
+            // Verify it worked (should be instant with cached routes)
+            setTimeout(() => {
+              const actualPos = window.scrollY || window.pageYOffset || 0;
+              const diff = Math.abs(actualPos - savedPos);
+              
+              // If not accurate, retry once (shouldn't be needed with caching)
+              if (diff > 10) {
+                window.scrollTo({ top: savedPos, left: 0, behavior: 'auto' });
+              }
+              setRestoring(false);
+            }, 10);
+          });
         });
       } else {
         setRestoring(false);

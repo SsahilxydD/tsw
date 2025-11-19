@@ -13,6 +13,7 @@ import { ToastContainer, Slide } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import ScrollToTop from "./components/ScrollToTop";
 import CartDrawer from "./components/CartDrawer";
+import CachedRoutes from "./components/CachedRoutes";
 
 import Home from "./pages/Home";
 import Category from "./pages/Category";
@@ -27,6 +28,20 @@ import PlaceOrder from "./pages/PlaceOrder";
 import Orders from "./pages/Orders";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
+
+// Route configuration for caching
+const routes = [
+  { path: "/", element: <Home /> },
+  { path: "/collection", element: <Collection /> },
+  { path: "/category/:cat", element: <Category /> },
+  { path: "/product/:id", element: <Product /> },
+  { path: "/about", element: <About /> },
+  { path: "/contact", element: <Contact /> },
+  { path: "/cart", element: <Cart /> },
+  { path: "/place-order", element: <PlaceOrder /> },
+  { path: "/login", element: <Login /> },
+  { path: "*", element: <NotFound /> },
+];
 
 export default function App() {
   const location = useLocation();
@@ -43,19 +58,7 @@ export default function App() {
 
       <main id="main-content" className="min-h-[60vh]">
         <div className="animate-page">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/collection" element={<Collection />} />
-            <Route path="/category/:cat" element={<Category />} />
-            <Route path="/product/:id" element={<Product />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/cart" element={<Cart />} />
-            <Route path="/place-order" element={<PlaceOrder />} />
-            <Route path="/login" element={<Login />} />
-            {/* Fallback */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <CachedRoutes routes={routes} />
         </div>
       </main>
 
