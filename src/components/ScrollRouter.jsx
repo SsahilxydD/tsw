@@ -31,30 +31,52 @@ function ScrollRouterContent({ children }) {
       if (savedPos !== null && savedPos >= 0) {
         setRestoring(true);
         
-        // Restore with proper timing - wait for DOM to be ready
+        // CRITICAL: Wait longer for DOM to be fully ready after back navigation
+        // Back navigation might cause a brief reload, so we need more time
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
+            // Wait for any potential reload to complete
             setTimeout(() => {
-              // Verify we're still on the same page
-              if (window.location.pathname === currentPath) {
-                window.scrollTo({ top: savedPos, left: 0, behavior: 'auto' });
-                
-                // Verify restoration worked and clear flag
-                setTimeout(() => {
-                  const actualPos = window.scrollY || window.pageYOffset || 0;
-                  if (Math.abs(actualPos - savedPos) > 50) {
-                    // Retry if restoration didn't work
-                    window.scrollTo({ top: savedPos, left: 0, behavior: 'auto' });
-                  }
+              // Double-check we're still on the same page and DOM is ready
+              if (window.location.pathname === currentPath && document.readyState === 'complete') {
+                // Ensure page is fully loaded before restoring
+                if (document.body && document.body.offsetHeight > 0) {
+                  window.scrollTo({ top: savedPos, left: 0, behavior: 'auto' });
                   
+                  // Verify restoration worked and clear flag
                   setTimeout(() => {
-                    setRestoring(false);
+                    const actualPos = window.scrollY || window.pageYOffset || 0;
+                    if (Math.abs(actualPos - savedPos) > 50) {
+                      // Retry if restoration didn't work
+                      window.scrollTo({ top: savedPos, left: 0, behavior: 'auto' });
+                      
+                      // Final retry after another delay
+                      setTimeout(() => {
+                        const finalPos = window.scrollY || window.pageYOffset || 0;
+                        if (Math.abs(finalPos - savedPos) > 50) {
+                          window.scrollTo({ top: savedPos, left: 0, behavior: 'auto' });
+                        }
+                        setRestoring(false);
+                      }, 100);
+                    } else {
+                      setRestoring(false);
+                    }
                   }, 100);
-                }, 50);
+                } else {
+                  // DOM not ready yet, wait more
+                  setTimeout(() => {
+                    if (window.location.pathname === currentPath) {
+                      window.scrollTo({ top: savedPos, left: 0, behavior: 'auto' });
+                      setTimeout(() => setRestoring(false), 200);
+                    } else {
+                      setRestoring(false);
+                    }
+                  }, 200);
+                }
               } else {
                 setRestoring(false);
               }
-            }, 150);
+            }, 100); // Reduced initial delay, but added more checks
           });
         });
       } else {
