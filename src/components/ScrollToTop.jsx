@@ -1,12 +1,16 @@
 import { useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigationType } from "react-router-dom";
 
 export default function ScrollToTop() {
   const { pathname } = useLocation();
+  const navType = useNavigationType();
 
   useEffect(() => {
-    // Reset scroll
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    // If the user clicked "Back" (POP), let the browser restore scroll position.
+    // Otherwise (PUSH/REPLACE), scroll to top.
+    if (navType !== "POP") {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    }
 
     // Move focus to main content for keyboard/screen-reader users
     const main = document.getElementById("main-content");
@@ -18,7 +22,7 @@ export default function ScrollToTop() {
       // Restore any previous state (keep -1 if already -1)
       if (prevTabIndex === null) main.removeAttribute("tabindex");
     }
-  }, [pathname]);
+  }, [pathname, navType]);
 
   return null;
 }
