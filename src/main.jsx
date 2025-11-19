@@ -79,50 +79,65 @@ if ('scrollRestoration' in window.history) {
       if (savedPos) {
         const pos = parseInt(savedPos, 10);
         if (!isNaN(pos) && pos >= 0) {
-          // Wait for DOM to be ready, then restore with multiple attempts
+          // Wait for page to be fully loaded and content rendered
           const doRestore = () => {
             let attempts = 0;
-            const maxAttempts = 10;
+            const maxAttempts = 20; // More attempts for slow-loading content
             
             const tryRestore = () => {
               attempts++;
               
-              // Check if page is ready
-              if (document.body && document.body.offsetHeight > 0 && document.readyState === 'complete') {
+              // Check if page is ready and has content
+              const body = document.body;
+              const mainContent = document.getElementById('main-content');
+              const hasContent = body && body.offsetHeight > 500; // Page has substantial content
+              const isReady = document.readyState === 'complete';
+              
+              // For category/collection pages, wait for product grid to be visible
+              const productGrid = document.querySelector('.grid.grid-cols-2, .grid.grid-cols-3');
+              const hasProducts = !productGrid || productGrid.children.length > 0;
+              
+              if (isReady && hasContent && hasProducts) {
+                // Page is ready, restore scroll position
                 window.scrollTo({ top: pos, left: 0, behavior: 'auto' });
                 
-                // Verify it worked
+                // Verify it worked after a short delay
                 setTimeout(() => {
                   const actualPos = window.scrollY || window.pageYOffset || 0;
-                  if (Math.abs(actualPos - pos) > 50 && attempts < maxAttempts) {
-                    // Retry
+                  const diff = Math.abs(actualPos - pos);
+                  
+                  if (diff > 50 && attempts < maxAttempts) {
+                    // Retry if not accurate enough
                     tryRestore();
                   }
                 }, 100);
               } else if (attempts < maxAttempts) {
-                // DOM not ready yet, wait and retry
-                setTimeout(tryRestore, 100);
+                // Page not ready yet, wait and retry
+                setTimeout(tryRestore, 150);
+              } else {
+                // Max attempts reached, restore anyway
+                window.scrollTo({ top: pos, left: 0, behavior: 'auto' });
               }
             };
             
-            // Start restoration attempts
-            tryRestore();
+            // Start restoration attempts after initial delay
+            setTimeout(tryRestore, 200);
           };
           
           // Wait for page to be interactive
           if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
-              setTimeout(doRestore, 150);
+              setTimeout(doRestore, 200);
             });
           } else {
-            setTimeout(doRestore, 150);
+            setTimeout(doRestore, 200);
           }
         }
       }
       // Clear the nav type flag after a delay
       setTimeout(() => {
         sessionStorage.removeItem('__nav_type__');
-      }, 1000);
+      }, 2000);
     }
   };
   

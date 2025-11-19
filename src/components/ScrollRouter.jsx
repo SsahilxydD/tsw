@@ -54,9 +54,9 @@ function ScrollRouterContent({ children }) {
       if (savedPos !== null && savedPos >= 0) {
         setRestoring(true);
         
-        // Restore scroll position with multiple attempts
+        // Restore scroll position with multiple attempts, waiting for content to load
         const attemptRestore = (attempt = 0) => {
-          if (attempt > 5) {
+          if (attempt > 10) {
             setRestoring(false);
             return;
           }
@@ -66,35 +66,56 @@ function ScrollRouterContent({ children }) {
               setTimeout(() => {
                 // Verify we're still on the same page
                 if (window.location.pathname === currentPath) {
-                  const currentScroll = window.scrollY || window.pageYOffset || 0;
+                  // Check if page content is ready
+                  const body = document.body;
+                  const mainContent = document.getElementById('main-content');
+                  const hasContent = body && body.offsetHeight > 500;
                   
-                  // Only restore if we're not already at the right position
-                  if (Math.abs(currentScroll - savedPos) > 10) {
-                    window.scrollTo({ top: savedPos, left: 0, behavior: 'auto' });
+                  // For category/collection pages, wait for product grid
+                  const productGrid = document.querySelector('.grid.grid-cols-2, .grid.grid-cols-3');
+                  const hasProducts = !productGrid || productGrid.children.length > 0;
+                  
+                  // Only restore if content is ready
+                  if (hasContent && hasProducts) {
+                    const currentScroll = window.scrollY || window.pageYOffset || 0;
                     
-                    // Verify it worked
-                    setTimeout(() => {
-                      const actualPos = window.scrollY || window.pageYOffset || 0;
-                      if (Math.abs(actualPos - savedPos) > 50 && attempt < 3) {
-                        // Retry if restoration didn't work
-                        attemptRestore(attempt + 1);
-                      } else {
-                        setRestoring(false);
-                      }
-                    }, 50);
+                    // Only restore if we're not already at the right position
+                    if (Math.abs(currentScroll - savedPos) > 10) {
+                      window.scrollTo({ top: savedPos, left: 0, behavior: 'auto' });
+                      
+                      // Verify it worked
+                      setTimeout(() => {
+                        const actualPos = window.scrollY || window.pageYOffset || 0;
+                        const diff = Math.abs(actualPos - savedPos);
+                        
+                        if (diff > 50 && attempt < 5) {
+                          // Retry if restoration didn't work
+                          attemptRestore(attempt + 1);
+                        } else {
+                          setRestoring(false);
+                        }
+                      }, 100);
+                    } else {
+                      setRestoring(false);
+                    }
+                  } else if (attempt < 10) {
+                    // Content not ready yet, wait and retry
+                    attemptRestore(attempt + 1);
                   } else {
+                    // Max attempts, restore anyway
+                    window.scrollTo({ top: savedPos, left: 0, behavior: 'auto' });
                     setRestoring(false);
                   }
                 } else {
                   setRestoring(false);
                 }
-              }, 50 + (attempt * 50)); // Increase delay with each attempt
+              }, 100 + (attempt * 50)); // Increase delay with each attempt
             });
           });
         };
         
-        // Start restoration
-        attemptRestore();
+        // Start restoration after initial delay
+        setTimeout(() => attemptRestore(), 100);
       } else {
         setRestoring(false);
       }
