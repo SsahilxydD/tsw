@@ -12,6 +12,7 @@ import Notice from "./components/Notice";
 import { ToastContainer, Slide } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import ScrollToTop from "./components/ScrollToTop";
+import CartDrawer from "./components/CartDrawer";
 
 import Home from "./pages/Home";
 import Category from "./pages/Category";
@@ -35,28 +36,29 @@ export default function App() {
       <ScrollToTop />
 
       <Navbar />
+      <CartDrawer />
       <SearchBar />
       <ScrollProgress />
       <ScrollEffects />
 
       <main id="main-content" className="min-h-[60vh]">
         <div key={location.pathname} className="animate-page">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/collection" element={<Collection />} />
-          <Route path="/category/:cat" element={<Category />} />
-          <Route path="/product/:id" element={<Product />} />
-          <Route path="/address" element={<Address />} />
-          <Route path="/payment" element={<Payment />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/cart" element={<Cart />} />
-          <Route path="/place-order" element={<PlaceOrder />} />
-          <Route path="/orders" element={<Orders />} />
-          <Route path="/login" element={<Login />} />
-          {/* Fallback */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/collection" element={<Collection />} />
+            <Route path="/category/:cat" element={<Category />} />
+            <Route path="/product/:id" element={<Product />} />
+            <Route path="/address" element={<Address />} />
+            <Route path="/payment" element={<Payment />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/place-order" element={<PlaceOrder />} />
+            <Route path="/orders" element={<Orders />} />
+            <Route path="/login" element={<Login />} />
+            {/* Fallback */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
         </div>
       </main>
 

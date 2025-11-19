@@ -5,7 +5,7 @@ import { ShopContext } from "../context/ShopContext";
 import AnnouncementBar from "./AnnouncementBar";
 
 const Navbar = () => {
-  const { getCartCount } = useContext(ShopContext);
+  const { getCartCount, setIsCartOpen } = useContext(ShopContext);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -101,7 +101,12 @@ const Navbar = () => {
             </a>
 
             {/* Cart */}
-            <Link id="cart-anchor" to="/cart" aria-label="Cart" className="relative p-1 group">
+            <button
+              id="cart-anchor"
+              onClick={() => setIsCartOpen(true)}
+              aria-label="Cart"
+              className="relative p-1 group"
+            >
               <div className="w-6 h-6 text-primary transition-colors group-hover:text-accent">
                 {assets.cart_icon ? (
                   <img src={assets.cart_icon} alt="" className="w-full h-full" />
@@ -114,7 +119,7 @@ const Navbar = () => {
                   {count}
                 </span>
               )}
-            </Link>
+            </button>
           </div>
         </div>
 
