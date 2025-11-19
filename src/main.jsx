@@ -80,17 +80,29 @@ if ('scrollRestoration' in window.history) {
       if (savedPos) {
         const pos = parseInt(savedPos, 10);
         if (!isNaN(pos) && pos >= 0) {
-          // Restore immediately - React Router will handle component mounting
+          // Restore immediately without animation - especially important on mobile
           const restore = () => {
-            window.scrollTo({ top: pos, left: 0, behavior: 'auto' });
+            // Force instant scroll on mobile by setting scroll position directly
+            if (document.documentElement.scrollTop !== undefined) {
+              document.documentElement.scrollTop = pos;
+            }
+            if (document.body.scrollTop !== undefined) {
+              document.body.scrollTop = pos;
+            }
+            window.scrollTo(0, pos);
             
             // Verify after a short delay and retry once if needed
             setTimeout(() => {
               const actualPos = window.scrollY || window.pageYOffset || 0;
               if (Math.abs(actualPos - pos) > 50) {
-                requestAnimationFrame(() => {
-                  window.scrollTo({ top: pos, left: 0, behavior: 'auto' });
-                });
+                // Retry with direct assignment
+                if (document.documentElement.scrollTop !== undefined) {
+                  document.documentElement.scrollTop = pos;
+                }
+                if (document.body.scrollTop !== undefined) {
+                  document.body.scrollTop = pos;
+                }
+                window.scrollTo(0, pos);
               }
             }, 100);
           };

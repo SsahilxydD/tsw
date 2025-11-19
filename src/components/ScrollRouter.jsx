@@ -55,25 +55,39 @@ function ScrollRouterContent({ children }) {
       if (savedPos !== null && savedPos >= 0) {
         setRestoring(true);
         
-        // Restore immediately - cached components are already in DOM
-        // Use requestAnimationFrame to ensure DOM is ready
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            window.scrollTo({ top: savedPos, left: 0, behavior: 'auto' });
+        // Restore instantly without animation - especially important on mobile
+        // Set scroll position directly to avoid any smooth scroll behavior
+        const restoreScroll = () => {
+          // Force instant scroll on mobile by setting scroll position directly
+          if (document.documentElement.scrollTop !== undefined) {
+            document.documentElement.scrollTop = savedPos;
+          }
+          if (document.body.scrollTop !== undefined) {
+            document.body.scrollTop = savedPos;
+          }
+          window.scrollTo(0, savedPos);
+          
+          // Verify it worked
+          setTimeout(() => {
+            const actualPos = window.scrollY || window.pageYOffset || 0;
+            const diff = Math.abs(actualPos - savedPos);
             
-            // Verify it worked (should be instant with cached routes)
-            setTimeout(() => {
-              const actualPos = window.scrollY || window.pageYOffset || 0;
-              const diff = Math.abs(actualPos - savedPos);
-              
-              // If not accurate, retry once (shouldn't be needed with caching)
-              if (diff > 10) {
-                window.scrollTo({ top: savedPos, left: 0, behavior: 'auto' });
+            // If not accurate, retry once with direct assignment
+            if (diff > 10) {
+              if (document.documentElement.scrollTop !== undefined) {
+                document.documentElement.scrollTop = savedPos;
               }
-              setRestoring(false);
-            }, 10);
-          });
-        });
+              if (document.body.scrollTop !== undefined) {
+                document.body.scrollTop = savedPos;
+              }
+              window.scrollTo(0, savedPos);
+            }
+            setRestoring(false);
+          }, 10);
+        };
+        
+        // Execute immediately - no animation frames needed with cached routes
+        restoreScroll();
       } else {
         setRestoring(false);
       }
@@ -92,12 +106,18 @@ function ScrollRouterContent({ children }) {
         }
       }
 
-      // Scroll to top for new pages (except product pages handle their own)
+      // Scroll to top instantly for new pages (except product pages handle their own)
+      // Use direct assignment to prevent any animation on mobile
       const isProductPage = currentPath.startsWith('/product/');
       if (!isProductPage) {
-        requestAnimationFrame(() => {
-          window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-        });
+        // Force instant scroll on mobile by setting scroll position directly
+        if (document.documentElement.scrollTop !== undefined) {
+          document.documentElement.scrollTop = 0;
+        }
+        if (document.body.scrollTop !== undefined) {
+          document.body.scrollTop = 0;
+        }
+        window.scrollTo(0, 0);
       }
     }
 

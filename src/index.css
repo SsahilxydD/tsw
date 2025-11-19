@@ -5,7 +5,8 @@
 
 @layer base {
   html {
-    scroll-behavior: smooth;
+    /* Remove smooth scroll - we handle scrolling programmatically with 'auto' behavior */
+    scroll-behavior: auto;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }

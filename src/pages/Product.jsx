@@ -123,13 +123,24 @@ export default function Product() {
       return;
     }
     
-    // Scroll to top for new product (forward navigation)
+    // Scroll to top instantly for new product (forward navigation)
+    // Use immediate scroll without animation to prevent mobile scroll issues
     // ScrollRouter handles back navigation restoration
-    requestAnimationFrame(() => {
+    const scrollToTop = () => {
       if (!isRestoring()) {
-        window.scrollTo({ top: 0, behavior: "auto" });
+        // Force instant scroll on mobile by setting scroll position directly
+        if (document.documentElement.scrollTop !== undefined) {
+          document.documentElement.scrollTop = 0;
+        }
+        if (document.body.scrollTop !== undefined) {
+          document.body.scrollTop = 0;
+        }
+        window.scrollTo(0, 0);
       }
-    });
+    };
+    
+    // Execute immediately without animation
+    scrollToTop();
   }, [id]);
 
 
