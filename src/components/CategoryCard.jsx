@@ -27,7 +27,7 @@ const CategoryCard = ({ name, count, image, i }) => {
 
     // Women's shoes - specific handling (before possessive form replacement)
     s = s.replace(/womenshoes?/g, "women's shoes");
-    
+
     // Split concatenations like womensperfume -> womens perfume
     s = s.replace(/womens?perfume/g, "womens perfume");
     s = s.replace(/mens?perfume/g, "mens perfume");
@@ -54,20 +54,21 @@ const CategoryCard = ({ name, count, image, i }) => {
 
   // Two-line clamp with safe word wrapping, avoids mid-letter clipping
   const titleBoxStyle = {
-    lineHeight: 1.2,
+    lineHeight: 1.3,
     display: '-webkit-box',
     WebkitLineClamp: 2,
     WebkitBoxOrient: 'vertical',
     overflow: 'hidden',
-    wordBreak: 'break-word',
-    overflowWrap: 'anywhere'
+    wordBreak: 'normal', // Changed from break-word to normal to keep words whole
+    overflowWrap: 'break-word', // Ensure long words still wrap if needed
+    hyphens: 'auto' // Add hyphenation for better text flow
   }; // fixed height keeps divider/count aligned
 
   return (
     <Link
       to={href}
       aria-label={`${display} (${count} items)`}
-      className={`group block cv-auto overflow-hidden border bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30 hover:shadow-md transition-shadow hover-lift reveal-item ${i!=null ? 'in' : ''}`}
+      className={`group block cv-auto overflow-hidden border bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30 hover:shadow-md transition-shadow hover-lift reveal-item ${i != null ? 'in' : ''}`}
       style={{ transitionDelay: `${((i ?? 0) % 10) * 70}ms`, WebkitTapHighlightColor: "transparent" }}
     >
       {/* fixed aspect for zero CLS; smaller height and no backdrop */}
