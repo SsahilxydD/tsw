@@ -89,7 +89,6 @@ if ('scrollRestoration' in window.history) {
               
               // Check if page is ready and has content
               const body = document.body;
-              const mainContent = document.getElementById('main-content');
               const hasContent = body && body.offsetHeight > 500; // Page has substantial content
               const isReady = document.readyState === 'complete';
               
@@ -98,16 +97,18 @@ if ('scrollRestoration' in window.history) {
               const hasProducts = !productGrid || productGrid.children.length > 0;
               
               // Check if we need to wait for more products to load (infinite scroll)
+              // But don't wait too long - if we have 12+ products, that's enough
               const savedVisibleCount = sessionStorage.getItem(`scroll_${currentPath}_visibleCount`);
               let hasEnoughProducts = true;
-              if (savedVisibleCount && productGrid) {
+              if (savedVisibleCount && productGrid && attempts < 8) {
+                // Only wait for products in first few attempts
                 const requiredCount = parseInt(savedVisibleCount, 10);
                 const currentCount = productGrid.children.length;
-                // Wait until we have at least the required number of products
-                hasEnoughProducts = currentCount >= requiredCount || currentCount >= 12; // At least initial PAGE_SIZE
+                // Wait until we have at least the required number of products (capped at 48)
+                hasEnoughProducts = currentCount >= Math.min(requiredCount, 48) || currentCount >= 12;
               }
               
-              if (isReady && hasContent && hasProducts && hasEnoughProducts) {
+              if (isReady && hasContent && hasProducts && (hasEnoughProducts || attempts >= 8)) {
                 // Page is ready, restore scroll position
                 window.scrollTo({ top: pos, left: 0, behavior: 'auto' });
                 

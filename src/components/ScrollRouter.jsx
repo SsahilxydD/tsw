@@ -81,8 +81,9 @@ function ScrollRouterContent({ children }) {
                   if (savedVisibleCount && productGrid) {
                     const requiredCount = parseInt(savedVisibleCount, 10);
                     const currentCount = productGrid.children.length;
-                    // Wait until we have at least the required number of products
-                    hasEnoughProducts = currentCount >= requiredCount || currentCount >= 12; // At least initial PAGE_SIZE
+                    // Wait until we have at least the required number of products (but don't wait forever)
+                    // If we have at least 12 products, that's good enough to restore scroll
+                    hasEnoughProducts = currentCount >= Math.min(requiredCount, 48) || currentCount >= 12;
                   }
                   
                   // Only restore if content is ready

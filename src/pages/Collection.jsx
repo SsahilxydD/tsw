@@ -42,12 +42,14 @@ const Collection = () => {
   const [list, setList] = useState(Array.isArray(products) ? products : []);
   const PAGE_SIZE = 12;
   // Restore visibleCount from sessionStorage on mount (for back navigation)
+  // Limit to reasonable maximum to prevent performance issues
   const [visibleCount, setVisibleCount] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = sessionStorage.getItem(`scroll_${window.location.pathname}_visibleCount`);
       if (saved) {
         const count = parseInt(saved, 10);
-        if (!isNaN(count) && count >= PAGE_SIZE) {
+        // Limit to max 48 products to prevent performance issues
+        if (!isNaN(count) && count >= PAGE_SIZE && count <= 48) {
           return count;
         }
       }
