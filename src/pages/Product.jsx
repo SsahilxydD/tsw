@@ -118,9 +118,11 @@ export default function Product() {
   // scroll to top on product change only for forward navigation (prevents jumping)
   // Don't scroll on back navigation (POP) to allow scroll restoration
   React.useEffect(() => {
-    if (navType !== "POP") {
+    // Only scroll to top on forward navigation (PUSH/REPLACE), never on POP
+    if (navType === "PUSH" || navType === "REPLACE") {
       window.scrollTo({ top: 0, behavior: "auto" });
     }
+    // On POP navigation, do nothing - let ScrollToTop component handle restoration
   }, [id, navType]);
 
 
