@@ -75,8 +75,18 @@ function ScrollRouterContent({ children }) {
                   const productGrid = document.querySelector('.grid.grid-cols-2, .grid.grid-cols-3');
                   const hasProducts = !productGrid || productGrid.children.length > 0;
                   
+                  // Check if we need to wait for more products to load (infinite scroll)
+                  const savedVisibleCount = sessionStorage.getItem(`scroll_${currentPath}_visibleCount`);
+                  let hasEnoughProducts = true;
+                  if (savedVisibleCount && productGrid) {
+                    const requiredCount = parseInt(savedVisibleCount, 10);
+                    const currentCount = productGrid.children.length;
+                    // Wait until we have at least the required number of products
+                    hasEnoughProducts = currentCount >= requiredCount || currentCount >= 12; // At least initial PAGE_SIZE
+                  }
+                  
                   // Only restore if content is ready
-                  if (hasContent && hasProducts) {
+                  if (hasContent && hasProducts && hasEnoughProducts) {
                     const currentScroll = window.scrollY || window.pageYOffset || 0;
                     
                     // Only restore if we're not already at the right position

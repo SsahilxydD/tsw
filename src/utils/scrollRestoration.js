@@ -21,11 +21,16 @@ export const isRestoring = () => {
 /**
  * Save scroll position for a given pathname
  */
-export const saveScrollPosition = (pathname) => {
+export const saveScrollPosition = (pathname, visibleCount = null) => {
   if (typeof window === 'undefined') return;
   const scrollY = window.scrollY || window.pageYOffset || 0;
   const key = `${SCROLL_STORAGE_PREFIX}${pathname}`;
   sessionStorage.setItem(key, scrollY.toString());
+  
+  // Also save visibleCount if provided (for infinite scroll pages)
+  if (visibleCount !== null && visibleCount !== undefined) {
+    sessionStorage.setItem(`${key}_visibleCount`, visibleCount.toString());
+  }
 };
 
 /**
@@ -38,6 +43,20 @@ export const getScrollPosition = (pathname) => {
   if (saved) {
     const pos = parseInt(saved, 10);
     return isNaN(pos) ? null : pos;
+  }
+  return null;
+};
+
+/**
+ * Get saved visibleCount for a given pathname (for infinite scroll)
+ */
+export const getVisibleCount = (pathname) => {
+  if (typeof window === 'undefined') return null;
+  const key = `${SCROLL_STORAGE_PREFIX}${pathname}_visibleCount`;
+  const saved = sessionStorage.getItem(key);
+  if (saved) {
+    const count = parseInt(saved, 10);
+    return isNaN(count) ? null : count;
   }
   return null;
 };
@@ -58,7 +77,20 @@ export const setupScrollSaving = () => {
     
     // Only save if scroll position changed significantly (avoid unnecessary saves)
     if (Math.abs(currentScroll - lastSaved) > 50 || currentScroll === 0) {
-      saveScrollPosition(currentPath);
+      // Try to get visibleCount from the page (for infinite scroll pages)
+      let visibleCount = null;
+      try {
+        // Check if we're on a category/collection page with infinite scroll
+        const productGrid = document.querySelector('.grid.grid-cols-2, .grid.grid-cols-3');
+        if (productGrid && productGrid.children.length > 0) {
+          // Estimate visibleCount based on rendered products
+          visibleCount = productGrid.children.length;
+        }
+      } catch (e) {
+        // Ignore errors
+      }
+      
+      saveScrollPosition(currentPath, visibleCount);
       lastSaved = currentScroll;
     }
   };
@@ -85,7 +117,19 @@ export const setupScrollSaving = () => {
           // Save scroll position immediately before navigation
           const currentPath = window.location.pathname;
           const currentScroll = window.scrollY || window.pageYOffset || 0;
-          saveScrollPosition(currentPath);
+          
+          // Try to get visibleCount from the page (for infinite scroll pages)
+          let visibleCount = null;
+          try {
+            const productGrid = document.querySelector('.grid.grid-cols-2, .grid.grid-cols-3');
+            if (productGrid && productGrid.children.length > 0) {
+              visibleCount = productGrid.children.length;
+            }
+          } catch (e) {
+            // Ignore errors
+          }
+          
+          saveScrollPosition(currentPath, visibleCount);
           // Also update lastSaved to prevent duplicate saves
           lastSaved = currentScroll;
           break;

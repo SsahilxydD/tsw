@@ -165,7 +165,19 @@ const Category = () => {
   const [sizeFilters, setSizeFilters] = useState([]);
   const [list, setList] = useState(baseProducts);
   const PAGE_SIZE = 12;
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  // Restore visibleCount from sessionStorage on mount (for back navigation)
+  const [visibleCount, setVisibleCount] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem(`scroll_${window.location.pathname}_visibleCount`);
+      if (saved) {
+        const count = parseInt(saved, 10);
+        if (!isNaN(count) && count >= PAGE_SIZE) {
+          return count;
+        }
+      }
+    }
+    return PAGE_SIZE;
+  });
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const sentinelRef = React.useRef(null);
