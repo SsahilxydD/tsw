@@ -73,13 +73,38 @@ export const setupScrollSaving = () => {
     }, 100);
   };
 
+  // Intercept link clicks to save scroll position BEFORE navigation
+  const handleLinkClick = (e) => {
+    // Find the closest link element
+    let target = e.target;
+    while (target && target !== document.body) {
+      if (target.tagName === 'A' && target.hasAttribute('href')) {
+        const href = target.getAttribute('href');
+        // Check if it's an internal link (starts with / but not //)
+        if (href && href.startsWith('/') && !href.startsWith('//')) {
+          // Save scroll position immediately before navigation
+          const currentPath = window.location.pathname;
+          const currentScroll = window.scrollY || window.pageYOffset || 0;
+          saveScrollPosition(currentPath);
+          // Also update lastSaved to prevent duplicate saves
+          lastSaved = currentScroll;
+          break;
+        }
+      }
+      target = target.parentElement;
+    }
+  };
+
   window.addEventListener("scroll", handleScroll, { passive: true });
+  // Use capture phase to catch clicks before React Router handles them
+  document.addEventListener("click", handleLinkClick, true);
   
   // Initial save
   saveScroll();
 
   return () => {
     window.removeEventListener("scroll", handleScroll);
+    document.removeEventListener("click", handleLinkClick, true);
     if (timeoutId) clearTimeout(timeoutId);
   };
 };

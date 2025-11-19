@@ -61,13 +61,18 @@ function ScrollRouterContent({ children }) {
         setRestoring(false);
       }
     } else if (pathChanged) {
-      // Forward navigation (PUSH/REPLACE) - save scroll position and scroll to top
+      // Forward navigation (PUSH/REPLACE) - scroll position should already be saved by click handler
       setRestoring(false);
       
-      // Save previous page's scroll position
+      // Double-check: save previous page's scroll position if not already saved
+      // (This is a fallback in case click handler didn't fire)
       if (prevPath) {
-        const currentScroll = window.scrollY || window.pageYOffset || 0;
-        saveScrollPosition(prevPath);
+        const saved = getScrollPosition(prevPath);
+        if (saved === null) {
+          // Not saved yet, save it now (though it might already be 0)
+          const currentScroll = window.scrollY || window.pageYOffset || 0;
+          saveScrollPosition(prevPath);
+        }
       }
 
       // Scroll to top for new pages (except product pages handle their own)
