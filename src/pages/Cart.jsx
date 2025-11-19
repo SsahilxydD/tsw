@@ -188,11 +188,6 @@ const Cart = () => {
 
       <CartRecommendations />
     </div>
-
-
-      {/* Removed sticky bar on cart page to keep CTA near coupon */ }
-
-    </div >
   )
 }
 
