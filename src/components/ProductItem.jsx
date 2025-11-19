@@ -100,11 +100,13 @@ const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd =
             </p>
             {/* Size badges (minimal) */}
             {tileSizes.length > 0 && (
-              <div className="flex items-center gap-1 text-[10px] text-gray-500">
+              <div className="flex items-center gap-1 flex-wrap justify-end">
                 {visibleSizes.map(sz => (
-                  <span key={sz}>{String(sz).replace(/^UK-/, '')}</span>
+                  <span key={sz} className="text-[10px] sm:text-xs border border-gray-200 px-1 rounded text-gray-600 bg-gray-50">
+                    {String(sz).replace(/^UK-/, '')}
+                  </span>
                 ))}
-                {sizesOverflow > 0 && <span>+{sizesOverflow}</span>}
+                {sizesOverflow > 0 && <span className="text-[10px] text-gray-400">+{sizesOverflow}</span>}
               </div>
             )}
           </div>

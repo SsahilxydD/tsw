@@ -52,16 +52,15 @@ const CategoryCard = ({ name, count, image, i }) => {
   const isDiscounted = String(name).toLowerCase() === "discounted";
   const display = isDiscounted ? "SALE!!!" : formatCategory(name);
 
-  // Two-line clamp with safe word wrapping, avoids mid-letter clipping
+  // Two-line clamp with safe word wrapping
   const titleBoxStyle = {
     lineHeight: 1.3,
     display: '-webkit-box',
     WebkitLineClamp: 2,
     WebkitBoxOrient: 'vertical',
     overflow: 'hidden',
-    wordBreak: 'normal', // Changed from break-word to normal to keep words whole
-    overflowWrap: 'break-word', // Ensure long words still wrap if needed
-    hyphens: 'auto' // Add hyphenation for better text flow
+    wordBreak: 'keep-all', // Prevent splitting words
+    overflowWrap: 'normal',
   }; // fixed height keeps divider/count aligned
 
   return (
@@ -74,15 +73,15 @@ const CategoryCard = ({ name, count, image, i }) => {
       {/* fixed aspect for zero CLS; smaller height and no backdrop */}
       <div className="relative aspect-[5/4] overflow-hidden bg-white">
         {/* centered label only */}
-        <div className="absolute inset-0 grid place-content-center text-center px-4">
+        <div className="absolute inset-0 grid place-content-center text-center px-2">
           <h3
-            className={`prata-regular text-base sm:text-lg px-1 ${isDiscounted ? 'text-red-600' : 'text-gray-800'}`}
+            className={`prata-regular text-sm sm:text-base px-1 ${isDiscounted ? 'text-red-600' : 'text-gray-800'}`}
             style={titleBoxStyle}
           >
             {display}
           </h3>
           <div className="mt-2 h-px w-8 bg-gray-300 mx-auto" />
-          <p className="mt-2 text-xs text-gray-500">{count} items</p>
+          <p className="mt-2 text-[10px] sm:text-xs text-gray-500">{count} items</p>
         </div>
       </div>
     </Link>
