@@ -26,6 +26,11 @@ if (ReactDOMClient && typeof ReactDOMClient.createRoot === 'function') {
   ReactDOM.render(app, container);
 }
 
+// Enable browser's native scroll restoration
+if ('scrollRestoration' in window.history) {
+  window.history.scrollRestoration = 'auto';
+}
+
 // Remove anti-zoom handler to improve accessibility and SEO signals
 
 // Set a CSS variable for reliable viewport height across iOS/Android
