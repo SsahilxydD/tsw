@@ -48,13 +48,10 @@ export default function App() {
             <Route path="/collection" element={<Collection />} />
             <Route path="/category/:cat" element={<Category />} />
             <Route path="/product/:id" element={<Product />} />
-            <Route path="/address" element={<Address />} />
-            <Route path="/payment" element={<Payment />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/place-order" element={<PlaceOrder />} />
-            <Route path="/orders" element={<Orders />} />
             <Route path="/login" element={<Login />} />
             {/* Fallback */}
             <Route path="*" element={<NotFound />} />

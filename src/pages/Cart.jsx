@@ -19,14 +19,14 @@ const Cart = () => {
   const [leaving, setLeaving] = useState(new Set());
   const leaveTimersRef = useRef(new Map());
 
-  const keyFor = useMemo(() => (it) => `${it._id}::${it.size || 'std'}` , []);
+  const keyFor = useMemo(() => (it) => `${it._id}::${it.size || 'std'}`, []);
 
   // cleanup timers on unmount
   useEffect(() => () => {
     try {
       leaveTimersRef.current.forEach((t) => clearTimeout(t));
       leaveTimersRef.current.clear();
-    } catch {}
+    } catch { }
   }, []);
 
   useEffect(() => {
@@ -94,31 +94,18 @@ const Cart = () => {
             {cartData.filter(i => i && i.quantity > 0).length} item{cartData.filter(i => i && i.quantity > 0).length !== 1 ? 's' : ''} selected
           </div>
         </div>
+        {cartData.filter(item => item && item._id && item.quantity > 0).map((item, index) => {
+          const productData = products.find((product) => product._id === item._id);
 
-        <div className='space-y-4 max-h-[50vh] overflow-auto pr-1'>
-          {cartData.filter(item => item && item._id && item.quantity > 0).length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-500 text-lg">Your cart is empty</p>
-              <button 
-                onClick={() => navigate('/collection')}
-                className="mt-4 px-6 py-2 bg-black text-white rounded hover:bg-gray-800 transition-colors"
-              >
-                Continue Shopping
-              </button>
-            </div>
-          ) : (
-            cartData.filter(item => item && item._id && item.quantity > 0).map((item, index) => {
-            const productData = products.find((product) => product._id === item._id);
-            
-            // Skip rendering if product not found
-            if (!productData) {
-              console.warn(`Product not found for cart item: ${item._id}`);
-              return null;
-            }
-            
-            const cover = Array.isArray(productData?.image)
-              ? (productData.image[0] || '')
-              : (Array.isArray(productData?.images) ? (productData.images[0] || '') : (productData?.image || ''));
+          // Skip rendering if product not found
+          if (!productData) {
+            console.warn(`Product not found for cart item: ${item._id}`);
+            return null;
+          }
+
+          const cover = Array.isArray(productData?.image)
+            ? (productData.image[0] || '')
+            : (Array.isArray(productData?.images) ? (productData.images[0] || '') : (productData?.image || ''));
 
           const k = keyFor(item);
           const isLeaving = leaving.has(k);
@@ -127,10 +114,10 @@ const Cart = () => {
               key={k}
               className={`rounded-md border bg-white p-4 sm:p-5 text-gray-700 flex items-center gap-4 sm:gap-6 hover:shadow-md transition-all duration-200 ${isLeaving ? 'animate-cart-leave pointer-events-none' : 'animate-soft-reveal'}`}
             >
-              <img 
-                className='w-20 h-20 rounded-md object-cover border' 
-                src={cover || '/placeholder-image.png'} 
-                alt={productData?.name || 'Product'} 
+              <img
+                className='w-20 h-20 rounded-md object-cover border'
+                src={cover || '/placeholder-image.png'}
+                alt={productData?.name || 'Product'}
                 onError={(e) => {
                   e.target.src = '/placeholder-image.png';
                 }}
@@ -175,38 +162,38 @@ const Cart = () => {
           )
         })
           )}
-        </div>
-
-        <div className='mt-8 grid sm:grid-cols-2 gap-4'>
-          <Accordion title="Apply Coupon">
-            <div className='flex gap-2'>
-              <input className='flex-1 border rounded px-3 h-10' placeholder='Enter coupon code' />
-              <button className='h-10 px-4 rounded bg-black text-white text-sm'>Apply</button>
-            </div>
-          </Accordion>
-        </div>
-
-        {/* Primary action placed beneath coupon section */}
-        <div className='mt-6 flex justify-center'>
-          <button
-            type='button'
-            disabled={cartData.length === 0}
-            onClick={() => navigate('/address')}
-            className={`px-6 py-3 text-sm rounded text-white pressable ${cartData.length === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-black hover:opacity-90'}`}
-          >
-            Proceed to checkout
-          </button>
-        </div>
-
-        {/* Totals removed from My Bag (shown on Payment step) */}
-
-        <CartRecommendations />
       </div>
 
+      <div className='mt-8 grid sm:grid-cols-2 gap-4'>
+        <Accordion title="Apply Coupon">
+          <div className='flex gap-2'>
+            <input className='flex-1 border rounded px-3 h-10' placeholder='Enter coupon code' />
+            <button className='h-10 px-4 rounded bg-black text-white text-sm'>Apply</button>
+          </div>
+        </Accordion>
+      </div>
 
-      {/* Removed sticky bar on cart page to keep CTA near coupon */}
+      {/* Primary action placed beneath coupon section */}
+      <div className='mt-6 flex justify-center'>
+        <button
+          type='button'
+          disabled={cartData.length === 0}
+          onClick={() => navigate('/place-order')}
+          className={`px-6 py-3 text-sm rounded text-white pressable ${cartData.length === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-black hover:opacity-90'}`}
+        >
+          Proceed to checkout
+        </button>
+      </div>
 
+      {/* Totals removed from My Bag (shown on Payment step) */}
+
+      <CartRecommendations />
     </div>
+
+
+      {/* Removed sticky bar on cart page to keep CTA near coupon */ }
+
+    </div >
   )
 }
 
