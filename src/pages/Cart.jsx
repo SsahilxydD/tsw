@@ -160,8 +160,7 @@ const Cart = () => {
               </div>
             </div>
           )
-        })
-          )}
+        })}
       </div>
 
       <div className='mt-8 grid sm:grid-cols-2 gap-4'>
