@@ -7,6 +7,7 @@ import { ShopContext } from "../context/ShopContext";
 import { isFootwearProduct, isJeansProduct, normalizeJeansSizes, toUKLabel, uniqueUKLabels, UK_FOOT_RANGE } from "../utils/size";
 import SEO from "../components/SEO";
 import CircularText from "../components/CircularText";
+import { motion } from "framer-motion";
 
 // --- small helpers (no external deps) ---
 const STOPWORDS = new Set([
@@ -296,13 +297,10 @@ export default function Product() {
     // Ensure description is not too long (max 160 chars for meta description)
     if (desc.length > 160) {
       desc = desc.substring(0, 157) + "...";
-      import { motion } from "framer-motion";
-      const U = norm(s);
-      if (!U) continue;
-      if (!seen.has(U)) { seen.add(U); out.push(String(s)); }
     }
-    return out;
-  }
+
+    return desc;
+  };
 
   export default function Product() {
     const { id } = useParams();
