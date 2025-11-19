@@ -1,160 +1,28 @@
-import { useEffect, useRef } from "react";
-import { useLocation, useNavigationType } from "react-router-dom";
-import { saveScrollPosition, getScrollPosition, setupLinkInterception, setRestoring, isRestoring } from "../utils/scrollRestoration";
+import { useEffect } from "react";
+import { setupScrollSaving } from "../utils/scrollRestoration";
 
+/**
+ * ScrollToTop - Handles continuous scroll position saving
+ * The actual restoration is handled by ScrollRouter
+ * This component only sets up the scroll event listener
+ */
 export default function ScrollToTop() {
-  const { pathname } = useLocation();
-  const navType = useNavigationType();
-  const prevPathnameRef = useRef(pathname);
-
-  // Setup link click interception to save scroll position before navigation
+  // Setup continuous scroll position saving
   useEffect(() => {
-    const cleanup = setupLinkInterception();
+    const cleanup = setupScrollSaving();
     return cleanup;
   }, []);
 
-  // Main scroll restoration logic
+  // Move focus to main content for accessibility (but don't scroll)
   useEffect(() => {
-    const prevPath = prevPathnameRef.current;
-    const pathChanged = prevPath !== pathname;
-
-    if (navType === "POP") {
-      // Back/forward navigation - restore scroll position
-      const savedPos = getScrollPosition(pathname);
-      
-      // Debug logging
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`[ScrollRestore] POP navigation detected for ${pathname}, saved position: ${savedPos}px`);
-      }
-      
-      if (savedPos !== null && savedPos >= 0) {
-        // Set restoring flag immediately
-        setRestoring(true);
-        
-        // Restore with multiple delays to ensure DOM is ready
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            setTimeout(() => {
-              // Double check we're still on the same page
-              if (window.location.pathname === pathname) {
-                window.scrollTo({ top: savedPos, left: 0, behavior: 'auto' });
-                
-                // Debug logging
-                if (process.env.NODE_ENV === 'development') {
-                  console.log(`[ScrollRestore] Attempting to restore to ${savedPos}px`);
-                }
-                
-                // Verify restoration worked
-                setTimeout(() => {
-                  const actualPos = window.scrollY || window.pageYOffset || 0;
-                  if (process.env.NODE_ENV === 'development') {
-                    console.log(`[ScrollRestore] Actual position after restore: ${actualPos}px`);
-                  }
-                  
-                  if (Math.abs(actualPos - savedPos) > 50) {
-                    // Restoration didn't work, try again
-                    if (process.env.NODE_ENV === 'development') {
-                      console.log(`[ScrollRestore] Restoration failed, retrying...`);
-                    }
-                    window.scrollTo({ top: savedPos, left: 0, behavior: 'auto' });
-                  }
-                  
-                  // Clear restoring flag after restoration completes
-                  setTimeout(() => {
-                    setRestoring(false);
-                    if (process.env.NODE_ENV === 'development') {
-                      console.log(`[ScrollRestore] Restoration complete`);
-                    }
-                  }, 100);
-                }, 50);
-              } else {
-                setRestoring(false);
-              }
-            }, 200); // Increased delay for more reliable restoration
-          });
-        });
-      } else {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`[ScrollRestore] No saved position found for ${pathname}`);
-        }
-        setRestoring(false);
-      }
-    } else if (pathChanged) {
-      // Forward navigation (PUSH/REPLACE)
-      // Ensure we're not in a restoring state
-      setRestoring(false);
-      
-      // Save previous page's scroll position (if not already saved by click handler)
-      if (prevPath) {
-        const currentScroll = window.scrollY || window.pageYOffset || 0;
-        // Always save, even if 0 (in case page was at top)
-        saveScrollPosition(prevPath);
-      }
-
-      // Scroll to top for new pages, but NOT for product pages (they handle it themselves)
-      const isProductPage = pathname.startsWith('/product/');
-      if (!isProductPage && !isRestoring()) {
-        // Small delay to ensure we're not interfering with restoration
-        requestAnimationFrame(() => {
-          if (!isRestoring()) {
-            window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-          }
-        });
-      }
-    }
-
-    // Update previous pathname
-    prevPathnameRef.current = pathname;
-
-    // Move focus to main content for accessibility (but don't scroll)
     const main = document.getElementById("main-content");
-    if (main && !isRestoring()) {
+    if (main) {
       const prevTabIndex = main.getAttribute("tabindex");
       main.setAttribute("tabindex", "-1");
       main.focus({ preventScroll: true });
       if (prevTabIndex === null) main.removeAttribute("tabindex");
     }
-  }, [pathname, navType]);
-
-  // Continuously save scroll position as user scrolls
-  useEffect(() => {
-    let timeoutId;
-    let rafId;
-    let lastSaved = 0;
-
-    const saveScroll = () => {
-      const currentPath = window.location.pathname;
-      const currentScroll = window.scrollY || window.pageYOffset || 0;
-      
-      // Only save if scroll position changed significantly (avoid unnecessary saves)
-      if (Math.abs(currentScroll - lastSaved) > 50 || currentScroll === 0) {
-        saveScrollPosition(currentPath);
-        lastSaved = currentScroll;
-      }
-    };
-
-    const handleScroll = () => {
-      // Cancel any pending save
-      if (timeoutId) clearTimeout(timeoutId);
-      if (rafId) cancelAnimationFrame(rafId);
-
-      // Save after scroll stops (debounced)
-      timeoutId = setTimeout(() => {
-        rafId = requestAnimationFrame(saveScroll);
-      }, 100);
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    
-    // Also save on initial mount
-    saveScroll();
-
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      if (timeoutId) clearTimeout(timeoutId);
-      if (rafId) cancelAnimationFrame(rafId);
-    };
-  }, [pathname]);
+  }, []); // Only run once on mount
 
   return null;
 }

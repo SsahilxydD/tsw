@@ -4,17 +4,17 @@ import ReactDOM from 'react-dom';
 import App from './App.jsx';
 import { HelmetProvider } from 'react-helmet-async';
 import './index.css';
-import { BrowserRouter } from 'react-router-dom';
+import ScrollRouter from './components/ScrollRouter';
 import ShopContextProvider from './context/ShopContext.jsx';
 
 const container = document.getElementById('root');
 const app = (
   <HelmetProvider>
-    <BrowserRouter>
+    <ScrollRouter>
       <ShopContextProvider>
         <App />
       </ShopContextProvider>
-    </BrowserRouter>
+    </ScrollRouter>
   </HelmetProvider>
 );
 

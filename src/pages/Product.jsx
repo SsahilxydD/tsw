@@ -1,6 +1,6 @@
 // src/pages/Product.jsx
 import React from "react";
-import { useParams, Link, useNavigationType } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { isRestoring } from "../utils/scrollRestoration";
 import Title from "../components/Title";
 import ProductItem from "../components/ProductItem";
@@ -112,32 +112,25 @@ function inferMasterSizes(p) {
 
 export default function Product() {
   const { id } = useParams();
-  const navType = useNavigationType();
   const { products, currency, addToCart, navigate, loadingProducts } = React.useContext(ShopContext);
   const [added, setAdded] = React.useState(false);
 
-  // scroll to top on product change only for forward navigation (prevents jumping)
-  // Don't scroll on back navigation (POP) to allow scroll restoration
+  // Scroll to top when product ID changes (forward navigation)
+  // Never scroll during restoration (handled by ScrollRouter)
   React.useEffect(() => {
-    // CRITICAL: Never scroll on POP navigation or when restoring
-    if (navType === "POP" || isRestoring()) {
+    // Never scroll if we're restoring scroll position
+    if (isRestoring()) {
       return;
     }
     
-    // Only scroll to top on forward navigation (PUSH/REPLACE)
-    if (navType === "PUSH" || navType === "REPLACE") {
-      // Add a small delay to ensure restoration logic has run first
-      const timeoutId = setTimeout(() => {
-        // Triple-check we're still not restoring
-        if (!isRestoring() && navType !== "POP") {
-          window.scrollTo({ top: 0, behavior: "auto" });
-        }
-      }, 50);
-      
-      return () => clearTimeout(timeoutId);
-    }
-    // On POP navigation, do nothing - let ScrollToTop component handle restoration
-  }, [id, navType]);
+    // Scroll to top for new product (forward navigation)
+    // ScrollRouter handles back navigation restoration
+    requestAnimationFrame(() => {
+      if (!isRestoring()) {
+        window.scrollTo({ top: 0, behavior: "auto" });
+      }
+    });
+  }, [id]);
 
 
   const product = React.useMemo(() => {

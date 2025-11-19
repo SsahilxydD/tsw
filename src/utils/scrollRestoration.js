@@ -1,5 +1,5 @@
-// Scroll restoration utility
-// Saves scroll position before navigation and restores on back navigation
+// Scroll restoration utility - Simple and reliable
+// Single source of truth for scroll position management
 
 const SCROLL_STORAGE_PREFIX = 'scroll_';
 const RESTORING_FLAG = '__scroll_restoring__';
@@ -18,18 +18,19 @@ export const isRestoring = () => {
   return false;
 };
 
+/**
+ * Save scroll position for a given pathname
+ */
 export const saveScrollPosition = (pathname) => {
   if (typeof window === 'undefined') return;
   const scrollY = window.scrollY || window.pageYOffset || 0;
   const key = `${SCROLL_STORAGE_PREFIX}${pathname}`;
   sessionStorage.setItem(key, scrollY.toString());
-  
-  // Debug logging (remove in production)
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`[ScrollRestore] Saved scroll position for ${pathname}: ${scrollY}px`);
-  }
 };
 
+/**
+ * Get saved scroll position for a given pathname
+ */
 export const getScrollPosition = (pathname) => {
   if (typeof window === 'undefined') return null;
   const key = `${SCROLL_STORAGE_PREFIX}${pathname}`;
@@ -41,111 +42,44 @@ export const getScrollPosition = (pathname) => {
   return null;
 };
 
-export const restoreScrollPosition = (pathname, delay = 100) => {
-  if (typeof window === 'undefined') return;
-  const pos = getScrollPosition(pathname);
-  if (pos !== null && pos >= 0) {
-    // Set restoring flag to prevent other components from scrolling
-    setRestoring(true);
-    
-    // Use multiple requestAnimationFrames and timeout for reliable restoration
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          // Double check we're still on the same page
-          if (window.location.pathname === pathname) {
-            window.scrollTo({ top: pos, left: 0, behavior: 'auto' });
-            
-            // Clear restoring flag after a delay to allow other operations
-            setTimeout(() => {
-              setRestoring(false);
-            }, 200);
-          } else {
-            setRestoring(false);
-          }
-        }, delay);
-      });
-    });
-  } else {
-    setRestoring(false);
-  }
-};
+/**
+ * Continuously save scroll position as user scrolls
+ * Call this once on app mount
+ */
+export const setupScrollSaving = () => {
+  if (typeof window === 'undefined') return () => {};
 
-// Intercept React Router Link clicks to save scroll position before navigation
-export const setupLinkInterception = () => {
-  if (typeof window === 'undefined' || typeof document === 'undefined') return () => {};
+  let timeoutId;
+  let lastSaved = 0;
 
-  // Save scroll position on every location change (most reliable)
-  const saveCurrentScroll = () => {
+  const saveScroll = () => {
     const currentPath = window.location.pathname;
     const currentScroll = window.scrollY || window.pageYOffset || 0;
-    if (currentScroll >= 0) {
-      saveScrollPosition(currentPath);
-    }
-  };
-
-  const handleClick = (e) => {
-    // Find the closest link element
-    let target = e.target;
-    let linkElement = null;
     
-    // Traverse up to find a link (React Router Link renders as <a>)
-    while (target && target !== document.body) {
-      // Check for anchor tag with href
-      if (target.tagName === 'A' && target.hasAttribute('href')) {
-        const href = target.getAttribute('href');
-        // Check if it's an internal link (starts with / but not //)
-        if (href && href.startsWith('/') && !href.startsWith('//')) {
-          linkElement = target;
-          break;
-        }
-      }
-      target = target.parentElement;
-    }
-
-    if (linkElement) {
-      // Save current scroll position immediately before navigation
-      // Use both sync and async to ensure it's saved
-      saveCurrentScroll();
-      
-      // Also save after a microtask to catch any late scroll changes
-      Promise.resolve().then(() => {
-        saveCurrentScroll();
-      });
+    // Only save if scroll position changed significantly (avoid unnecessary saves)
+    if (Math.abs(currentScroll - lastSaved) > 50 || currentScroll === 0) {
+      saveScrollPosition(currentPath);
+      lastSaved = currentScroll;
     }
   };
 
-  // Use capture phase to catch clicks early, before React Router handles them
-  document.addEventListener('click', handleClick, true);
-  
-  // Save on visibility change (when user switches tabs/windows)
-  const handleVisibilityChange = () => {
-    if (!document.hidden) {
-      saveCurrentScroll();
-    }
+  const handleScroll = () => {
+    // Cancel any pending save
+    if (timeoutId) clearTimeout(timeoutId);
+
+    // Save after scroll stops (debounced)
+    timeoutId = setTimeout(() => {
+      saveScroll();
+    }, 100);
   };
-  document.addEventListener('visibilitychange', handleVisibilityChange);
-  
-  // Save on page unload as final fallback
-  const handleBeforeUnload = () => {
-    saveCurrentScroll();
-  };
-  window.addEventListener('beforeunload', handleBeforeUnload);
-  
-  // Save on popstate (back/forward navigation start)
-  const handlePopState = () => {
-    // Don't save on popstate - we want to restore, not save
-  };
-  window.addEventListener('popstate', handlePopState);
+
+  window.addEventListener("scroll", handleScroll, { passive: true });
   
   // Initial save
-  saveCurrentScroll();
-  
+  saveScroll();
+
   return () => {
-    document.removeEventListener('click', handleClick, true);
-    document.removeEventListener('visibilitychange', handleVisibilityChange);
-    window.removeEventListener('beforeunload', handleBeforeUnload);
-    window.removeEventListener('popstate', handlePopState);
+    window.removeEventListener("scroll", handleScroll);
+    if (timeoutId) clearTimeout(timeoutId);
   };
 };
-
