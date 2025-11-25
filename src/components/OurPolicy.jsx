@@ -10,8 +10,8 @@ const POLICIES = [
   },
   {
     icon: assets.quality_icon,
-    title: "7 Days Return Policy",
-    subtitle: "We provide 7 days free return policy",
+    title: "3 Days Return Policy",
+    subtitle: "We provide 3 days free return policy",
   },
   {
     icon: assets.support_img,
