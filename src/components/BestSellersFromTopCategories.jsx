@@ -135,7 +135,7 @@ const BestSellersFromTopCategories = () => {
                 baseWidth={baseWidth}
                 autoplay={true}
                 autoplayDelay={3000}
-                pauseOnHover={true}
+                pauseOnHover={false}
                 loop={true}
                 round={false}
                 currency={currency}
@@ -151,7 +151,7 @@ const BestSellersFromTopCategories = () => {
                 baseWidth={baseWidth}
                 autoplay={true}
                 autoplayDelay={3000}
-                pauseOnHover={true}
+                pauseOnHover={false}
                 loop={true}
                 round={false}
                 currency={currency}
