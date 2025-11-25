@@ -109,11 +109,11 @@ const BestSellersFromTopCategories = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-center justify-center" style={{ flexWrap: 'nowrap' }}>
+      <div className="w-full max-w-7xl mx-auto px-4">
+        <div className="flex flex-row gap-4 sm:gap-6 items-center justify-center" style={{ flexWrap: 'nowrap' }}>
           {/* Shoes Carousel */}
           {shoesProducts.length > 0 && (
-            <div style={{ flexShrink: 0 }}>
+            <div className="inline-flex" style={{ flexShrink: 0 }}>
               <Carousel
                 items={shoesProducts}
                 baseWidth={baseWidth}
@@ -129,7 +129,7 @@ const BestSellersFromTopCategories = () => {
 
           {/* Category Products Carousel */}
           {categoryProducts.length > 0 && (
-            <div style={{ flexShrink: 0 }}>
+            <div className="inline-flex" style={{ flexShrink: 0 }}>
               <Carousel
                 items={categoryProducts}
                 baseWidth={baseWidth}
