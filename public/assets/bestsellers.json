@@ -1,33 +1,33 @@
 [
   {
     "title": "Classic Leather Belt",
-    "image": "/assets/images/belt-1.jpg",
+    "image": "/assets/no-image.png",
     "price": 1999,
-    "url": "/product/classic-leather-belt",
+    "url": "/collections/all",
     "id": "classic-leather-belt",
     "handle": "classic-leather-belt"
   },
   {
     "title": "Everyday Sneakers",
-    "image": "/assets/images/shoe-1.jpg",
+    "image": "/assets/no-image.png",
     "price": 4999,
-    "url": "/product/everyday-sneakers",
+    "url": "/collections/all",
     "id": "everyday-sneakers",
     "handle": "everyday-sneakers"
   },
   {
     "title": "Summer Sunglasses",
-    "image": "/assets/images/sunglasses-1.jpg",
+    "image": "/assets/no-image.png",
     "price": 2499,
-    "url": "/product/summer-sunglasses",
+    "url": "/collections/all",
     "id": "summer-sunglasses",
     "handle": "summer-sunglasses"
   },
   {
     "title": "Essential Hoodie",
-    "image": "/assets/images/hoodie-1.jpg",
+    "image": "/assets/no-image.png",
     "price": 3599,
-    "url": "/product/essential-hoodie",
+    "url": "/collections/all",
     "id": "essential-hoodie",
     "handle": "essential-hoodie"
   }
