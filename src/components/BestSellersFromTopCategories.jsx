@@ -19,17 +19,18 @@ const BestSellersFromTopCategories = () => {
   const [categoryProducts, setCategoryProducts] = useState([]);
   const [baseWidth, setBaseWidth] = useState(200);
 
-  // Responsive baseWidth - mobile first, optimized for side-by-side
+  // Responsive baseWidth - full-bleed hero style
   useEffect(() => {
     const updateWidth = () => {
       if (window.innerWidth < 640) {
-        setBaseWidth(160); // Mobile: smaller cards, stacked
+        // Mobile: full width, single column
+        setBaseWidth(window.innerWidth);
       } else if (window.innerWidth < 768) {
-        setBaseWidth(180); // Tablet: side by side
-      } else if (window.innerWidth < 1024) {
-        setBaseWidth(200); // Small desktop: side by side
+        // Tablet: 50% width each (side by side)
+        setBaseWidth(Math.floor(window.innerWidth / 2));
       } else {
-        setBaseWidth(240); // Large desktop: side by side, larger cards
+        // Desktop: 50% width each (side by side, full-bleed)
+        setBaseWidth(Math.floor(window.innerWidth / 2));
       }
     };
     updateWidth();
@@ -99,21 +100,36 @@ const BestSellersFromTopCategories = () => {
   }
 
   return (
-    <section className="my-10" id="best-sellers-top-categories">
-      <div className="text-center py-8">
-        <div className="inline-flex gap-3 items-center mb-3 select-none">
-          <p className="uppercase tracking-[0.18em] text-[11px] sm:text-xs text-gray-500">
-            BEST SELLERS FROM TOP CATEGORIES
-          </p>
-          <p className="w-8 sm:w-12 h-[1px] sm:h-[2px] bg-gray-300"></p>
+    <>
+      {/* Title Section - kept in container */}
+      <section className="my-10" id="best-sellers-top-categories">
+        <div className="text-center py-8">
+          <div className="inline-flex gap-3 items-center mb-3 select-none">
+            <p className="uppercase tracking-[0.18em] text-[11px] sm:text-xs text-gray-500">
+              BEST SELLERS FROM TOP CATEGORIES
+            </p>
+            <p className="w-8 sm:w-12 h-[1px] sm:h-[2px] bg-gray-300"></p>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <div className="w-full max-w-7xl mx-auto px-4">
-        <div className="flex flex-row items-center justify-center" style={{ flexWrap: 'nowrap', gap: 0 }}>
-          {/* Shoes Carousel */}
+      {/* Full-bleed Hero Carousel Section */}
+      <section 
+        className="relative" 
+        style={{ 
+          width: '100vw',
+          position: 'relative',
+          left: '50%',
+          right: '50%',
+          marginLeft: '-50vw',
+          marginRight: '-50vw',
+          overflow: 'hidden'
+        }}
+      >
+        <div className="flex flex-col sm:flex-row" style={{ width: '100%', gap: 0 }}>
+          {/* Shoes Carousel - Left Hero */}
           {shoesProducts.length > 0 && (
-            <div className="inline-flex" style={{ flexShrink: 0 }}>
+            <div className="w-full sm:w-1/2" style={{ flexShrink: 0 }}>
               <Carousel
                 items={shoesProducts}
                 baseWidth={baseWidth}
@@ -127,9 +143,9 @@ const BestSellersFromTopCategories = () => {
             </div>
           )}
 
-          {/* Category Products Carousel */}
+          {/* Category Products Carousel - Right Hero */}
           {categoryProducts.length > 0 && (
-            <div className="inline-flex" style={{ flexShrink: 0 }}>
+            <div className="w-full sm:w-1/2" style={{ flexShrink: 0 }}>
               <Carousel
                 items={categoryProducts}
                 baseWidth={baseWidth}
@@ -143,8 +159,8 @@ const BestSellersFromTopCategories = () => {
             </div>
           )}
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 };
 

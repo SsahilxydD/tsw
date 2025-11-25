@@ -19,8 +19,8 @@ export default function Carousel({
   currency = '₹',
   onProductClick
 }) {
-  const containerPadding = 16;
-  const itemWidth = baseWidth - containerPadding * 2;
+  const containerPadding = 0;
+  const itemWidth = baseWidth;
   const trackItemOffset = itemWidth + GAP;
   const carouselItems = loop && items.length > 0 ? [...items, items[0]] : items;
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -93,9 +93,10 @@ export default function Carousel({
     ? {}
     : {
         dragConstraints: {
-          left: -trackItemOffset * (carouselItems.length - 1),
+          left: -(trackItemOffset * (carouselItems.length - 1)),
           right: 0
-        }
+        },
+        dragElastic: 0.2
       };
 
   if (items.length === 0) {
@@ -107,7 +108,8 @@ export default function Carousel({
       ref={containerRef}
       className={`carousel-container ${round ? 'round' : ''}`}
       style={{
-        width: `${baseWidth}px`,
+        width: '100%',
+        maxWidth: '100%',
         height: 'auto',
         ...(round && { height: `${baseWidth}px`, borderRadius: '50%' })
       }}
@@ -117,7 +119,7 @@ export default function Carousel({
         drag="x"
         {...dragProps}
         style={{
-          width: itemWidth,
+          width: '100%',
           gap: `${GAP}px`,
           perspective: 1000,
           perspectiveOrigin: `${currentIndex * trackItemOffset + itemWidth / 2}px 50%`,
@@ -138,8 +140,9 @@ export default function Carousel({
               key={item._id || index}
               className={`carousel-item ${round ? 'round' : ''}`}
               style={{
-                width: itemWidth,
-                height: itemWidth,
+                width: baseWidth,
+                height: baseWidth,
+                minWidth: baseWidth,
                 rotateY: rotateY,
                 ...(round && { borderRadius: '50%' })
               }}
