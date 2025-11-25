@@ -7,6 +7,14 @@ const DRAG_BUFFER = 0;
 const VELOCITY_THRESHOLD = 500;
 const GAP = 16;
 const SPRING_OPTIONS = { type: 'spring', stiffness: 300, damping: 30 };
+// Smooth autoplay transition - optimized for seamless carousel movement
+const AUTOPLAY_TRANSITION = {
+  type: 'spring',
+  stiffness: 200,
+  damping: 35,
+  mass: 0.8,
+  velocity: 0
+};
 
 export default function Carousel({
   items = [],
@@ -27,6 +35,7 @@ export default function Carousel({
   const x = useMotionValue(0);
   const [isHovered, setIsHovered] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef(null);
 
   useEffect(() => {
@@ -70,7 +79,12 @@ export default function Carousel({
     };
   }, [autoplay, autoplayDelay, isHovered, loop, items.length, carouselItems.length, pauseOnHover]);
 
-  const effectiveTransition = isResetting ? { duration: 0 } : SPRING_OPTIONS;
+  // Use smooth autoplay transition when autoplay is active and not dragging, otherwise use spring
+  const effectiveTransition = isResetting 
+    ? { duration: 0 } 
+    : (autoplay && !isDragging) 
+      ? AUTOPLAY_TRANSITION 
+      : SPRING_OPTIONS;
 
   const handleAnimationComplete = () => {
     if (loop && currentIndex === carouselItems.length - 1) {
@@ -135,7 +149,11 @@ export default function Carousel({
           perspectiveOrigin: `${currentIndex * trackItemOffset + itemWidth / 2}px 50%`,
           x
         }}
-        onDragEnd={handleDragEnd}
+        onDragStart={() => setIsDragging(true)}
+        onDragEnd={(e, info) => {
+          setIsDragging(false);
+          handleDragEnd(e, info);
+        }}
         animate={{ x: -(currentIndex * trackItemOffset) }}
         transition={effectiveTransition}
         onAnimationComplete={handleAnimationComplete}
