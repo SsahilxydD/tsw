@@ -110,7 +110,7 @@ const BestSellersFromTopCategories = () => {
       </div>
 
       <div className="w-full max-w-7xl mx-auto px-4">
-        <div className="flex flex-row gap-4 sm:gap-6 items-center justify-center" style={{ flexWrap: 'nowrap' }}>
+        <div className="flex flex-row items-center justify-center" style={{ flexWrap: 'nowrap', gap: 0 }}>
           {/* Shoes Carousel */}
           {shoesProducts.length > 0 && (
             <div className="inline-flex" style={{ flexShrink: 0 }}>
