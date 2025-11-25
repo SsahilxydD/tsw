@@ -5,61 +5,6 @@ import { ShopContext } from '../context/ShopContext';
 const NO_IMAGE_PLACEHOLDER = '/assets/no-image.png';
 
 /**
- * Robust fetch helper that safely fetches JSON and returns null on any error.
- * Checks Content-Type and status code before parsing.
- */
-const fetchJsonOrNull = async (url) => {
-  try {
-    const response = await fetch(url, { cache: 'no-cache' });
-    
-    // Check status code
-    if (!response.ok || response.status < 200 || response.status >= 300) {
-      console.warn(`Bestsellers: ${url} returned non-2xx status (${response.status})`);
-      return null;
-    }
-
-    // Check Content-Type
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      console.warn(`Bestsellers: ${url} returned non-JSON content-type (${contentType})`);
-      return null;
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    // Network errors, parse errors, etc.
-    if (error.name !== 'AbortError') {
-      console.warn(`Bestsellers: Failed to fetch ${url}:`, error.message);
-    }
-    return null;
-  }
-};
-
-/**
- * Normalize product objects from various sources to a consistent shape.
- */
-const normalizeProduct = (item) => {
-  const title = item.title || item.name || '';
-  const image = item.image || (Array.isArray(item.images) ? item.images[0] : '') || NO_IMAGE_PLACEHOLDER;
-  const price = item.price || item.price_cents || item.price_in_cents || 0;
-  const url = item.url || item.product_url || (item.handle ? `/product/${item.handle}` : '') || (item._id ? `/product/${item._id}` : '') || '';
-
-  // Skip items missing both title and url
-  if (!title && !url) {
-    return null;
-  }
-
-  return {
-    title: title.trim(),
-    image: image.trim() || NO_IMAGE_PLACEHOLDER,
-    price: Number(price) || 0,
-    url: url.trim() || '#',
-    _id: item._id || item.id || item.handle || String(Math.random())
-  };
-};
-
-/**
  * Hard-coded fallback products (final resort)
  */
 const HARDCODED_FALLBACK = [
@@ -94,7 +39,7 @@ const HARDCODED_FALLBACK = [
 ];
 
 const Bestsellers = () => {
-  const { products, currency } = useContext(ShopContext);
+  const { products, currency, loadingProducts } = useContext(ShopContext);
   const [bestsellers, setBestsellers] = useState([]);
   const [loading, setLoading] = useState(true);
   const carouselRef = useRef(null);
@@ -102,86 +47,82 @@ const Bestsellers = () => {
   const prevBtnRef = useRef(null);
   const nextBtnRef = useRef(null);
   const imageObserverRef = useRef(null);
+  const abortControllerRef = useRef(null);
 
-  // Load bestsellers with fallback chain
+  // Load bestsellers from ShopContext products (primary source)
   useEffect(() => {
-    const loadBestsellers = async () => {
+    // Don't run if products are still loading
+    if (loadingProducts) {
       setLoading(true);
-      let result = null;
+      return;
+    }
 
-      // Try 1: API endpoint
-      result = await fetchJsonOrNull('/api/products?sort=bestsellers&limit=8');
-      if (result && Array.isArray(result) && result.length > 0) {
-        const normalized = result.map(normalizeProduct).filter(Boolean).slice(0, 8);
-        if (normalized.length > 0) {
-          setBestsellers(normalized);
-          setLoading(false);
-          return;
-        }
-      }
+    // Cleanup any pending requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
 
-      // Try 2: JSON file
-      result = await fetchJsonOrNull('/assets/bestsellers.json');
-      if (result && Array.isArray(result) && result.length > 0) {
-        const normalized = result.map(normalizeProduct).filter(Boolean).slice(0, 8);
-        if (normalized.length > 0) {
-          setBestsellers(normalized);
-          setLoading(false);
-          return;
-        }
-      }
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
 
-      // Try 3: Inline JSON from script tag (read after a brief delay to ensure DOM is ready)
-      try {
-        // Use setTimeout to ensure script tag is in DOM
-        await new Promise(resolve => setTimeout(resolve, 0));
-        const inlineScript = document.getElementById('bestsellers-data');
-        if (inlineScript && inlineScript.textContent) {
-          const inlineData = JSON.parse(inlineScript.textContent);
-          if (Array.isArray(inlineData) && inlineData.length > 0) {
-            const normalized = inlineData.map(normalizeProduct).filter(Boolean).slice(0, 8);
-            if (normalized.length > 0) {
-              console.info('Bestsellers: Using inline JSON fallback');
-              setBestsellers(normalized);
-              setLoading(false);
-              return;
-            }
-          }
-        }
-      } catch (err) {
-        console.warn('Bestsellers: Inline JSON parse failed:', err.message);
-      }
+    const loadBestsellers = () => {
+      setLoading(true);
 
-      // Try 4: Context products with bestseller flag
+      // Primary source: ShopContext products with bestseller flag
       if (Array.isArray(products) && products.length > 0) {
         const bestsellerProducts = products
           .filter(p => p.bestseller === true)
           .slice(0, 8)
-          .map(p => normalizeProduct({
-            title: p.name,
-            image: p.image || (Array.isArray(p.images) ? p.images[0] : ''),
-            price: p.price,
-            url: `/product/${p._id || p.slug}`,
-            _id: p._id || p.slug
-          }))
+          .map(p => {
+            // Handle ShopContext product structure
+            const title = p.name || '';
+            const image = p.image || (Array.isArray(p.images) ? p.images[0] : '') || NO_IMAGE_PLACEHOLDER;
+            const price = p.price || 0;
+            const productId = p._id || p.slug || '';
+            const url = productId ? `/product/${productId}` : '';
+
+            // Skip items missing both title and url
+            if (!title && !url) {
+              return null;
+            }
+
+            return {
+              title: title.trim(),
+              image: image.trim() || NO_IMAGE_PLACEHOLDER,
+              price: Number(price) || 0,
+              url: url.trim() || '#',
+              _id: productId || String(Math.random())
+            };
+          })
           .filter(Boolean);
         
         if (bestsellerProducts.length > 0) {
-          console.info('Bestsellers: Using context products fallback');
-          setBestsellers(bestsellerProducts);
-          setLoading(false);
+          console.info('Bestsellers: Loaded from ShopContext products', bestsellerProducts.length);
+          if (!signal.aborted) {
+            setBestsellers(bestsellerProducts);
+            setLoading(false);
+          }
           return;
         }
       }
 
-      // Try 5: Hard-coded fallback
-      console.info('Bestsellers: Using hard-coded fallback');
-      setBestsellers(HARDCODED_FALLBACK);
-      setLoading(false);
+      // Fallback: Hard-coded products if no bestseller products found
+      console.info('Bestsellers: No bestseller products found, using fallback');
+      if (!signal.aborted) {
+        setBestsellers(HARDCODED_FALLBACK);
+        setLoading(false);
+      }
     };
 
     loadBestsellers();
-  }, [products]);
+
+    // Cleanup function
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [products, loadingProducts]);
 
   // IntersectionObserver for lazy image loading
   useEffect(() => {
@@ -364,44 +305,6 @@ const Bestsellers = () => {
 
   return (
     <section className="my-10" id="bestsellers">
-      {/* Inline JSON fallback */}
-      <script
-        id="bestsellers-data"
-        type="application/json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify([
-            {
-              title: 'Classic Leather Belt',
-              image: NO_IMAGE_PLACEHOLDER,
-              price: 1999,
-              url: '/collections/all',
-              handle: 'classic-leather-belt'
-            },
-            {
-              title: 'Everyday Sneakers',
-              image: NO_IMAGE_PLACEHOLDER,
-              price: 4999,
-              url: '/collections/all',
-              handle: 'everyday-sneakers'
-            },
-            {
-              title: 'Summer Sunglasses',
-              image: NO_IMAGE_PLACEHOLDER,
-              price: 2499,
-              url: '/collections/all',
-              handle: 'summer-sunglasses'
-            },
-            {
-              title: 'Essential Hoodie',
-              image: NO_IMAGE_PLACEHOLDER,
-              price: 3599,
-              url: '/collections/all',
-              handle: 'essential-hoodie'
-            }
-          ])
-        }}
-      />
-
       <div className="text-center py-8">
         <div className="inline-flex gap-3 items-center mb-3 select-none">
           <p className="uppercase tracking-[0.18em] text-[11px] sm:text-xs text-gray-500">
