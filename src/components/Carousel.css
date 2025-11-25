@@ -25,6 +25,7 @@
   background-color: #ffffff;
   overflow: hidden;
   cursor: grab;
+  aspect-ratio: 1;
 }
 
 .carousel-item:active {
@@ -45,6 +46,7 @@
   aspect-ratio: 1;
   overflow: hidden;
   background-color: #f3f4f6;
+  flex-shrink: 0;
 }
 
 .carousel-item-image {
@@ -113,10 +115,11 @@
 .carousel-item-content {
   padding: 12px;
   padding-bottom: 12px;
-  flex: 1;
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
+  min-height: fit-content;
 }
 
 .carousel-item-title {

@@ -108,6 +108,7 @@ export default function Carousel({
       className={`carousel-container ${round ? 'round' : ''}`}
       style={{
         width: `${baseWidth}px`,
+        height: 'auto',
         ...(round && { height: `${baseWidth}px`, borderRadius: '50%' })
       }}
     >
@@ -138,7 +139,7 @@ export default function Carousel({
               className={`carousel-item ${round ? 'round' : ''}`}
               style={{
                 width: itemWidth,
-                height: round ? itemWidth : '100%',
+                height: itemWidth,
                 rotateY: rotateY,
                 ...(round && { borderRadius: '50%' })
               }}
@@ -168,21 +169,6 @@ export default function Carousel({
           );
         })}
       </motion.div>
-      <div className={`carousel-indicators-container ${round ? 'round' : ''}`}>
-        <div className="carousel-indicators">
-          {items.map((_, index) => (
-            <motion.div
-              key={index}
-              className={`carousel-indicator ${currentIndex % items.length === index ? 'active' : 'inactive'}`}
-              animate={{
-                scale: currentIndex % items.length === index ? 1.2 : 1
-              }}
-              onClick={() => setCurrentIndex(index)}
-              transition={{ duration: 0.15 }}
-            />
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
