@@ -43,21 +43,31 @@ export default function Carousel({
     }
   }, [pauseOnHover]);
 
+  // Persistent, indestructible autoplay - never stops
   useEffect(() => {
-    if (autoplay && (!pauseOnHover || !isHovered) && items.length > 0) {
-      const timer = setInterval(() => {
-        setCurrentIndex(prev => {
-          if (prev === items.length - 1 && loop) {
-            return prev + 1;
-          }
-          if (prev === carouselItems.length - 1) {
-            return loop ? 0 : prev;
-          }
+    if (!autoplay || items.length === 0) return;
+
+    // Always run autoplay regardless of hover state when pauseOnHover is false
+    const shouldPause = pauseOnHover && isHovered;
+    
+    if (shouldPause) return;
+
+    const timer = setInterval(() => {
+      setCurrentIndex(prev => {
+        if (prev === items.length - 1 && loop) {
           return prev + 1;
-        });
-      }, autoplayDelay);
-      return () => clearInterval(timer);
-    }
+        }
+        if (prev === carouselItems.length - 1) {
+          return loop ? 0 : prev;
+        }
+        return prev + 1;
+      });
+    }, autoplayDelay);
+
+    // Ensure timer is always cleared on unmount or dependency change
+    return () => {
+      clearInterval(timer);
+    };
   }, [autoplay, autoplayDelay, isHovered, loop, items.length, carouselItems.length, pauseOnHover]);
 
   const effectiveTransition = isResetting ? { duration: 0 } : SPRING_OPTIONS;
