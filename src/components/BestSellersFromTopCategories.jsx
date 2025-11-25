@@ -19,18 +19,21 @@ const BestSellersFromTopCategories = () => {
   const [categoryProducts, setCategoryProducts] = useState([]);
   const [baseWidth, setBaseWidth] = useState(200);
 
-  // Responsive baseWidth - full-bleed hero style
+  // Responsive baseWidth - accounting for 64px padding on all sides
   useEffect(() => {
     const updateWidth = () => {
+      const padding = 64; // 64px padding on each side
+      const totalPadding = padding * 2; // left + right padding
+      
       if (window.innerWidth < 640) {
-        // Mobile: full width, single column
-        setBaseWidth(window.innerWidth);
+        // Mobile: full width minus padding, single column
+        setBaseWidth(window.innerWidth - totalPadding);
       } else if (window.innerWidth < 768) {
-        // Tablet: 50% width each (side by side)
-        setBaseWidth(Math.floor(window.innerWidth / 2));
+        // Tablet: 50% width each (side by side) minus padding
+        setBaseWidth(Math.floor((window.innerWidth - totalPadding) / 2));
       } else {
-        // Desktop: 50% width each (side by side, full-bleed)
-        setBaseWidth(Math.floor(window.innerWidth / 2));
+        // Desktop: 50% width each (side by side) minus padding
+        setBaseWidth(Math.floor((window.innerWidth - totalPadding) / 2));
       }
     };
     updateWidth();
@@ -115,7 +118,7 @@ const BestSellersFromTopCategories = () => {
 
       {/* Full-bleed Hero Carousel Section */}
       <section 
-        className="relative" 
+        className="relative bg-white" 
         style={{ 
           width: '100vw',
           position: 'relative',
@@ -123,7 +126,8 @@ const BestSellersFromTopCategories = () => {
           right: '50%',
           marginLeft: '-50vw',
           marginRight: '-50vw',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          padding: '64px'
         }}
       >
         <div className="flex flex-col sm:flex-row" style={{ width: '100%', gap: 0 }}>
