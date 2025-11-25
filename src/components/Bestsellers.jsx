@@ -4,124 +4,34 @@ import { ShopContext } from '../context/ShopContext';
 
 const NO_IMAGE_PLACEHOLDER = '/assets/no-image.png';
 
-/**
- * Hard-coded fallback products (final resort)
- */
-const HARDCODED_FALLBACK = [
-  {
-    title: 'Classic Leather Belt',
-    image: NO_IMAGE_PLACEHOLDER,
-    price: 1999,
-    url: '/collections/all',
-    _id: 'fallback-1'
-  },
-  {
-    title: 'Everyday Sneakers',
-    image: NO_IMAGE_PLACEHOLDER,
-    price: 4999,
-    url: '/collections/all',
-    _id: 'fallback-2'
-  },
-  {
-    title: 'Summer Sunglasses',
-    image: NO_IMAGE_PLACEHOLDER,
-    price: 2499,
-    url: '/collections/all',
-    _id: 'fallback-3'
-  },
-  {
-    title: 'Essential Hoodie',
-    image: NO_IMAGE_PLACEHOLDER,
-    price: 3599,
-    url: '/collections/all',
-    _id: 'fallback-4'
-  }
-];
-
 const Bestsellers = () => {
   const { products, currency, loadingProducts } = useContext(ShopContext);
   const [bestsellers, setBestsellers] = useState([]);
-  const [loading, setLoading] = useState(true);
   const carouselRef = useRef(null);
   const listRef = useRef(null);
   const prevBtnRef = useRef(null);
   const nextBtnRef = useRef(null);
   const imageObserverRef = useRef(null);
-  const abortControllerRef = useRef(null);
 
-  // Load bestsellers from ShopContext products (primary source)
+  // Load top 6 products from shoes section
   useEffect(() => {
-    // Don't run if products are still loading
-    if (loadingProducts) {
-      setLoading(true);
-      return;
+    if (loadingProducts) return;
+
+    if (Array.isArray(products) && products.length > 0) {
+      const shoesProducts = products
+        .filter(p => p.categoryRaw === 'shoes')
+        .slice(0, 6)
+        .map(p => ({
+          title: p.name || '',
+          image: p.image || (Array.isArray(p.images) ? p.images[0] : '') || NO_IMAGE_PLACEHOLDER,
+          price: Number(p.price) || 0,
+          url: p._id || p.slug ? `/product/${p._id || p.slug}` : '#',
+          _id: p._id || p.slug || ''
+        }))
+        .filter(p => p.title && p._id);
+
+      setBestsellers(shoesProducts);
     }
-
-    // Cleanup any pending requests
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    abortControllerRef.current = new AbortController();
-    const signal = abortControllerRef.current.signal;
-
-    const loadBestsellers = () => {
-      setLoading(true);
-
-      // Primary source: ShopContext products with bestseller flag
-      if (Array.isArray(products) && products.length > 0) {
-        const bestsellerProducts = products
-          .filter(p => p.bestseller === true)
-          .slice(0, 8)
-          .map(p => {
-            // Handle ShopContext product structure
-            const title = p.name || '';
-            const image = p.image || (Array.isArray(p.images) ? p.images[0] : '') || NO_IMAGE_PLACEHOLDER;
-            const price = p.price || 0;
-            const productId = p._id || p.slug || '';
-            const url = productId ? `/product/${productId}` : '';
-
-            // Skip items missing both title and url
-            if (!title && !url) {
-              return null;
-            }
-
-            return {
-              title: title.trim(),
-              image: image.trim() || NO_IMAGE_PLACEHOLDER,
-              price: Number(price) || 0,
-              url: url.trim() || '#',
-              _id: productId || String(Math.random())
-            };
-          })
-          .filter(Boolean);
-        
-        if (bestsellerProducts.length > 0) {
-          console.info('Bestsellers: Loaded from ShopContext products', bestsellerProducts.length);
-          if (!signal.aborted) {
-            setBestsellers(bestsellerProducts);
-            setLoading(false);
-          }
-          return;
-        }
-      }
-
-      // Fallback: Hard-coded products if no bestseller products found
-      console.info('Bestsellers: No bestseller products found, using fallback');
-      if (!signal.aborted) {
-        setBestsellers(HARDCODED_FALLBACK);
-        setLoading(false);
-      }
-    };
-
-    loadBestsellers();
-
-    // Cleanup function
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
   }, [products, loadingProducts]);
 
   // IntersectionObserver for lazy image loading
@@ -131,9 +41,7 @@ const Bestsellers = () => {
     const imageElements = listRef.current.querySelectorAll('img[data-lazy]');
     if (imageElements.length === 0) return;
 
-    // Check if IntersectionObserver is available
     if (typeof IntersectionObserver === 'undefined') {
-      // Fallback: load all images immediately
       imageElements.forEach(img => {
         const src = img.getAttribute('data-lazy');
         if (src) {
@@ -159,13 +67,10 @@ const Bestsellers = () => {
           }
         });
       },
-      {
-        rootMargin: '50px'
-      }
+      { rootMargin: '50px' }
     );
 
     imageElements.forEach(img => observer.observe(img));
-
     imageObserverRef.current = observer;
 
     return () => {
@@ -205,7 +110,6 @@ const Bestsellers = () => {
     prev.addEventListener('click', scrollPrev);
     next.addEventListener('click', scrollNext);
 
-    // Keyboard navigation
     const handleKeyDown = (e) => {
       if (e.target === prev || e.target === next || e.target.closest('a')) return;
       if (e.key === 'ArrowLeft') {
@@ -219,7 +123,6 @@ const Bestsellers = () => {
 
     carouselRef.current?.addEventListener('keydown', handleKeyDown);
 
-    // Update on resize and initial
     const resizeObserver = new ResizeObserver(updateControls);
     resizeObserver.observe(list);
     updateControls();
@@ -232,14 +135,13 @@ const Bestsellers = () => {
     };
   }, [bestsellers]);
 
-  // Handle image errors
   const handleImageError = (e) => {
     if (e.target.src !== NO_IMAGE_PLACEHOLDER && e.target.src !== window.location.origin + NO_IMAGE_PLACEHOLDER) {
       e.target.src = NO_IMAGE_PLACEHOLDER;
     }
   };
 
-  if (loading) {
+  if (loadingProducts) {
     return (
       <section className="my-10" id="bestsellers">
         <div className="text-center py-8">
@@ -252,8 +154,8 @@ const Bestsellers = () => {
         </div>
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className="flex-shrink-0 w-[calc(50%-6px)] sm:w-[calc(33.333%-8px)] lg:w-[calc(25%-9px)] max-w-[220px] bg-white border border-gray-200 rounded-xl p-3 animate-pulse">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} className="flex-shrink-0 w-[calc(50%-6px)] sm:w-[calc(33.333%-8px)] lg:w-[calc(20%-9.6px)] max-w-[220px] bg-white border border-gray-200 rounded-xl p-3 animate-pulse">
                 <div className="w-full aspect-square bg-gray-200 rounded-lg mb-2" />
                 <div className="h-4 bg-gray-200 rounded mb-2" />
                 <div className="h-3 bg-gray-200 rounded w-2/3" />
@@ -265,42 +167,8 @@ const Bestsellers = () => {
     );
   }
 
-  // Empty state: show CTA card
   if (bestsellers.length === 0) {
-    return (
-      <section className="my-10" id="bestsellers">
-        <div className="text-center py-8">
-          <div className="inline-flex gap-3 items-center mb-3 select-none">
-            <p className="uppercase tracking-[0.18em] text-[11px] sm:text-xs text-gray-500">
-              BESTSELLERS
-            </p>
-            <p className="w-8 sm:w-12 h-[1px] sm:h-[2px] bg-gray-300"></p>
-          </div>
-        </div>
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="flex justify-center">
-            <Link
-              to="/collections/all"
-              className="block bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30 text-center max-w-sm"
-              aria-label="Explore bestsellers"
-            >
-              <p className="text-lg font-medium text-gray-800 mb-2">Explore bestsellers</p>
-              <p className="text-sm text-gray-600">→</p>
-            </Link>
-          </div>
-        </div>
-        <noscript>
-          <div className="max-w-6xl mx-auto px-4 py-4 text-center">
-            <Link
-              to="/collections/all"
-              className="inline-block px-4 py-2 border border-gray-300 rounded-lg bg-white hover:shadow-md transition-shadow"
-            >
-              Explore bestsellers →
-            </Link>
-          </div>
-        </noscript>
-      </section>
-    );
+    return null;
   }
 
   return (
@@ -352,7 +220,7 @@ const Bestsellers = () => {
                 style={{ scrollSnapAlign: 'start' }}
               >
                 <Link
-                  to={product.url || '/collections/all'}
+                  to={product.url}
                   className="block bg-white border border-gray-200 rounded-xl p-3 hover:shadow-md transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30"
                   aria-label={`${product.title} - ${currency}${product.price}`}
                 >
@@ -387,17 +255,6 @@ const Bestsellers = () => {
           </button>
         </div>
       </div>
-
-      <noscript>
-        <div className="max-w-6xl mx-auto px-4 py-4 text-center">
-          <Link
-            to="/collections/all"
-            className="inline-block px-4 py-2 border border-gray-300 rounded-lg bg-white hover:shadow-md transition-shadow"
-          >
-            Explore bestsellers →
-          </Link>
-        </div>
-      </noscript>
     </section>
   );
 };
