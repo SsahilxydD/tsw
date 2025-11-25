@@ -81,7 +81,7 @@ const Navbar = () => {
               <img
                 src={assets.logo}
                 alt="Solo Wardrobe"
-                className="h-12 sm:h-[60px] w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+                className="h-24 sm:h-[60px] w-auto object-contain transition-transform duration-300 group-hover:scale-105"
               />
             ) : (
               <span className="font-serif text-xl sm:text-2xl font-bold tracking-tight">SOLO WARDROBE</span>
