@@ -19,21 +19,22 @@ const BestSellersFromTopCategories = () => {
   const [categoryProducts, setCategoryProducts] = useState([]);
   const [baseWidth, setBaseWidth] = useState(200);
 
-  // Responsive baseWidth - accounting for 64px padding on all sides
+  // Responsive baseWidth - accounting for 30px padding on all sides and 30px gap between carousels
   useEffect(() => {
     const updateWidth = () => {
-      const padding = 64; // 64px padding on each side
+      const padding = 30; // 30px padding on each side
       const totalPadding = padding * 2; // left + right padding
+      const gap = 30; // 30px gap between carousels
       
       if (window.innerWidth < 640) {
         // Mobile: full width minus padding, single column
         setBaseWidth(window.innerWidth - totalPadding);
       } else if (window.innerWidth < 768) {
-        // Tablet: 50% width each (side by side) minus padding
-        setBaseWidth(Math.floor((window.innerWidth - totalPadding) / 2));
+        // Tablet: 50% width each (side by side) minus padding and gap
+        setBaseWidth(Math.floor((window.innerWidth - totalPadding - gap) / 2));
       } else {
-        // Desktop: 50% width each (side by side) minus padding
-        setBaseWidth(Math.floor((window.innerWidth - totalPadding) / 2));
+        // Desktop: 50% width each (side by side) minus padding and gap
+        setBaseWidth(Math.floor((window.innerWidth - totalPadding - gap) / 2));
       }
     };
     updateWidth();
@@ -127,10 +128,10 @@ const BestSellersFromTopCategories = () => {
           marginLeft: '-50vw',
           marginRight: '-50vw',
           overflow: 'hidden',
-          padding: '64px'
+          padding: '30px'
         }}
       >
-        <div className="flex flex-col sm:flex-row" style={{ width: '100%', gap: 0 }}>
+        <div className="flex flex-col sm:flex-row" style={{ width: '100%', gap: '30px' }}>
           {/* Shoes Carousel - Left Hero */}
           {shoesProducts.length > 0 && (
             <div className="w-full sm:w-1/2" style={{ flexShrink: 0 }}>
