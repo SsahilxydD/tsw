@@ -20,7 +20,7 @@ const Bestsellers = () => {
     if (Array.isArray(products) && products.length > 0) {
       const shoesProducts = products
         .filter(p => p.categoryRaw === 'shoes')
-        .slice(0, 6)
+        .slice(0, 12)
         .map(p => ({
           title: p.name || '',
           image: p.image || (Array.isArray(p.images) ? p.images[0] : '') || NO_IMAGE_PLACEHOLDER,
