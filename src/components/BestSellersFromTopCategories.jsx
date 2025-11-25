@@ -19,17 +19,17 @@ const BestSellersFromTopCategories = () => {
   const [categoryProducts, setCategoryProducts] = useState([]);
   const [baseWidth, setBaseWidth] = useState(200);
 
-  // Responsive baseWidth - mobile first
+  // Responsive baseWidth - mobile first, optimized for side-by-side
   useEffect(() => {
     const updateWidth = () => {
       if (window.innerWidth < 640) {
-        setBaseWidth(160); // Mobile: smaller cards
+        setBaseWidth(160); // Mobile: smaller cards, stacked
       } else if (window.innerWidth < 768) {
-        setBaseWidth(200); // Tablet
+        setBaseWidth(180); // Tablet: side by side
       } else if (window.innerWidth < 1024) {
-        setBaseWidth(220); // Small desktop
+        setBaseWidth(200); // Small desktop: side by side
       } else {
-        setBaseWidth(250); // Large desktop
+        setBaseWidth(240); // Large desktop: side by side, larger cards
       }
     };
     updateWidth();
@@ -109,38 +109,40 @@ const BestSellersFromTopCategories = () => {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 flex flex-col gap-8 items-center">
-        {/* Shoes Carousel */}
-        {shoesProducts.length > 0 && (
-          <div style={{ height: 'auto', position: 'relative', width: '100%', maxWidth: '100%' }}>
-            <Carousel
-              items={shoesProducts}
-              baseWidth={baseWidth}
-              autoplay={true}
-              autoplayDelay={3000}
-              pauseOnHover={true}
-              loop={true}
-              round={false}
-              currency={currency}
-            />
-          </div>
-        )}
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-center justify-center">
+          {/* Shoes Carousel */}
+          {shoesProducts.length > 0 && (
+            <div className="flex-1 w-full md:w-auto" style={{ maxWidth: '100%' }}>
+              <Carousel
+                items={shoesProducts}
+                baseWidth={baseWidth}
+                autoplay={true}
+                autoplayDelay={3000}
+                pauseOnHover={true}
+                loop={true}
+                round={false}
+                currency={currency}
+              />
+            </div>
+          )}
 
-        {/* Category Products Carousel */}
-        {categoryProducts.length > 0 && (
-          <div style={{ height: 'auto', position: 'relative', width: '100%', maxWidth: '100%' }}>
-            <Carousel
-              items={categoryProducts}
-              baseWidth={baseWidth}
-              autoplay={true}
-              autoplayDelay={3000}
-              pauseOnHover={true}
-              loop={true}
-              round={false}
-              currency={currency}
-            />
-          </div>
-        )}
+          {/* Category Products Carousel */}
+          {categoryProducts.length > 0 && (
+            <div className="flex-1 w-full md:w-auto" style={{ maxWidth: '100%' }}>
+              <Carousel
+                items={categoryProducts}
+                baseWidth={baseWidth}
+                autoplay={true}
+                autoplayDelay={3000}
+                pauseOnHover={true}
+                loop={true}
+                round={false}
+                currency={currency}
+              />
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );
