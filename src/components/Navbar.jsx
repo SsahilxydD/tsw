@@ -45,7 +45,7 @@ const Navbar = () => {
         className={`sticky top-0 z-40 transition-all duration-300 ${scrolled || isMenuOpen ? "bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-sm" : "bg-transparent border-b border-transparent"
           }`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-24 sm:h-20 flex items-center justify-between overflow-hidden">
 
           {/* Mobile Menu Button */}
           <button
