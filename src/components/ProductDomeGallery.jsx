@@ -12,23 +12,58 @@ const ProductDomeGallery = () => {
     if (loadingProducts) return;
 
     if (Array.isArray(products) && products.length > 0) {
-      // Get a diverse set of product images
-      // Try to get images from different categories
-      const imageMap = new Map();
+      // Group products by category to ensure diversity
+      const categoryMap = new Map();
       
       products.forEach(product => {
+        const category = product.categoryRaw || product.category || 'other';
+        if (!categoryMap.has(category)) {
+          categoryMap.set(category, []);
+        }
         const image = product.image || (Array.isArray(product.images) ? product.images[0] : '') || NO_IMAGE_PLACEHOLDER;
-        // Only add if we don't already have this image and it's not a placeholder
-        if (image && image !== NO_IMAGE_PLACEHOLDER && !imageMap.has(image)) {
-          imageMap.set(image, {
+        if (image && image !== NO_IMAGE_PLACEHOLDER) {
+          categoryMap.get(category).push({
             src: image,
-            alt: product.name || product.title || 'Product image'
+            alt: product.name || product.title || 'Product image',
+            category: category
           });
         }
       });
 
-      // Convert to array and limit to reasonable number (the gallery will handle more)
-      const images = Array.from(imageMap.values()).slice(0, 200);
+      // Get a balanced selection from each category
+      const imagesPerCategory = Math.ceil(200 / Math.max(categoryMap.size, 1));
+      const selectedImages = [];
+      const imageSet = new Set(); // Track unique images to avoid duplicates
+      
+      // Iterate through categories and take images from each
+      for (const [category, categoryProducts] of categoryMap.entries()) {
+        const categoryImages = categoryProducts
+          .filter(img => !imageSet.has(img.src))
+          .slice(0, imagesPerCategory);
+        
+        categoryImages.forEach(img => {
+          imageSet.add(img.src);
+          selectedImages.push(img);
+        });
+      }
+
+      // If we still need more images, fill from remaining products
+      if (selectedImages.length < 200) {
+        products.forEach(product => {
+          if (selectedImages.length >= 200) return;
+          const image = product.image || (Array.isArray(product.images) ? product.images[0] : '') || NO_IMAGE_PLACEHOLDER;
+          if (image && image !== NO_IMAGE_PLACEHOLDER && !imageSet.has(image)) {
+            imageSet.add(image);
+            selectedImages.push({
+              src: image,
+              alt: product.name || product.title || 'Product image'
+            });
+          }
+        });
+      }
+
+      // Limit to 200 images
+      const images = selectedImages.slice(0, 200);
       
       // If we don't have enough images, fill with placeholders or repeat
       if (images.length === 0) {
