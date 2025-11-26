@@ -175,6 +175,7 @@ export default function DomeGallery({
       const viewerPad = Math.max(8, Math.round(minDim * padFactor));
 
       root.style.setProperty('--radius', `${lockedRadiusRef.current}px`);
+      root.style.setProperty('--container-width', `${w}px`);
       root.style.setProperty('--viewer-pad', `${viewerPad}px`);
       root.style.setProperty('--overlay-blur-color', overlayBlurColor);
       root.style.setProperty('--tile-radius', imageBorderRadius);

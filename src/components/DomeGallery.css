@@ -8,8 +8,10 @@
   --circ: calc(var(--radius) * 3.14);
   --rot-y: calc((360deg / var(--segments-x)) / 2);
   --rot-x: calc((360deg / var(--segments-y)) / 2);
-  --item-width: calc(var(--circ) / var(--segments-x));
-  --item-height: calc(var(--circ) / var(--segments-y));
+  /* For flat grid: base tile size on container width, not sphere circumference */
+  --container-width: 100vw;
+  --item-width: calc(var(--container-width) / var(--segments-x));
+  --item-height: calc(var(--container-width) / var(--segments-y));
 }
 
 .sphere-root * {
