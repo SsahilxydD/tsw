@@ -55,6 +55,7 @@ main.sphere-main {
   margin: auto;
   z-index: 3;
   pointer-events: none;
+  display: none; /* Vignette removed */
 }
 
 .overlay {
@@ -186,6 +187,7 @@ main.sphere-main {
   z-index: 5;
   pointer-events: none;
   background: linear-gradient(to bottom, transparent, var(--overlay-blur-color, #060010));
+  display: none; /* Vignette removed */
 }
 
 .edge-fade--top {
