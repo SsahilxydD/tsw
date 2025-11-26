@@ -46,36 +46,50 @@ const ProductDomeGallery = () => {
   }
 
   return (
-    <div 
-      className="w-full"
+    <section 
+      className="relative bg-white" 
       style={{ 
-        height: 'clamp(400px, 50vw, 600px)',
-        minHeight: '400px',
-        maxHeight: '600px',
-        marginTop: '40px', 
-        marginBottom: '40px' 
+        width: '100vw',
+        position: 'relative',
+        left: '50%',
+        right: '50%',
+        marginLeft: '-50vw',
+        marginRight: '-50vw',
+        overflow: 'hidden',
+        padding: '40px 0',
+        marginTop: '40px',
+        marginBottom: '40px'
       }}
     >
-      <DomeGallery 
-        images={galleryImages}
-        fit={0.5}
-        fitBasis="auto"
-        minRadius={300}
-        maxRadius={800}
-        padFactor={0.15}
-        overlayBlurColor="#060010"
-        maxVerticalRotationDeg={5}
-        dragSensitivity={20}
-        enlargeTransitionMs={300}
-        segments={35}
-        dragDampening={2}
-        openedImageWidth="250px"
-        openedImageHeight="350px"
-        imageBorderRadius="12px"
-        openedImageBorderRadius="30px"
-        grayscale={false}
-      />
-    </div>
+      <div 
+        className="w-full"
+        style={{ 
+          height: 'clamp(500px, 70vh, 800px)',
+          minHeight: '500px',
+          maxHeight: '800px'
+        }}
+      >
+        <DomeGallery 
+          images={galleryImages}
+          fit={0.75}
+          fitBasis="width"
+          minRadius={500}
+          maxRadius={1200}
+          padFactor={0.1}
+          overlayBlurColor="#060010"
+          maxVerticalRotationDeg={5}
+          dragSensitivity={20}
+          enlargeTransitionMs={300}
+          segments={35}
+          dragDampening={2}
+          openedImageWidth="300px"
+          openedImageHeight="400px"
+          imageBorderRadius="12px"
+          openedImageBorderRadius="30px"
+          grayscale={false}
+        />
+      </div>
+    </section>
   );
 };
 
