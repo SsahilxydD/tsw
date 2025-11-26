@@ -56,7 +56,7 @@ const ProductDomeGallery = () => {
         marginLeft: '-50vw',
         marginRight: '-50vw',
         overflow: 'hidden',
-        padding: '40px 0',
+        padding: '0',
         marginTop: '40px',
         marginBottom: '40px',
         background: 'transparent'
@@ -65,19 +65,19 @@ const ProductDomeGallery = () => {
       <div 
         className="w-full"
         style={{ 
-          height: 'clamp(500px, 70vh, 800px)',
-          minHeight: '500px',
-          maxHeight: '800px',
+          height: 'clamp(450px, 65vh, 750px)',
+          minHeight: '450px',
+          maxHeight: '750px',
           background: 'transparent'
         }}
       >
         <DomeGallery 
           images={galleryImages}
-          fit={0.75}
+          fit={0.85}
           fitBasis="width"
           minRadius={500}
           maxRadius={1200}
-          padFactor={0.1}
+          padFactor={0.02}
           overlayBlurColor="#060010"
           maxVerticalRotationDeg={5}
           dragSensitivity={20}
