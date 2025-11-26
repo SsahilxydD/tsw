@@ -108,16 +108,16 @@ const ProductDomeGallery = () => {
       >
         <DomeGallery 
           images={galleryImages}
-          fit={0.85}
+          fit={0.9}
           fitBasis="width"
-          minRadius={500}
-          maxRadius={1200}
+          minRadius={5000}
+          maxRadius={10000}
           padFactor={0.02}
           overlayBlurColor="#060010"
-          maxVerticalRotationDeg={5}
+          maxVerticalRotationDeg={0}
           dragSensitivity={20}
           enlargeTransitionMs={300}
-          segments={35}
+          segments={25}
           dragDampening={2}
           openedImageWidth="300px"
           openedImageHeight="400px"

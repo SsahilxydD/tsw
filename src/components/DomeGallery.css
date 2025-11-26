@@ -39,7 +39,7 @@ main.sphere-main {
   height: 100%;
   display: grid;
   place-items: center;
-  perspective: calc(var(--radius) * 2);
+  perspective: calc(var(--radius) * 10);
   perspective-origin: 50% 50%;
   contain: layout paint size;
   background: transparent;
