@@ -2,6 +2,7 @@
   position: relative;
   width: 100%;
   height: 100%;
+  background: transparent;
   --radius: 520px;
   --viewer-pad: 72px;
   --circ: calc(var(--radius) * 3.14);
@@ -41,6 +42,7 @@ main.sphere-main {
   perspective: calc(var(--radius) * 2);
   perspective-origin: 50% 50%;
   contain: layout paint size;
+  background: transparent;
 }
 
 .sphere {

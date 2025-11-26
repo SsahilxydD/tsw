@@ -47,7 +47,7 @@ const ProductDomeGallery = () => {
 
   return (
     <section 
-      className="relative bg-white" 
+      className="relative" 
       style={{ 
         width: '100vw',
         position: 'relative',
@@ -58,7 +58,8 @@ const ProductDomeGallery = () => {
         overflow: 'hidden',
         padding: '40px 0',
         marginTop: '40px',
-        marginBottom: '40px'
+        marginBottom: '40px',
+        background: 'transparent'
       }}
     >
       <div 
@@ -66,7 +67,8 @@ const ProductDomeGallery = () => {
         style={{ 
           height: 'clamp(500px, 70vh, 800px)',
           minHeight: '500px',
-          maxHeight: '800px'
+          maxHeight: '800px',
+          background: 'transparent'
         }}
       >
         <DomeGallery 
