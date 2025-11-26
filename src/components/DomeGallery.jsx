@@ -241,7 +241,7 @@ export default function DomeGallery({
     (vx, vy) => {
       const MAX_V = 1.4;
       let vX = clamp(vx, -MAX_V, MAX_V) * 80;
-      let vY = clamp(vy, -MAX_V, MAX_V) * 80;
+      let vY = 0; // Disable vertical inertia
       let frames = 0;
       const d = clamp(dragDampening ?? 0.6, 0, 1);
       const frictionMul = 0.94 + 0.055 * d;
@@ -250,9 +250,9 @@ export default function DomeGallery({
 
       const step = () => {
         vX *= frictionMul;
-        vY *= frictionMul;
+        vY = 0; // Keep vertical velocity at 0
 
-        if (Math.abs(vX) < stopThreshold && Math.abs(vY) < stopThreshold) {
+        if (Math.abs(vX) < stopThreshold) {
           inertiaRAF.current = null;
           return;
         }
@@ -262,7 +262,8 @@ export default function DomeGallery({
           return;
         }
 
-        const nextX = clamp(rotationRef.current.x - vY / 200, -maxVerticalRotationDeg, maxVerticalRotationDeg);
+        // Keep vertical rotation fixed, only update horizontal
+        const nextX = rotationRef.current.x;
         const nextY = wrapAngleSigned(rotationRef.current.y + vX / 200);
 
         rotationRef.current = { x: nextX, y: nextY };
@@ -295,19 +296,18 @@ export default function DomeGallery({
         const dxTotal = evt.clientX - startPosRef.current.x;
         const dyTotal = evt.clientY - startPosRef.current.y;
 
+        // Only consider horizontal movement for determining if user moved
         if (!movedRef.current) {
-          const dist2 = dxTotal * dxTotal + dyTotal * dyTotal;
+          const dist2 = dxTotal * dxTotal;
           if (dist2 > 16) movedRef.current = true;
         }
 
-        const nextX = clamp(
-          startRotRef.current.x - dyTotal / dragSensitivity,
-          -maxVerticalRotationDeg,
-          maxVerticalRotationDeg
-        );
+        // Keep vertical rotation fixed (no vertical drag)
+        const nextX = rotationRef.current.x;
+        // Only update horizontal rotation based on horizontal drag
         const nextY = wrapAngleSigned(startRotRef.current.y + dxTotal / dragSensitivity);
 
-        if (rotationRef.current.x !== nextX || rotationRef.current.y !== nextY) {
+        if (rotationRef.current.y !== nextY) {
           rotationRef.current = { x: nextX, y: nextY };
           applyTransform(nextX, nextY);
         }
@@ -316,16 +316,17 @@ export default function DomeGallery({
           draggingRef.current = false;
           let [vMagX, vMagY] = velocity;
           const [dirX, dirY] = direction;
+          // Only use horizontal velocity
           let vx = vMagX * dirX;
-          let vy = vMagY * dirY;
+          let vy = 0; // Disable vertical inertia
 
-          if (Math.abs(vx) < 0.001 && Math.abs(vy) < 0.001 && Array.isArray(movement)) {
-            const [mx, my] = movement;
+          if (Math.abs(vx) < 0.001 && Array.isArray(movement)) {
+            const [mx] = movement;
             vx = clamp((mx / dragSensitivity) * 0.02, -1.2, 1.2);
-            vy = clamp((my / dragSensitivity) * 0.02, -1.2, 1.2);
           }
 
-          if (Math.abs(vx) > 0.005 || Math.abs(vy) > 0.005) startInertia(vx, vy);
+          // Only start inertia if horizontal velocity is significant
+          if (Math.abs(vx) > 0.005) startInertia(vx, 0);
           if (movedRef.current) lastDragEndAt.current = performance.now();
           movedRef.current = false;
         }
