@@ -29,7 +29,7 @@ function buildItems(pool, seg) {
   const oddYs = [-3, -1, 1, 3, 5];
   const coords = xCols.flatMap((x, c) => {
     const ys = c % 2 === 0 ? evenYs : oddYs;
-    return ys.map(y => ({ x, y, sizeX: 2.5, sizeY: 2.5 }));
+    return ys.map(y => ({ x, y, sizeX: 4, sizeY: 4 }));
   });
   const totalSlots = coords.length;
   if (pool.length === 0) {
