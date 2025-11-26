@@ -82,7 +82,7 @@ const ProductDomeGallery = () => {
           maxVerticalRotationDeg={5}
           dragSensitivity={20}
           enlargeTransitionMs={300}
-          segments={35}
+          segments={10}
           dragDampening={2}
           openedImageWidth="300px"
           openedImageHeight="400px"
