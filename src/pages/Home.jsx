@@ -2,6 +2,7 @@ import React from 'react'
 import OurPolicy from '../components/OurPolicy'
 import Categories from '../components/Categories'
 import BestSellersFromTopCategories from '../components/BestSellersFromTopCategories'
+import ProductDomeGallery from '../components/ProductDomeGallery'
 import SEO from '../components/SEO'
 
 const Home = () => {
@@ -38,6 +39,10 @@ const Home = () => {
 
       <div className="animate-slide-up opacity-0" style={{ animationDelay: '0.4s', animationFillMode: 'forwards' }}>
         <BestSellersFromTopCategories />
+      </div>
+
+      <div className="animate-slide-up opacity-0" style={{ animationDelay: '0.5s', animationFillMode: 'forwards' }}>
+        <ProductDomeGallery />
       </div>
 
       <div className="animate-slide-up opacity-0" style={{ animationDelay: '0.6s', animationFillMode: 'forwards' }}>
