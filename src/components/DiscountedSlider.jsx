@@ -157,7 +157,7 @@ const DiscountedSlider = () => {
 
   return (
     <div className="hero-slider-wrapper">
-      <div className="text-center" style={{ marginBottom: '8px' }}>
+      <div className="text-center" style={{ marginBottom: '4px' }}>
         <Title text1="SPECIAL" text2="Offers" />
       </div>
       <div className="center" ref={sliderRef}>

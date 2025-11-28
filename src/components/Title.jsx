@@ -2,7 +2,7 @@ import React from 'react'
 
 const Title = ({ text1, text2, text2ClassName }) => {
   return (
-    <div className='inline-flex gap-3 items-center mb-3 select-none'>
+    <div className='inline-flex gap-3 items-center mb-1 select-none'>
       <p className='uppercase tracking-[0.18em] text-[11px] sm:text-xs text-gray-500'>
         {text1} <span className={`normal-case tracking-normal font-semibold ${text2ClassName || 'text-gray-800'}`}>{text2}</span>
       </p>
