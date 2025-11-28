@@ -90,8 +90,8 @@ const DiscountedSlider = () => {
               settings: {
                 arrows: false,
                 centerMode: true,
-                centerPadding: '80px',
-                slidesToShow: 3,
+                centerPadding: '60px',
+                slidesToShow: 2,
                 slidesToScroll: 1
               }
             },
@@ -100,7 +100,7 @@ const DiscountedSlider = () => {
               settings: {
                 arrows: false,
                 centerMode: true,
-                centerPadding: '40px',
+                centerPadding: '60px',
                 slidesToShow: 1,
                 slidesToScroll: 1
               }

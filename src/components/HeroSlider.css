@@ -147,17 +147,39 @@
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .hero-slider-wrapper {
-    padding: 15px 5px;
+    padding: 15px 0;
+    overflow: visible;
+  }
+
+  .hero-slider-wrapper .center {
+    max-width: 100%;
   }
 
   .hero-slide {
-    padding: 0 2.5px;
+    padding: 0 5px;
+  }
+
+  .hero-product-card {
+    max-width: 160px;
   }
 }
 
 @media (max-width: 480px) {
   .hero-slider-wrapper {
-    padding: 10px 5px;
+    padding: 10px 0;
+    overflow: visible;
+  }
+
+  .hero-slider-wrapper .center {
+    max-width: 100%;
+  }
+
+  .hero-slide {
+    padding: 0 4px;
+  }
+
+  .hero-product-card {
+    max-width: 140px;
   }
 
   .hero-product-title {
@@ -166,6 +188,11 @@
 
   .hero-price-current {
     font-size: 11px;
+  }
+
+  /* Ensure slick-list allows overflow on mobile */
+  .hero-slider-wrapper .center .slick-list {
+    margin: 0 !important;
   }
 }
 
