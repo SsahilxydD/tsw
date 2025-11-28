@@ -148,7 +148,7 @@ const AllCategoriesSlider = () => {
 
   return (
     <div className="hero-slider-wrapper">
-      <div className="text-center" style={{ marginBottom: '15px' }}>
+      <div className="text-center" style={{ marginBottom: '8px' }}>
         <Title text1="SHOP BY" text2="Category" />
       </div>
       <div className="center" ref={sliderRef}>
