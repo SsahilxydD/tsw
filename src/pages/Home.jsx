@@ -2,6 +2,7 @@ import React from 'react'
 import OurPolicy from '../components/OurPolicy'
 import Categories from '../components/Categories'
 import BestSellersFromTopCategories from '../components/BestSellersFromTopCategories'
+import HeroSlider from '../components/HeroSlider'
 import SEO from '../components/SEO'
 
 const Home = () => {
@@ -35,6 +36,10 @@ const Home = () => {
           }
         ]}
       />
+
+      <div className="animate-slide-up opacity-0" style={{ animationDelay: '0.2s', animationFillMode: 'forwards' }}>
+        <HeroSlider />
+      </div>
 
       <div className="animate-slide-up opacity-0" style={{ animationDelay: '0.4s', animationFillMode: 'forwards' }}>
         <BestSellersFromTopCategories />
