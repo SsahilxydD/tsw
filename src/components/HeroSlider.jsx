@@ -1,5 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ShopContext } from '../context/ShopContext';
 import $ from 'jquery';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
@@ -16,37 +17,57 @@ const NO_IMAGE_PLACEHOLDER = '/assets/no-image.svg';
 
 const HeroSlider = () => {
   const sliderRef = useRef(null);
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [sliderProducts, setSliderProducts] = useState([]);
+  const { products, loadingProducts } = useContext(ShopContext);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Fetch products from API
+    // Try API first, fallback to ShopContext
     const fetchProducts = async () => {
       try {
-        setLoading(true);
-        const response = await fetch('/api/products?category=cursor&limit=10');
+        const response = await fetch('/api/products?category=shoes&limit=10');
         
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (Array.isArray(data) && data.length > 0) {
+            setSliderProducts(data);
+            return;
+          }
         }
-        
-        const data = await response.json();
-        setProducts(Array.isArray(data) ? data : []);
       } catch (error) {
-        console.error('Error fetching products:', error);
-        setProducts([]);
-      } finally {
-        setLoading(false);
+        console.warn('API fetch failed, using ShopContext:', error);
+      }
+
+      // Fallback: Use ShopContext products filtered by shoes category
+      if (Array.isArray(products) && products.length > 0) {
+        const shoesProducts = products
+          .filter(p => {
+            const catRaw = String(p.categoryRaw || '').toLowerCase();
+            return catRaw === 'shoes';
+          })
+          .slice(0, 10)
+          .map(p => ({
+            _id: p._id || p.slug || '',
+            title: p.name || '',
+            price: Number(p.price || 0),
+            mrp: Number(p.mrp || 0),
+            image: p.image || (Array.isArray(p.images) ? p.images[0] : '') || '',
+            slug: p.slug || p._id || ''
+          }))
+          .filter(p => p._id && p.title);
+
+        setSliderProducts(shoesProducts);
       }
     };
 
-    fetchProducts();
-  }, []);
+    if (!loadingProducts) {
+      fetchProducts();
+    }
+  }, [products, loadingProducts]);
 
   useEffect(() => {
     // Initialize Slick after products are loaded and DOM is ready
-    if (!loading && products.length > 0 && sliderRef.current) {
+    if (!loadingProducts && sliderProducts.length > 0 && sliderRef.current) {
       // Use requestAnimationFrame to ensure DOM is fully rendered
       const initSlider = () => {
         if (!sliderRef.current) return;
@@ -102,9 +123,9 @@ const HeroSlider = () => {
         }
       };
     }
-  }, [loading, products]);
+  }, [loadingProducts, sliderProducts]);
 
-  if (loading) {
+  if (loadingProducts) {
     return (
       <div className="hero-slider-wrapper">
         <div className="hero-slider-loading">Loading products...</div>
@@ -112,7 +133,8 @@ const HeroSlider = () => {
     );
   }
 
-  if (products.length === 0) {
+  if (sliderProducts.length === 0 && !loadingProducts) {
+    // Don't render if no products found
     return null;
   }
 
@@ -125,7 +147,7 @@ const HeroSlider = () => {
   return (
     <div className="hero-slider-wrapper">
       <div className="center" ref={sliderRef}>
-        {products.map((product, index) => (
+        {sliderProducts.map((product, index) => (
           <div key={product._id || index} className="hero-slide">
             <div 
               className="hero-product-card"
