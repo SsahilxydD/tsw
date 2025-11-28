@@ -15,13 +15,13 @@
 
 /* Slick Slider Container */
 .hero-slider-wrapper .center {
-  max-width: 600px;
+  max-width: 900px;
   margin: 0 auto;
 }
 
 /* Individual Slide */
 .hero-slide {
-  padding: 0 5px;
+  padding: 0 10px;
   outline: none;
 }
 

@@ -76,26 +76,29 @@ const AllCategoriesSlider = () => {
 
         // Initialize Slick with the provided config
         $slider.slick({
-          centerMode: true,
-          centerPadding: '100px',
+          centerMode: false,
           slidesToShow: 3,
+          slidesToScroll: 1,
+          infinite: true,
+          dots: false,
+          arrows: true,
           responsive: [
             {
               breakpoint: 768,
               settings: {
                 arrows: false,
-                centerMode: true,
-                centerPadding: '80px',
-                slidesToShow: 3
+                centerMode: false,
+                slidesToShow: 2,
+                slidesToScroll: 1
               }
             },
             {
               breakpoint: 480,
               settings: {
                 arrows: false,
-                centerMode: true,
-                centerPadding: '40px',
-                slidesToShow: 1
+                centerMode: false,
+                slidesToShow: 1,
+                slidesToScroll: 1
               }
             }
           ]
