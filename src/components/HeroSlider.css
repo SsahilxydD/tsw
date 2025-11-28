@@ -15,7 +15,7 @@
 
 /* Slick Slider Container */
 .hero-slider-wrapper .center {
-  max-width: 600px;
+  max-width: 300px;
   margin: 0 auto;
 }
 
@@ -23,6 +23,10 @@
 .hero-slide {
   padding: 0 5px;
   outline: none;
+  height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Product Card */
@@ -36,10 +40,14 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  max-width: 150px;
+  margin: 0 auto;
+  transform: scale(0.5);
+  transform-origin: center center;
 }
 
 .hero-product-card:hover {
-  transform: translateY(-2px);
+  transform: scale(0.5) translateY(-2px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
