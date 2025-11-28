@@ -147,6 +147,7 @@ const AllCategoriesSlider = () => {
 
   return (
     <div className="hero-slider-wrapper">
+      <h2 className="hero-slider-title">Shop by Category</h2>
       <div className="center" ref={sliderRef}>
         {sliderProducts.map((product, index) => (
           <div key={product._id || index} className="hero-slide">
