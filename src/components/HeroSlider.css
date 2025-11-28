@@ -4,6 +4,7 @@
   padding: 20px 0;
   background: #fafafa;
   margin-bottom: 0;
+  overflow: visible;
 }
 
 .hero-slider-loading {
@@ -167,7 +168,6 @@
 @media (max-width: 480px) {
   .hero-slider-wrapper {
     padding: 10px 0;
-    overflow: visible;
   }
 
   .hero-slider-wrapper .center {
@@ -179,20 +179,20 @@
   }
 
   .hero-product-card {
-    max-width: 140px;
+    max-width: 100px !important;
+    width: 100px !important;
   }
 
   .hero-product-title {
-    font-size: 10px;
+    font-size: 9px;
   }
 
   .hero-price-current {
-    font-size: 11px;
+    font-size: 10px;
   }
 
-  /* Ensure slick-list allows overflow on mobile */
-  .hero-slider-wrapper .center .slick-list {
-    margin: 0 !important;
+  .hero-price-mrp {
+    font-size: 8px;
   }
 }
 

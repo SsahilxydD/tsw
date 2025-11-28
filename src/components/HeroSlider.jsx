@@ -105,8 +105,8 @@ const HeroSlider = () => {
               settings: {
                 arrows: false,
                 centerMode: true,
-                centerPadding: '60px',
-                slidesToShow: 1,
+                centerPadding: '20px',
+                slidesToShow: 3,
                 slidesToScroll: 1
               }
             }

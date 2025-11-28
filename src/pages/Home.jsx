@@ -38,15 +38,15 @@ const Home = () => {
         ]}
       />
 
-      <div className="animate-slide-up opacity-0" style={{ animationDelay: '0.2s', animationFillMode: 'forwards' }}>
+      <div className="animate-slide-up opacity-0" style={{ animationDelay: '0.2s', animationFillMode: 'forwards', overflow: 'visible' }}>
         <HeroSlider />
       </div>
 
-      <div className="animate-slide-up opacity-0" style={{ animationDelay: '0.3s', animationFillMode: 'forwards' }}>
+      <div className="animate-slide-up opacity-0" style={{ animationDelay: '0.3s', animationFillMode: 'forwards', overflow: 'visible' }}>
         <AllCategoriesSlider />
       </div>
 
-      <div className="animate-slide-up opacity-0" style={{ animationDelay: '0.35s', animationFillMode: 'forwards' }}>
+      <div className="animate-slide-up opacity-0" style={{ animationDelay: '0.35s', animationFillMode: 'forwards', overflow: 'visible' }}>
         <DiscountedSlider />
       </div>
 
