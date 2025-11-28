@@ -77,7 +77,7 @@ const DiscountedSlider = () => {
         // Initialize Slick with the provided config
         $slider.slick({
           centerMode: true,
-          centerPadding: '60px',
+          centerPadding: '30px',
           slidesToShow: 3,
           responsive: [
             {
@@ -85,7 +85,7 @@ const DiscountedSlider = () => {
               settings: {
                 arrows: false,
                 centerMode: true,
-                centerPadding: '40px',
+                centerPadding: '20px',
                 slidesToShow: 3
               }
             },
@@ -94,7 +94,7 @@ const DiscountedSlider = () => {
               settings: {
                 arrows: false,
                 centerMode: true,
-                centerPadding: '40px',
+                centerPadding: '20px',
                 slidesToShow: 1
               }
             }

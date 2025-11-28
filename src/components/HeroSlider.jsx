@@ -82,7 +82,7 @@ const HeroSlider = () => {
         // Initialize Slick with the provided config
         $slider.slick({
           centerMode: true,
-          centerPadding: '60px',
+          centerPadding: '30px',
           slidesToShow: 3,
           responsive: [
             {
@@ -90,7 +90,7 @@ const HeroSlider = () => {
               settings: {
                 arrows: false,
                 centerMode: true,
-                centerPadding: '40px',
+                centerPadding: '20px',
                 slidesToShow: 3
               }
             },
@@ -99,7 +99,7 @@ const HeroSlider = () => {
               settings: {
                 arrows: false,
                 centerMode: true,
-                centerPadding: '40px',
+                centerPadding: '20px',
                 slidesToShow: 1
               }
             }
