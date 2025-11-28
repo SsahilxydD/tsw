@@ -1,7 +1,7 @@
 /* Hero Slider Wrapper */
 .hero-slider-wrapper {
   width: 100%;
-  padding: 20px 0;
+  padding: 20px 0 15px 0;
   background: #fafafa;
   margin-bottom: 0;
   overflow: visible;
@@ -177,7 +177,7 @@
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .hero-slider-wrapper {
-    padding: 15px 0;
+    padding: 15px 0 11px 0;
     overflow: visible;
   }
 
@@ -196,7 +196,7 @@
 
 @media (max-width: 480px) {
   .hero-slider-wrapper {
-    padding: 10px 0;
+    padding: 10px 0 7.5px 0;
   }
 
   .hero-slider-wrapper .center {
