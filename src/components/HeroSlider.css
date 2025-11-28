@@ -30,7 +30,7 @@
 
 /* Product Card */
 .hero-product-card {
-  background: #ebebeb;
+  background: #ffffff;
   border-radius: 4px;
   overflow: hidden;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
@@ -54,7 +54,7 @@
   padding-top: 100%;
   position: relative;
   overflow: hidden;
-  background: #b6b3b3;
+  background: #ffffff;
 }
 
 .hero-product-image {
@@ -104,7 +104,7 @@
 .hero-price-current {
   font-size: 12px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: #000000;
 }
 
 .hero-price-mrp {
@@ -136,7 +136,7 @@
 }
 
 .hero-view-all-button:hover {
-  background: #333;
+  background: #ffffff;
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
