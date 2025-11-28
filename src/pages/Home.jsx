@@ -1,7 +1,6 @@
 import React from 'react'
 import OurPolicy from '../components/OurPolicy'
 import Categories from '../components/Categories'
-import BestSellersFromTopCategories from '../components/BestSellersFromTopCategories'
 import HeroSlider from '../components/HeroSlider'
 import AllCategoriesSlider from '../components/AllCategoriesSlider'
 import DiscountedSlider from '../components/DiscountedSlider'
@@ -49,10 +48,6 @@ const Home = () => {
 
       <div className="animate-slide-up opacity-0" style={{ animationDelay: '0.35s', animationFillMode: 'forwards' }}>
         <DiscountedSlider />
-      </div>
-
-      <div className="animate-slide-up opacity-0" style={{ animationDelay: '0.4s', animationFillMode: 'forwards' }}>
-        <BestSellersFromTopCategories />
       </div>
 
       <div className="animate-slide-up opacity-0" style={{ animationDelay: '0.6s', animationFillMode: 'forwards' }}>
