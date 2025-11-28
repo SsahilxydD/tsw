@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ShopContext } from '../context/ShopContext';
+import Title from './Title';
 import $ from 'jquery';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
@@ -153,7 +154,9 @@ const HeroSlider = () => {
 
   return (
     <div className="hero-slider-wrapper">
-      <h2 className="hero-slider-title">Best Selling Shoes</h2>
+      <div className="text-center" style={{ marginBottom: '15px' }}>
+        <Title text1="BEST SELLING" text2="Shoes" />
+      </div>
       <div className="center" ref={sliderRef}>
         {sliderProducts.map((product, index) => (
           <div key={product._id || index} className="hero-slide">
