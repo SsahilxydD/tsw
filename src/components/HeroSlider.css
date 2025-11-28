@@ -27,7 +27,7 @@
 }
 
 .hero-slider-wrapper .slick-list {
-  overflow: visible;
+  overflow: hidden;
 }
 
 .hero-slider-wrapper .slick-track {
@@ -194,6 +194,13 @@
 
 .hero-slider-wrapper .slick-next {
   right: 8px;
+}
+
+@media (max-width: 768px) {
+  .hero-slider-wrapper .slick-prev,
+  .hero-slider-wrapper .slick-next {
+    display: none !important;
+  }
 }
 
 .hero-slider-wrapper .slick-prev:before,

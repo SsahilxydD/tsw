@@ -105,13 +105,14 @@ const HeroSlider = () => {
       }
 
       $slider.slick({
-        slidesToShow: slidesFor(4),
+        slidesToShow: slidesFor(3),
         slidesToScroll: 1,
         infinite: shouldLoop,
         dots: false,
         arrows: sliderProducts.length > 2,
         variableWidth: false,
-        centerMode: false,
+        centerMode: true,
+        centerPadding: '120px',
         adaptiveHeight: true,
         swipe: true,
         swipeToSlide: true,
@@ -126,43 +127,55 @@ const HeroSlider = () => {
           {
             breakpoint: 1280,
             settings: {
-              slidesToShow: slidesFor(3)
+              slidesToShow: slidesFor(3),
+              centerMode: true,
+              centerPadding: '100px'
             }
           },
           {
             breakpoint: 1024,
             settings: {
-              slidesToShow: slidesFor(3)
+              slidesToShow: slidesFor(3),
+              centerMode: true,
+              centerPadding: '80px'
             }
           },
           {
             breakpoint: 900,
             settings: {
-              slidesToShow: slidesFor(2)
+              slidesToShow: slidesFor(2),
+              centerMode: true,
+              centerPadding: '60px'
             }
           },
           {
             breakpoint: 768,
             settings: {
               slidesToShow: slidesFor(2),
+              centerMode: true,
+              centerPadding: '40px',
               arrows: false,
-              dots: true
+              dots: false
             }
           },
           {
             breakpoint: 640,
             settings: {
-              slidesToShow: slidesFor(1),
+              slidesToShow: slidesFor(2),
+              centerMode: true,
+              centerPadding: '20px',
               arrows: false,
-              dots: true
+              dots: false
             }
           },
           {
             breakpoint: 480,
             settings: {
-              slidesToShow: slidesFor(1),
+              slidesToShow: slidesFor(2),
+              centerMode: true,
+              centerPadding: '20px',
               arrows: false,
-              dots: true
+              dots: false
             }
           }
         ]
