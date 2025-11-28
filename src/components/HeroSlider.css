@@ -112,6 +112,34 @@
   text-decoration: line-through;
 }
 
+/* View All Button */
+.hero-view-all-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 6px;
+  width: 100%;
+}
+
+.hero-view-all-button {
+  display: inline-block;
+  padding: 8px 24px;
+  background: #1a1a1a;
+  color: white;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.hero-view-all-button:hover {
+  background: #333;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
 /* Slick Arrow Overrides */
 .hero-slider-wrapper .slick-prev,
 .hero-slider-wrapper .slick-next {

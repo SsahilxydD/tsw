@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { ShopContext } from '../context/ShopContext';
 import $ from 'jquery';
 import 'slick-carousel/slick/slick.css';
@@ -186,6 +186,11 @@ const HeroSlider = () => {
             </div>
           </div>
         ))}
+      </div>
+      <div className="hero-view-all-wrapper">
+        <Link to="/category/shoes" className="hero-view-all-button">
+          View All
+        </Link>
       </div>
     </div>
   );
