@@ -90,6 +90,11 @@ const HeroSlider = () => {
           dots: false,
           arrows: true,
           variableWidth: false,
+          swipe: true,
+          swipeToSlide: true,
+          touchMove: true,
+          draggable: true,
+          touchThreshold: 5,
           responsive: [
             {
               breakpoint: 768,
@@ -98,7 +103,9 @@ const HeroSlider = () => {
                 centerMode: true,
                 centerPadding: '60px',
                 slidesToShow: 2,
-                slidesToScroll: 1
+                slidesToScroll: 1,
+                swipeToSlide: true,
+                touchMove: true
               }
             },
             {
@@ -108,7 +115,9 @@ const HeroSlider = () => {
                 centerMode: true,
                 centerPadding: '20px',
                 slidesToShow: 3,
-                slidesToScroll: 1
+                slidesToScroll: 1,
+                swipeToSlide: true,
+                touchMove: true
               }
             }
           ]
