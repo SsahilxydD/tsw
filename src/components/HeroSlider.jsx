@@ -81,19 +81,22 @@ const HeroSlider = () => {
 
         // Initialize Slick with the provided config
         $slider.slick({
-          centerMode: false,
+          centerMode: true,
+          centerPadding: '120px',
           slidesToShow: 3,
           slidesToScroll: 1,
           infinite: true,
           dots: false,
           arrows: true,
+          variableWidth: false,
           responsive: [
             {
               breakpoint: 768,
               settings: {
                 arrows: false,
-                centerMode: false,
-                slidesToShow: 2,
+                centerMode: true,
+                centerPadding: '80px',
+                slidesToShow: 3,
                 slidesToScroll: 1
               }
             },
@@ -101,7 +104,8 @@ const HeroSlider = () => {
               breakpoint: 480,
               settings: {
                 arrows: false,
-                centerMode: false,
+                centerMode: true,
+                centerPadding: '40px',
                 slidesToShow: 1,
                 slidesToScroll: 1
               }
