@@ -67,79 +67,136 @@ const HeroSlider = () => {
   }, [products, loadingProducts]);
 
   useEffect(() => {
-    // Initialize Slick after products are loaded and DOM is ready
-    if (!loadingProducts && sliderProducts.length > 0 && sliderRef.current) {
-      // Use requestAnimationFrame to ensure DOM is fully rendered
-      const initSlider = () => {
-        if (!sliderRef.current) return;
-        
-        const $slider = $(sliderRef.current);
-
-        // Destroy existing instance if any
-        if ($slider.hasClass('slick-initialized')) {
-          $slider.slick('unslick');
-        }
-
-        // Initialize Slick with the provided config
-        $slider.slick({
-          centerMode: true,
-          centerPadding: '120px',
-          slidesToShow: 3,
-          slidesToScroll: 1,
-          infinite: true,
-          dots: false,
-          arrows: true,
-          variableWidth: false,
-          swipe: true,
-          swipeToSlide: true,
-          touchMove: true,
-          draggable: true,
-          touchThreshold: 5,
-          responsive: [
-            {
-              breakpoint: 768,
-              settings: {
-                arrows: false,
-                centerMode: true,
-                centerPadding: '60px',
-                slidesToShow: 2,
-                slidesToScroll: 1,
-                swipeToSlide: true,
-                touchMove: true
-              }
-            },
-            {
-              breakpoint: 480,
-              settings: {
-                arrows: false,
-                centerMode: true,
-                centerPadding: '20px',
-                slidesToShow: 3,
-                slidesToScroll: 1,
-                swipeToSlide: true,
-                touchMove: true
-              }
-            }
-          ]
-        });
-      };
-
-      // Small delay to ensure DOM is ready
-      const timeoutId = setTimeout(() => {
-        requestAnimationFrame(initSlider);
-      }, 100);
-
-      // Cleanup on unmount
-      return () => {
-        clearTimeout(timeoutId);
-        if (sliderRef.current) {
-          const $slider = $(sliderRef.current);
-          if ($slider.hasClass('slick-initialized')) {
-            $slider.slick('unslick');
-          }
-        }
-      };
+    if (
+      loadingProducts ||
+      sliderProducts.length === 0 ||
+      !sliderRef.current ||
+      typeof window === 'undefined'
+    ) {
+      return;
     }
+
+    const $slider = $(sliderRef.current);
+    let resizeObserver = null;
+    let rafId = null;
+    let resizeRaf = null;
+
+    const slidesFor = (target) => Math.min(target, sliderProducts.length);
+    const shouldLoop = sliderProducts.length > 2;
+
+    const refreshSlider = () => {
+      if (resizeRaf) {
+        cancelAnimationFrame(resizeRaf);
+      }
+      resizeRaf = requestAnimationFrame(() => {
+        if ($slider.hasClass('slick-initialized')) {
+          $slider.slick('setPosition');
+        }
+      });
+    };
+
+    const initSlider = () => {
+      if (!$slider || $slider.length === 0) {
+        return;
+      }
+
+      if ($slider.hasClass('slick-initialized')) {
+        $slider.slick('unslick');
+      }
+
+      $slider.slick({
+        slidesToShow: slidesFor(4),
+        slidesToScroll: 1,
+        infinite: shouldLoop,
+        dots: false,
+        arrows: sliderProducts.length > 2,
+        variableWidth: false,
+        centerMode: false,
+        adaptiveHeight: true,
+        swipe: true,
+        swipeToSlide: true,
+        touchMove: true,
+        draggable: sliderProducts.length > 1,
+        respondTo: 'window',
+        speed: 400,
+        cssEase: 'ease',
+        touchThreshold: 8,
+        mobileFirst: false,
+        responsive: [
+          {
+            breakpoint: 1280,
+            settings: {
+              slidesToShow: slidesFor(3)
+            }
+          },
+          {
+            breakpoint: 1024,
+            settings: {
+              slidesToShow: slidesFor(3)
+            }
+          },
+          {
+            breakpoint: 900,
+            settings: {
+              slidesToShow: slidesFor(2)
+            }
+          },
+          {
+            breakpoint: 768,
+            settings: {
+              slidesToShow: slidesFor(2),
+              arrows: false,
+              dots: true
+            }
+          },
+          {
+            breakpoint: 640,
+            settings: {
+              slidesToShow: slidesFor(1),
+              arrows: false,
+              dots: true
+            }
+          },
+          {
+            breakpoint: 480,
+            settings: {
+              slidesToShow: slidesFor(1),
+              arrows: false,
+              dots: true
+            }
+          }
+        ]
+      });
+
+      refreshSlider();
+      $(window).on('resize.heroSlider orientationchange.heroSlider', refreshSlider);
+
+      if (typeof ResizeObserver !== 'undefined' && sliderRef.current) {
+        resizeObserver = new ResizeObserver(() => refreshSlider());
+        resizeObserver.observe(sliderRef.current);
+      }
+    };
+
+    const timeoutId = setTimeout(() => {
+      rafId = requestAnimationFrame(initSlider);
+    }, 80);
+
+    return () => {
+      clearTimeout(timeoutId);
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+      }
+      if (resizeRaf) {
+        cancelAnimationFrame(resizeRaf);
+      }
+      $(window).off('.heroSlider');
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+      if ($slider.hasClass('slick-initialized')) {
+        $slider.slick('unslick');
+      }
+    };
   }, [loadingProducts, sliderProducts]);
 
   if (loadingProducts) {
