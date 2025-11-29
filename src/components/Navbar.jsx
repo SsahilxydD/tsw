@@ -50,14 +50,14 @@ const Navbar = () => {
     <>
       {showAnnouncement && <AnnouncementBar isTransparent={isTransparent} />}
       <header
-        className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${
+        className={`fixed left-0 right-0 z-40 transition-all duration-300 ${
           isTransparent
             ? "bg-transparent border-b border-transparent"
             : "bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm"
         }`}
-        style={{ top: showAnnouncement ? '40px' : '0' }}
+        style={{ top: showAnnouncement ? '36px' : '0' }}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-24 sm:h-20 flex items-center justify-between overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-14 flex items-center justify-between overflow-hidden">
 
           {/* Mobile Menu Button */}
           <button
@@ -93,10 +93,10 @@ const Navbar = () => {
               <img
                 src={assets.logo}
                 alt="Solo Wardrobe"
-                className={`h-24 sm:h-[60px] w-auto object-contain transition-all duration-300 group-hover:scale-105 ${isTransparent ? 'brightness-0 invert' : ''}`}
+                className={`h-12 sm:h-[42px] w-auto object-contain transition-all duration-300 group-hover:scale-105 ${isTransparent ? 'drop-shadow-[0_2px_4px_rgba(255,255,255,0.8)]' : ''}`}
               />
             ) : (
-              <span className={`font-serif text-xl sm:text-2xl font-bold tracking-tight transition-colors ${isTransparent ? 'text-white' : ''}`}>SOLO WARDROBE</span>
+              <span className={`font-serif text-lg sm:text-xl font-bold tracking-tight transition-colors ${isTransparent ? 'text-white drop-shadow-lg' : ''}`}>SOLO WARDROBE</span>
             )}
           </Link>
 

@@ -58,7 +58,7 @@ export default function App() {
       <ScrollEffects />
 
       {/* Spacer for fixed navbar on non-home pages */}
-      {!isHome && <div className="h-[calc(40px+96px)] sm:h-[calc(40px+80px)]" />}
+      {!isHome && <div className="h-[100px] sm:h-[92px]" />}
 
       <main id="main-content" className="min-h-[60vh]">
         <div className="animate-page">
