@@ -510,17 +510,20 @@ export default function Product() {
                       variants={scaleIn}
                       custom={i}
                       type="button"
-                      onClick={() => available && setSelectedSize(SZ)}
+                      onClick={() => {
+                        if (!available) return;
+                        // Toggle: if already selected, unselect; otherwise select
+                        setSelectedSize(active ? "" : SZ);
+                      }}
                       disabled={!available}
                       whileHover={available ? { scale: 1.05 } : {}}
                       whileTap={available ? { scale: 0.95 } : {}}
                       className={`min-w-[2.75rem] h-10 px-3 text-sm font-medium transition-all duration-200 rounded-md
                         ${active
                           ? "bg-black text-white shadow-lg"
-                          : "bg-white text-gray-700 border border-gray-200 hover:border-black"}
-                        ${!available 
-                          ? "opacity-30 cursor-not-allowed line-through decoration-gray-400" 
-                          : "cursor-pointer"}`}
+                          : available 
+                            ? "bg-white text-gray-700 border border-gray-200 hover:border-black cursor-pointer"
+                            : "bg-gray-100 text-gray-300 border border-gray-100 cursor-not-allowed"}`}
                     >
                       {label}
                     </motion.button>
