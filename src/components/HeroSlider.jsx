@@ -1,33 +1,76 @@
-import React, { useEffect, useRef, useState, useContext } from 'react';
+import React, { useEffect, useState, useContext, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ShopContext } from '../context/ShopContext';
+import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import Title from './Title';
-import $ from 'jquery';
-import 'slick-carousel/slick/slick.css';
-import 'slick-carousel/slick/slick-theme.css';
-import 'slick-carousel';
-import './HeroSlider.css';
-
-// Make jQuery available globally for Slick
-if (typeof window !== 'undefined' && !window.jQuery) {
-  window.jQuery = $;
-  window.$ = $;
-}
 
 const NO_IMAGE_PLACEHOLDER = '/assets/no-image.svg';
 
+const ProductCard = ({ product, index, onNavigate }) => {
+  return (
+    <motion.div
+      className="flex-shrink-0 w-[45vw] sm:w-[32vw] md:w-[26vw] lg:w-[22vw] xl:w-[18vw] max-w-[240px]"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: index * 0.05 }}
+    >
+      <motion.div
+        className="bg-white rounded-lg overflow-hidden shadow-sm cursor-pointer h-full flex flex-col"
+        whileHover={{ y: -4, boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}
+        whileTap={{ scale: 0.98 }}
+        onClick={() => onNavigate(product)}
+        transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+      >
+        {/* Image */}
+        <div className="relative aspect-square overflow-hidden bg-gray-50">
+          <motion.img
+            src={product.image || NO_IMAGE_PLACEHOLDER}
+            alt={product.title || 'Product'}
+            className="w-full h-full object-contain"
+            whileHover={{ scale: 1.08 }}
+            transition={{ duration: 0.4 }}
+            onError={(e) => { e.target.src = NO_IMAGE_PLACEHOLDER; }}
+            draggable={false}
+          />
+        </div>
+
+        {/* Info */}
+        <div className="p-3 flex flex-col gap-1.5 flex-1">
+          <h3 className="text-xs sm:text-sm font-medium text-gray-900 line-clamp-2 leading-snug min-h-[2.5em]">
+            {product.title || 'Product'}
+          </h3>
+          <div className="flex items-center gap-2 mt-auto">
+            <span className="text-sm sm:text-base font-semibold text-gray-900">
+              ₹{Number(product.price || 0).toLocaleString('en-IN')}
+            </span>
+            {product.mrp && product.mrp > product.price && (
+              <span className="text-xs text-gray-400 line-through">
+                ₹{Number(product.mrp).toLocaleString('en-IN')}
+              </span>
+            )}
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
 const HeroSlider = () => {
-  const sliderRef = useRef(null);
   const [sliderProducts, setSliderProducts] = useState([]);
   const { products, loadingProducts } = useContext(ShopContext);
   const navigate = useNavigate();
+  
+  const containerRef = useRef(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+  const [scrollWidth, setScrollWidth] = useState(0);
+  
+  const x = useMotionValue(0);
+  const springX = useSpring(x, { stiffness: 300, damping: 30 });
 
   useEffect(() => {
-    // Try API first, fallback to ShopContext
     const fetchProducts = async () => {
       try {
         const response = await fetch('/api/products?category=shoes&limit=10');
-        
         if (response.ok) {
           const data = await response.json();
           if (Array.isArray(data) && data.length > 0) {
@@ -39,7 +82,6 @@ const HeroSlider = () => {
         console.warn('API fetch failed, using ShopContext:', error);
       }
 
-      // Fallback: Use ShopContext products filtered by shoes category
       if (Array.isArray(products) && products.length > 0) {
         const shoesProducts = products
           .filter(p => {
@@ -67,163 +109,25 @@ const HeroSlider = () => {
   }, [products, loadingProducts]);
 
   useEffect(() => {
-    if (
-      loadingProducts ||
-      sliderProducts.length === 0 ||
-      !sliderRef.current ||
-      typeof window === 'undefined'
-    ) {
-      return;
-    }
-
-    const $slider = $(sliderRef.current);
-    let resizeObserver = null;
-    let rafId = null;
-    let resizeRaf = null;
-
-    const slidesFor = (target) => Math.min(target, sliderProducts.length);
-    const shouldLoop = sliderProducts.length > 2;
-
-    const refreshSlider = () => {
-      if (resizeRaf) {
-        cancelAnimationFrame(resizeRaf);
-      }
-      resizeRaf = requestAnimationFrame(() => {
-        if ($slider.hasClass('slick-initialized')) {
-          $slider.slick('setPosition');
-        }
-      });
-    };
-
-    const initSlider = () => {
-      if (!$slider || $slider.length === 0) {
-        return;
-      }
-
-      if ($slider.hasClass('slick-initialized')) {
-        $slider.slick('unslick');
-      }
-
-      $slider.slick({
-        slidesToShow: slidesFor(3),
-        slidesToScroll: 1,
-        infinite: shouldLoop,
-        dots: false,
-        arrows: sliderProducts.length > 2,
-        variableWidth: false,
-        centerMode: true,
-        centerPadding: '120px',
-        adaptiveHeight: true,
-        swipe: true,
-        swipeToSlide: true,
-        touchMove: true,
-        draggable: sliderProducts.length > 1,
-        respondTo: 'window',
-        speed: 400,
-        cssEase: 'ease',
-        touchThreshold: 8,
-        mobileFirst: false,
-        responsive: [
-          {
-            breakpoint: 1280,
-            settings: {
-              slidesToShow: slidesFor(3),
-              centerMode: true,
-              centerPadding: '100px'
-            }
-          },
-          {
-            breakpoint: 1024,
-            settings: {
-              slidesToShow: slidesFor(3),
-              centerMode: true,
-              centerPadding: '80px'
-            }
-          },
-          {
-            breakpoint: 900,
-            settings: {
-              slidesToShow: slidesFor(2),
-              centerMode: true,
-              centerPadding: '60px'
-            }
-          },
-          {
-            breakpoint: 768,
-            settings: {
-              slidesToShow: slidesFor(2),
-              centerMode: true,
-              centerPadding: '40px',
-              arrows: false,
-              dots: false
-            }
-          },
-          {
-            breakpoint: 640,
-            settings: {
-              slidesToShow: slidesFor(2),
-              centerMode: true,
-              centerPadding: '20px',
-              arrows: false,
-              dots: false
-            }
-          },
-          {
-            breakpoint: 480,
-            settings: {
-              slidesToShow: slidesFor(2),
-              centerMode: true,
-              centerPadding: '20px',
-              arrows: false,
-              dots: false
-            }
-          }
-        ]
-      });
-
-      refreshSlider();
-      $(window).on('resize.heroSlider orientationchange.heroSlider', refreshSlider);
-
-      if (typeof ResizeObserver !== 'undefined' && sliderRef.current) {
-        resizeObserver = new ResizeObserver(() => refreshSlider());
-        resizeObserver.observe(sliderRef.current);
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        const container = containerRef.current;
+        setContainerWidth(container.offsetWidth);
+        setScrollWidth(container.scrollWidth);
       }
     };
 
-    const timeoutId = setTimeout(() => {
-      rafId = requestAnimationFrame(initSlider);
-    }, 80);
-
+    updateDimensions();
+    window.addEventListener('resize', updateDimensions);
+    
+    // Recalculate after products load
+    const timer = setTimeout(updateDimensions, 100);
+    
     return () => {
-      clearTimeout(timeoutId);
-      if (rafId) {
-        cancelAnimationFrame(rafId);
-      }
-      if (resizeRaf) {
-        cancelAnimationFrame(resizeRaf);
-      }
-      $(window).off('.heroSlider');
-      if (resizeObserver) {
-        resizeObserver.disconnect();
-      }
-      if ($slider.hasClass('slick-initialized')) {
-        $slider.slick('unslick');
-      }
+      window.removeEventListener('resize', updateDimensions);
+      clearTimeout(timer);
     };
-  }, [loadingProducts, sliderProducts]);
-
-  if (loadingProducts) {
-    return (
-      <div className="hero-slider-wrapper">
-        <div className="hero-slider-loading">Loading products...</div>
-      </div>
-    );
-  }
-
-  if (sliderProducts.length === 0 && !loadingProducts) {
-    // Don't render if no products found
-    return null;
-  }
+  }, [sliderProducts]);
 
   const handleProductClick = (product) => {
     if (product._id || product.slug) {
@@ -231,53 +135,76 @@ const HeroSlider = () => {
     }
   };
 
+  if (loadingProducts) {
+    return (
+      <div className="w-full py-8 bg-gray-50/50">
+        <div className="flex justify-center items-center py-12">
+          <div className="w-6 h-6 border-2 border-gray-300 border-t-gray-800 rounded-full animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  if (sliderProducts.length === 0) {
+    return null;
+  }
+
+  const dragConstraints = {
+    left: -(scrollWidth - containerWidth + 32),
+    right: 0
+  };
+
   return (
-    <div className="hero-slider-wrapper">
-      <div className="text-center" style={{ marginBottom: '4px' }}>
+    <div className="w-full py-4 sm:py-6 bg-gray-50/50 overflow-hidden">
+      {/* Title */}
+      <div className="text-center mb-4">
         <Title text1="BEST SELLING" text2="Shoes" />
       </div>
-      <div className="center" ref={sliderRef}>
-        {sliderProducts.map((product, index) => (
-          <div key={product._id || index} className="hero-slide">
-            <div 
-              className="hero-product-card"
-              onClick={() => handleProductClick(product)}
-            >
-              <div className="hero-product-image-wrapper">
-                <img
-                  src={product.image || NO_IMAGE_PLACEHOLDER}
-                  alt={product.title || 'Product'}
-                  className="hero-product-image"
-                  onError={(e) => {
-                    e.target.src = NO_IMAGE_PLACEHOLDER;
-                  }}
-                />
-              </div>
-              <div className="hero-product-info">
-                <h3 className="hero-product-title">{product.title || 'Product'}</h3>
-                <div className="hero-product-price">
-                  {product.mrp && product.mrp > product.price ? (
-                    <>
-                      <span className="hero-price-current">₹{Number(product.price || 0).toLocaleString('en-IN')}</span>
-                      <span className="hero-price-mrp">₹{Number(product.mrp || 0).toLocaleString('en-IN')}</span>
-                    </>
-                  ) : (
-                    <span className="hero-price-current">₹{Number(product.price || 0).toLocaleString('en-IN')}</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
+
+      {/* Carousel */}
+      <div className="relative px-4 sm:px-6 lg:px-8">
+        <motion.div
+          ref={containerRef}
+          className="flex gap-3 sm:gap-4 cursor-grab active:cursor-grabbing"
+          drag="x"
+          dragConstraints={dragConstraints}
+          dragElastic={0.1}
+          dragTransition={{ bounceStiffness: 300, bounceDamping: 30 }}
+          style={{ x: springX }}
+        >
+          {sliderProducts.map((product, index) => (
+            <ProductCard
+              key={product._id || index}
+              product={product}
+              index={index}
+              onNavigate={handleProductClick}
+            />
+          ))}
+        </motion.div>
+
+        {/* Scroll hint gradient */}
+        <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-gray-50/90 to-transparent pointer-events-none" />
       </div>
-      <div className="hero-view-all-wrapper">
-        <Link to="/category/shoes" className="hero-view-all-button">
-          View All
+
+      {/* View All Button */}
+      <motion.div 
+        className="flex justify-center mt-5"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+      >
+        <Link to="/category/shoes">
+          <motion.button
+            className="px-6 py-2.5 bg-gray-900 text-white text-xs font-medium tracking-wide hover:bg-gray-800 transition-colors"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            View All
+          </motion.button>
         </Link>
-      </div>
+      </motion.div>
     </div>
   );
 };
 
 export default HeroSlider;
-
