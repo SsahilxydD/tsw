@@ -13,44 +13,26 @@ const HeroSlider = () => {
   const scrollRef = useRef(null);
   const isResetting = useRef(false);
 
+  // Removed blocking API call - use only ShopContext data to prevent LCP delay
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const response = await fetch('/api/products?category=shoes&limit=10');
-        if (response.ok) {
-          const data = await response.json();
-          if (Array.isArray(data) && data.length > 0) {
-            setSliderProducts(data);
-            return;
-          }
-        }
-      } catch (error) {
-        console.warn('API fetch failed, using ShopContext:', error);
-      }
+    if (!loadingProducts && Array.isArray(products) && products.length > 0) {
+      const shoesProducts = products
+        .filter(p => {
+          const catRaw = String(p.categoryRaw || '').toLowerCase();
+          return catRaw === 'shoes';
+        })
+        .slice(0, 10)
+        .map(p => ({
+          _id: p._id || p.slug || '',
+          title: p.name || '',
+          price: Number(p.price || 0),
+          mrp: Number(p.mrp || 0),
+          image: p.image || (Array.isArray(p.images) ? p.images[0] : '') || '',
+          slug: p.slug || p._id || ''
+        }))
+        .filter(p => p._id && p.title);
 
-      if (Array.isArray(products) && products.length > 0) {
-        const shoesProducts = products
-          .filter(p => {
-            const catRaw = String(p.categoryRaw || '').toLowerCase();
-            return catRaw === 'shoes';
-          })
-          .slice(0, 10)
-          .map(p => ({
-            _id: p._id || p.slug || '',
-            title: p.name || '',
-            price: Number(p.price || 0),
-            mrp: Number(p.mrp || 0),
-            image: p.image || (Array.isArray(p.images) ? p.images[0] : '') || '',
-            slug: p.slug || p._id || ''
-          }))
-          .filter(p => p._id && p.title);
-
-        setSliderProducts(shoesProducts);
-      }
-    };
-
-    if (!loadingProducts) {
-      fetchProducts();
+      setSliderProducts(shoesProducts);
     }
   }, [products, loadingProducts]);
 
@@ -121,16 +103,26 @@ const HeroSlider = () => {
   // Fixed height container to prevent CLS - always renders with same dimensions
   const SLIDER_MIN_HEIGHT = 'min-h-[200px] sm:min-h-[220px]';
 
+  // Show skeleton placeholders while loading - prevents CLS and improves perceived speed
   if (loadingProducts || sliderProducts.length === 0) {
     return (
       <div className={`w-full py-4 sm:py-6 bg-gray-50/50 ${SLIDER_MIN_HEIGHT}`}>
         <div className="text-center mb-4">
           <Title text1="BEST SELLING" text2="Shoes" />
         </div>
-        <div className="flex justify-center items-center py-8">
-          {loadingProducts && (
-            <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-800 rounded-full animate-spin" />
-          )}
+        <div className="flex gap-3 overflow-hidden px-4 sm:px-6">
+          {/* Skeleton placeholder cards - same dimensions as real cards */}
+          {[...Array(6)].map((_, i) => (
+            <div 
+              key={i}
+              className="flex-shrink-0 w-[40vw] sm:w-[28vw] md:w-[22vw] lg:w-[18vw] xl:w-[14vw] max-w-[200px] aspect-square"
+            >
+              <div className="w-full h-full bg-gray-200 rounded-lg animate-pulse" />
+            </div>
+          ))}
+        </div>
+        <div className="flex justify-center mt-5">
+          <div className="w-20 h-10 bg-gray-200 rounded animate-pulse" />
         </div>
       </div>
     );

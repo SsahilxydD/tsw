@@ -57,6 +57,14 @@ const ShopContextProvider = (props) => {
     };
 
     const loadProducts = async () => {
+      // Defer heavy fetch until after first paint to improve FCP/LCP
+      await new Promise(resolve => {
+        if ('requestIdleCallback' in window) {
+          requestIdleCallback(resolve, { timeout: 100 });
+        } else {
+          setTimeout(resolve, 0);
+        }
+      });
       try {
         setLoadingProducts(true);
         // Try multiple sources to support both root and /data locations

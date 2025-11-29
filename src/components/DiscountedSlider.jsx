@@ -112,16 +112,25 @@ const DiscountedSlider = () => {
   // Fixed height container to prevent CLS - always renders with same dimensions
   const SLIDER_MIN_HEIGHT = 'min-h-[200px] sm:min-h-[220px]';
 
+  // Show skeleton placeholders while loading
   if (loadingProducts || sliderProducts.length === 0) {
     return (
       <div className={`w-full py-4 sm:py-6 bg-gray-50/50 ${SLIDER_MIN_HEIGHT}`}>
         <div className="text-center mb-4">
           <Title text1="SPECIAL" text2="Offers" />
         </div>
-        <div className="flex justify-center items-center py-8">
-          {loadingProducts && (
-            <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-800 rounded-full animate-spin" />
-          )}
+        <div className="flex gap-3 overflow-hidden px-4 sm:px-6">
+          {[...Array(6)].map((_, i) => (
+            <div 
+              key={i}
+              className="flex-shrink-0 w-[40vw] sm:w-[28vw] md:w-[22vw] lg:w-[18vw] xl:w-[14vw] max-w-[200px] aspect-square"
+            >
+              <div className="w-full h-full bg-gray-200 rounded-lg animate-pulse" />
+            </div>
+          ))}
+        </div>
+        <div className="flex justify-center mt-5">
+          <div className="w-20 h-10 bg-gray-200 rounded animate-pulse" />
         </div>
       </div>
     );
