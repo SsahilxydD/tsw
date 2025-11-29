@@ -57,14 +57,49 @@ const ShopContextProvider = (props) => {
     };
 
     const loadProducts = async () => {
-      // Defer heavy fetch until after first paint to improve FCP/LCP
-      await new Promise(resolve => {
-        if ('requestIdleCallback' in window) {
-          requestIdleCallback(resolve, { timeout: 100 });
-        } else {
-          setTimeout(resolve, 0);
-        }
-      });
+      // CRITICAL: Delay products.json load to remove it from critical path
+      // On home page, defer 2.5s to ensure LCP completes first
+      // But load immediately if user scrolls past hero or interacts
+      const isHomePage = window.location.pathname === '/' || window.location.pathname === '';
+      
+      if (isHomePage) {
+        await new Promise(resolve => {
+          let resolved = false;
+          const done = () => {
+            if (resolved) return;
+            resolved = true;
+            cleanup();
+            resolve();
+          };
+          
+          // Timeout fallback - load after 2.5s regardless
+          const timeout = setTimeout(done, 2500);
+          
+          // Load earlier if user scrolls past hero (85vh)
+          const onScroll = () => {
+            if (window.scrollY > window.innerHeight * 0.5) {
+              done();
+            }
+          };
+          
+          // Load earlier on any user interaction
+          const onInteraction = () => done();
+          
+          const cleanup = () => {
+            clearTimeout(timeout);
+            window.removeEventListener('scroll', onScroll);
+            window.removeEventListener('click', onInteraction);
+            window.removeEventListener('touchstart', onInteraction);
+          };
+          
+          window.addEventListener('scroll', onScroll, { passive: true });
+          window.addEventListener('click', onInteraction, { once: true });
+          window.addEventListener('touchstart', onInteraction, { once: true });
+        });
+      } else {
+        // Non-home pages: load quickly but still defer for paint
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
       try {
         setLoadingProducts(true);
         // Try multiple sources to support both root and /data locations
