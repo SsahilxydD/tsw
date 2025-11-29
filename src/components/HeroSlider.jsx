@@ -167,7 +167,7 @@ const HeroSlider = () => {
       <div className="flex justify-center mt-5">
         <Link
           to="/category/shoes"
-          className="px-6 py-2.5 bg-gray-900 text-white text-xs font-medium tracking-wide hover:bg-gray-800 transition-colors"
+          className="px-6 py-2.5 bg-white text-black text-xs font-medium tracking-wide border border-black hover:bg-black hover:text-white transition-colors"
         >
           View All
         </Link>
