@@ -47,8 +47,8 @@ const Categories = () => {
   const COL_W5 = `calc((100% - ${(5 - 1) * GAP_PX}px) / 5)`;
 
   return (
-    <section className="my-10">
-      <div className="text-center py-8">
+    <section className="mt-3 mb-10">
+      <div className="text-center pt-2 pb-8">
         <Title text1="SHOP BY" text2="CATEGORY" />
       </div>
 
