@@ -8,7 +8,63 @@ import { ShopContext } from "../context/ShopContext";
 import { isFootwearProduct, isJeansProduct, normalizeJeansSizes, toUKLabel, uniqueUKLabels, UK_FOOT_RANGE } from "../utils/size";
 import SEO from "../components/SEO";
 import CircularText from "../components/CircularText";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+
+// --- Animation Variants ---
+const pageVariants = {
+  initial: { opacity: 0 },
+  animate: { 
+    opacity: 1,
+    transition: { duration: 0.4, staggerChildren: 0.1 }
+  }
+};
+
+const imageVariants = {
+  enter: { opacity: 0, scale: 1.02 },
+  center: { 
+    opacity: 1, 
+    scale: 1,
+    transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }
+  },
+  exit: { 
+    opacity: 0, 
+    scale: 0.98,
+    transition: { duration: 0.3 }
+  }
+};
+
+const slideUp = {
+  initial: { opacity: 0, y: 30 },
+  animate: { 
+    opacity: 1, 
+    y: 0,
+    transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }
+  }
+};
+
+const staggerContainer = {
+  animate: {
+    transition: { staggerChildren: 0.08, delayChildren: 0.1 }
+  }
+};
+
+const fadeInUp = {
+  initial: { opacity: 0, y: 15 },
+  animate: { 
+    opacity: 1, 
+    y: 0,
+    transition: { duration: 0.4, ease: "easeOut" }
+  }
+};
+
+const scaleIn = {
+  initial: { opacity: 0, scale: 0.9 },
+  animate: { 
+    opacity: 1, 
+    scale: 1,
+    transition: { type: "spring", stiffness: 400, damping: 25 }
+  }
+};
 
 // --- small helpers (no external deps) ---
 const STOPWORDS = new Set([
@@ -27,7 +83,6 @@ function tokenize(str = "") {
     .filter((w) => !STOPWORDS.has(w));
 }
 
-/** score candidate by shared keywords; extra weight if same category */
 function relevanceScore(base, candidate) {
   const baseWords = new Set([
     ...tokenize(base.name || base.title),
@@ -48,12 +103,11 @@ function relevanceScore(base, candidate) {
     String(base.category).toLowerCase() ===
     String(candidate.category).toLowerCase()
   ) {
-    score += 2; // category boost
+    score += 2;
   }
   return score;
 }
 
-/** Fisher–Yates (pure) */
 function shuffle(arr, rng = Math.random) {
   const a = arr.slice();
   for (let i = a.length - 1; i > 0; i -= 1) {
@@ -66,40 +120,24 @@ function shuffle(arr, rng = Math.random) {
 // --- size helpers ---
 const APPAREL_SIZES = ["S", "M", "L", "XL", "XXL"];
 const ONE_SIZE = ["ONESIZE"];
-
 const norm = (s) => String(s || "").toUpperCase();
 
 function inferMasterSizes(p) {
   const cat = String(p?.category || p?.categoryRaw || "").toLowerCase();
   const ps = Array.isArray(p?.sizes) ? p.sizes : [];
-
-  // If no sizes are provided, do not render a size selector at all.
   if (ps.length === 0) return [];
-
-  // Check for footwear products (shoes only; womenshoes uses raw sizes)
   if (isFootwearProduct(p) && cat !== 'womenshoes') {
-    // For footwear, show a consistent UK range and strike-out unavailable.
     return UK_FOOT_RANGE;
   }
-
   const up = ps.map(norm).filter(Boolean);
-
-  // Treat classic topwear only (not jeans/trousers) as S..XXL grid
   const isTopwear = /(topwear|shirt|t\s?-?shirt|tshirt|hoodie|jacket|sweat|sweatshirt|tee)\b/.test(cat)
     || up.some((x) => ["XS", "S", "M", "L", "XL", "XXL"].includes(x));
   const isBottomwear = /(jeans|trouser|pant|bottomwear|bottom\s?wear)\b/.test(cat);
-
   if (isTopwear && !isBottomwear && up.length > 0) return APPAREL_SIZES;
-
-  // Only show explicit one-size if declared in data.
   if (up.includes("ONESIZE")) return ONE_SIZE;
-
-  // For jeans/bottomwear: normalize to numeric waist labels and sort
   if (isBottomwear) {
     return normalizeJeansSizes(ps);
   }
-
-  // Otherwise, show the unique provided sizes (case-insensitive)
   const seen = new Set();
   const out = [];
   for (const s of ps) {
@@ -114,21 +152,12 @@ export default function Product() {
   const { id } = useParams();
   const { products, currency, addToCart, navigate, loadingProducts } = React.useContext(ShopContext);
   const [added, setAdded] = React.useState(false);
+  const [imageLoaded, setImageLoaded] = React.useState(false);
 
-  // Scroll to top when product ID changes (forward navigation)
-  // Never scroll during restoration (handled by ScrollRouter)
   React.useEffect(() => {
-    // Never scroll if we're restoring scroll position
-    if (isRestoring()) {
-      return;
-    }
-    
-    // Scroll to top instantly for new product (forward navigation)
-    // Use immediate scroll without animation to prevent mobile scroll issues
-    // ScrollRouter handles back navigation restoration
+    if (isRestoring()) return;
     const scrollToTop = () => {
       if (!isRestoring()) {
-        // Force instant scroll on mobile by setting scroll position directly
         if (document.documentElement.scrollTop !== undefined) {
           document.documentElement.scrollTop = 0;
         }
@@ -138,15 +167,11 @@ export default function Product() {
         window.scrollTo(0, 0);
       }
     };
-    
-    // Execute immediately without animation
     scrollToTop();
   }, [id]);
 
-
   const product = React.useMemo(() => {
     if (!Array.isArray(products)) return null;
-    // Try both _id and slug (supports scraped catalog)
     return (
       products.find((p) => String(p._id) === String(id)) ||
       products.find((p) => String(p.slug) === String(id)) ||
@@ -154,7 +179,6 @@ export default function Product() {
     );
   }, [products, id]);
 
-  // normalize gallery (supports `image` or `images`)
   const gallery = React.useMemo(() => {
     if (!product) return [];
     if (Array.isArray(product.images) && product.images.length > 0) {
@@ -166,12 +190,11 @@ export default function Product() {
   }, [product]);
 
   const [activeIdx, setActiveIdx] = React.useState(0);
-  React.useEffect(() => setActiveIdx(0), [id]);
+  React.useEffect(() => { setActiveIdx(0); setImageLoaded(false); }, [id]);
 
   const [selectedSize, setSelectedSize] = React.useState("");
   React.useEffect(() => setSelectedSize(""), [id]);
 
-  // Parse footwear sizes (UK labels) when present; otherwise empty
   const footParsed = React.useMemo(() => {
     if (!product) return [];
     if (!isFootwearProduct(product)) return [];
@@ -184,14 +207,13 @@ export default function Product() {
     return Array.isArray(product.sizes) && product.sizes.length > 0;
   }, [product, footParsed]);
 
-  // build master list + set of available sizes for this product
   const masterSizes = React.useMemo(() => {
     if (isFootwearProduct(product)) {
-      // Only render footwear size grid when explicit sizes exist; otherwise hide sizes
       return footParsed.length > 0 ? UK_FOOT_RANGE : [];
     }
     return inferMasterSizes(product);
   }, [product, footParsed]);
+
   const availableSet = React.useMemo(() => {
     if (!product) return new Set();
     if (isFootwearProduct(product)) {
@@ -203,7 +225,6 @@ export default function Product() {
     return new Set((product?.sizes || []).map(norm));
   }, [product, footParsed]);
 
-  // gate CTAs until size is selected (when sizes exist)
   const requiresSize = hasSizes && masterSizes.length > 0;
   const canSubmit = !requiresSize || Boolean(selectedSize);
 
@@ -213,7 +234,6 @@ export default function Product() {
     addToCart(String(product._id ?? product.slug), sizeToSend);
     setAdded(true);
     try {
-      // Fly-to-cart micro animation
       const imgEl = document.getElementById("product-main-image");
       const cartEl = document.getElementById("cart-anchor");
       if (imgEl && cartEl) {
@@ -242,25 +262,15 @@ export default function Product() {
     setTimeout(() => setAdded(false), 700);
   };
 
-  // ----- Related products -----
-  // Top 4 by relevance; last 2 = random FROM SAME CATEGORY
   const related = React.useMemo(() => {
     if (!product || !Array.isArray(products)) return [];
-
     const meId = String(product._id ?? product.slug);
     const meCat = String(product.category ?? product.categoryRaw ?? "").toLowerCase();
-
-    const candidates = products.filter(
-      (p) => String(p._id ?? p.slug) !== meId
-    );
-
-    // Relevance for first 4
+    const candidates = products.filter((p) => String(p._id ?? p.slug) !== meId);
     const scored = candidates
       .map((p) => ({ p, s: relevanceScore(product, p) }))
       .sort((a, b) => b.s - a.s);
     const topFour = scored.slice(0, 4).map((x) => x.p);
-
-    // Same-category random for last 2
     const picked = new Set(topFour.map((x) => String(x._id ?? x.slug)));
     const sameCatPool = candidates.filter((p) => {
       const pid = String(p._id ?? p.slug);
@@ -268,13 +278,12 @@ export default function Product() {
       return !picked.has(pid) && cat && cat === meCat;
     });
     const randomTwo = shuffle(sameCatPool).slice(0, 2);
-
     return [...topFour, ...randomTwo].slice(0, 6);
   }, [product, products]);
 
   if (loadingProducts || !Array.isArray(products)) {
     return (
-      <div className="px-4 py-24 flex justify-center items-center">
+      <div className="px-4 py-24 flex justify-center items-center min-h-[60vh]">
         <CircularText
           text="LOADING*"
           onHover="speedUp"
@@ -287,51 +296,51 @@ export default function Product() {
 
   if (!product) {
     return (
-      <div className="px-4 py-12">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="px-4 py-12"
+      >
         <Title text1="PRODUCT" text2="NOT FOUND" />
         <p className="text-gray-500 mt-2">
-          The item you’re looking for doesn’t exist or was removed.
+          The item you're looking for doesn't exist or was removed.
         </p>
         <Link
           to="/"
-          className="inline-block mt-6 px-5 py-3 border rounded hover:bg-gray-50"
+          className="inline-block mt-6 px-5 py-3 border border-black hover:bg-black hover:text-white transition-colors"
         >
           Go Home
         </Link>
-      </div>
+      </motion.div>
     );
   }
 
-  // Generate a better product description for social media
   const generateDescription = () => {
     const name = product.name || product.title || "";
     const brand = product.brand ? ` by ${product.brand}` : "";
     const category = product.category ? ` in ${product.category}` : "";
     const priceText = product.price ? ` for ${currency}${Number(product.price).toLocaleString()}` : "";
-
-    // Create a concise description (max ~160 chars for optimal display)
     let desc = `Shop ${name}${brand}${category}${priceText} at Solo Wardrobe.`;
-
-    // If we have MRP, add discount info
     if (product.mrp && product.price && product.mrp > product.price) {
       const discount = Math.round(((product.mrp - product.price) / product.mrp) * 100);
       desc += ` Save ${discount}%!`;
     }
-
-    // Ensure description is not too long (max 160 chars for meta description)
     if (desc.length > 160) {
       desc = desc.substring(0, 157) + "...";
     }
-
     return desc;
   };
 
+  const discountPercent = product.mrp && product.price && product.mrp > product.price 
+    ? Math.round(((product.mrp - product.price) / product.mrp) * 100)
+    : 0;
+
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      className="px-4 sm:px-6 lg:px-8 py-6"
+      variants={pageVariants}
+      initial="initial"
+      animate="animate"
+      className="px-4 sm:px-6 lg:px-8 py-8 sm:py-10 max-w-7xl mx-auto"
     >
       <SEO
         title={`${product.name || product.title} – Solo Wardrobe`}
@@ -359,99 +368,136 @@ export default function Product() {
           }
         }}
       />
-      {/* Product section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+      {/* Product Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-12">
+        
         {/* Gallery */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-        >
-          {/* Main image */}
-          <div className="aspect-square w-full overflow-hidden rounded border">
-            {gallery[activeIdx] ? (
-              <img
-                id="product-main-image"
-                src={gallery[activeIdx]}
-                alt={product.name || product.title}
-                className="h-full w-full object-contain"
-                loading="eager"
-                decoding="sync"
-              />
-            ) : (
-              <div className="h-full w-full grid place-content-center text-sm text-gray-400">
-                No Image
-              </div>
-            )}
+        <motion.div variants={slideUp} className="space-y-4">
+          {/* Main Image with AnimatePresence */}
+          <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-gray-50">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeIdx}
+                variants={imageVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                className="absolute inset-0"
+              >
+                {gallery[activeIdx] ? (
+                  <motion.img
+                    id="product-main-image"
+                    src={gallery[activeIdx]}
+                    alt={product.name || product.title}
+                    className="h-full w-full object-contain"
+                    loading="eager"
+                    decoding="sync"
+                    onLoad={() => setImageLoaded(true)}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: imageLoaded ? 1 : 0 }}
+                    transition={{ duration: 0.3 }}
+                  />
+                ) : (
+                  <div className="h-full w-full grid place-content-center text-sm text-gray-400">
+                    No Image
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
           </div>
 
-          {/* Thumbnails */}
+          {/* Thumbnails - Improved Grid */}
           {gallery.length > 1 && (
-            <div className="mt-3 grid grid-cols-5 sm:grid-cols-6 gap-2">
-              {gallery.map((src, i) => (
-                <button
+            <motion.div 
+              variants={staggerContainer}
+              initial="initial"
+              animate="animate"
+              className="grid grid-cols-4 sm:grid-cols-5 gap-3"
+            >
+              {gallery.slice(0, 8).map((src, i) => (
+                <motion.button
                   key={i}
+                  variants={scaleIn}
+                  custom={i}
                   type="button"
-                  onClick={() => setActiveIdx(i)}
-                  className={`aspect-square rounded border overflow-hidden ${i === activeIdx ? "ring-2 ring-black" : ""
+                  onClick={() => { setActiveIdx(i); setImageLoaded(false); }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className={`aspect-square rounded-md overflow-hidden bg-gray-50 transition-all duration-200
+                    ${i === activeIdx 
+                      ? "ring-2 ring-black ring-offset-2" 
+                      : "ring-1 ring-gray-200 hover:ring-gray-400"
                     }`}
                 >
                   <img
                     src={src}
-                    alt={`thumb ${i + 1}`}
+                    alt={`View ${i + 1}`}
                     className="h-full w-full object-cover"
                     loading="lazy"
                     decoding="async"
                   />
-                </button>
+                </motion.button>
               ))}
-            </div>
+            </motion.div>
           )}
         </motion.div>
 
         {/* Details */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
+        <motion.div 
+          variants={staggerContainer}
+          initial="initial"
+          animate="animate"
+          className="flex flex-col"
         >
-          {/* (No Title component here to avoid the decorative line) */}
-          {product.brand ? (
-            <p className="text-xs uppercase tracking-wide text-gray-500">
+          {/* Brand */}
+          {product.brand && (
+            <motion.p 
+              variants={fadeInUp}
+              className="text-xs uppercase tracking-widest text-gray-400 font-medium"
+            >
               {product.brand}
-            </p>
-          ) : null}
-          <h1 className="mt-1 text-xl sm:text-2xl font-semibold leading-snug">
-            {product.name || product.title || ""}
-          </h1>
-
-          {product.mrp && product.price && product.mrp > product.price ? (
-            <p className="mt-2">
-              <span className="text-xl font-semibold">
-                {currency}
-                {Number(product.price).toLocaleString()}
-              </span>{" "}
-              <span className="text-gray-400 line-through ml-2">
-                {currency}
-                {Number(product.mrp).toLocaleString()}
-              </span>{" "}
-              <span className="ml-2 text-green-600 text-sm">
-                Save {Math.round(((product.mrp - product.price) / product.mrp) * 100)}%
-              </span>
-            </p>
-          ) : (
-            <p className="mt-2 text-xl font-semibold">
-              {currency}
-              {Number(product.price).toLocaleString()}
-            </p>
+            </motion.p>
           )}
 
-          {/* Sizes (always show full list; strike-out unavailable) */}
+          {/* Product Name */}
+          <motion.h1 
+            variants={fadeInUp}
+            className="mt-2 text-lg sm:text-xl font-medium text-gray-900 leading-relaxed"
+          >
+            {product.name || product.title || ""}
+          </motion.h1>
+
+          {/* Price Block */}
+          <motion.div variants={fadeInUp} className="mt-4 flex items-baseline gap-3 flex-wrap">
+            <span className="text-2xl sm:text-3xl font-bold text-gray-900">
+              {currency}{Number(product.price).toLocaleString()}
+            </span>
+            {discountPercent > 0 && (
+              <>
+                <span className="text-sm text-gray-400 line-through">
+                  {currency}{Number(product.mrp).toLocaleString()}
+                </span>
+                <motion.span 
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 500, delay: 0.3 }}
+                  className="px-2 py-0.5 text-xs font-semibold bg-green-100 text-green-700 rounded"
+                >
+                  {discountPercent}% OFF
+                </motion.span>
+              </>
+            )}
+          </motion.div>
+
+          {/* Sizes */}
           {masterSizes.length > 0 && (
-            <div className="mt-8">
-              <p className="text-sm font-medium mb-3 text-gray-900">Select Size</p>
-              {/* Single-line, horizontally scrollable size boxes (adjoined) */}
-              <div className="flex flex-wrap gap-2">
+            <motion.div variants={fadeInUp} className="mt-6">
+              <p className="text-sm font-medium text-gray-900 mb-3">Select Size</p>
+              <motion.div 
+                variants={staggerContainer}
+                className="flex flex-wrap gap-2"
+              >
                 {masterSizes.map((sz, i) => {
                   const SZ = norm(sz);
                   const available = availableSet.size === 0 ? true : availableSet.has(SZ);
@@ -459,44 +505,55 @@ export default function Product() {
                   const label = SZ.replace(/^UK-/, "");
 
                   return (
-                    <button
+                    <motion.button
                       key={SZ}
+                      variants={scaleIn}
+                      custom={i}
                       type="button"
                       onClick={() => available && setSelectedSize(SZ)}
                       disabled={!available}
-                      className={`min-w-[3rem] h-12 px-4 border text-sm font-medium transition-all duration-200
+                      whileHover={available ? { scale: 1.05 } : {}}
+                      whileTap={available ? { scale: 0.95 } : {}}
+                      className={`min-w-[2.75rem] h-10 px-3 text-sm font-medium transition-all duration-200 rounded-md
                         ${active
-                          ? "bg-primary text-white border-primary shadow-md transform scale-105"
-                          : "bg-white text-gray-700 border-gray-200 hover:border-gray-400 hover:bg-gray-50"}
-                        ${!available ? "opacity-40 cursor-not-allowed bg-gray-50 decoration-slice line-through" : ""}`}
+                          ? "bg-black text-white shadow-lg"
+                          : "bg-white text-gray-700 border border-gray-200 hover:border-black"}
+                        ${!available 
+                          ? "opacity-30 cursor-not-allowed line-through decoration-gray-400" 
+                          : "cursor-pointer"}`}
                     >
                       {label}
-                    </button>
+                    </motion.button>
                   );
                 })}
-              </div>
-              {requiresSize && !selectedSize && (
-                <p className="text-xs text-red-500 mt-2 font-medium animate-pulse">
-                  Please select a size before ordering.
-                </p>
-              )}
-            </div>
+              </motion.div>
+              <AnimatePresence>
+                {requiresSize && !selectedSize && (
+                  <motion.p 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="text-xs text-amber-600 mt-3 font-medium"
+                  >
+                    ↑ Please select a size
+                  </motion.p>
+                )}
+              </AnimatePresence>
+            </motion.div>
           )}
 
-
-
-          {/* CTA */}
-          <div className="mt-6 flex flex-wrap items-center gap-3">
+          {/* CTA Buttons */}
+          <motion.div variants={fadeInUp} className="mt-8 flex gap-3">
             <motion.button
-              whileHover={{ scale: 1.02 }}
+              whileHover={{ scale: 1.02, boxShadow: "0 4px 20px rgba(0,0,0,0.15)" }}
               whileTap={{ scale: 0.98 }}
               onClick={handleAdd}
               disabled={!canSubmit}
-              className={`px-5 py-3 bg-black text-white text-sm rounded transition pressable
-                ${!canSubmit ? "opacity-50 cursor-not-allowed" : "hover:opacity-90"}
-                ${added ? "ring-2 ring-black" : ""}`}
+              className={`flex-1 sm:flex-none px-8 py-3.5 bg-black text-white text-sm font-medium tracking-wide transition-all
+                ${!canSubmit ? "opacity-40 cursor-not-allowed" : ""}
+                ${added ? "bg-green-600" : ""}`}
             >
-              {added ? "Added" : "Add to cart"}
+              {added ? "✓ Added" : "Add to Cart"}
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.02 }}
@@ -510,62 +567,76 @@ export default function Product() {
                 addToCart(pid, sizeToSend);
                 navigate('/address');
               }}
-              className={`px-4 py-3 border rounded text-sm pressable
-                ${!canSubmit ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50"}`}
+              className={`px-6 py-3.5 border border-black text-sm font-medium tracking-wide transition-all hover:bg-black hover:text-white
+                ${!canSubmit ? "opacity-40 cursor-not-allowed" : ""}`}
             >
-              Buy now
+              Buy Now
             </motion.button>
-          </div>
+          </motion.div>
 
-          {/* Meta */}
-          <div className="mt-6 space-y-1 text-sm text-gray-600">
-            {product.category && (
-              <p>
-                Category:{" "}
-                <span className="capitalize">
-                  {String(product.category).replaceAll("-", " ")}
-                </span>
-              </p>
-            )}
-          </div>
+          {/* Category Tag */}
+          {product.category && (
+            <motion.div variants={fadeInUp} className="mt-8 pt-6 border-t border-gray-100">
+              <Link 
+                to={`/category/${String(product.category).toLowerCase()}`}
+                className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-black transition-colors"
+              >
+                <span className="w-1 h-1 bg-gray-400 rounded-full" />
+                <span className="capitalize">{String(product.category).replaceAll("-", " ")}</span>
+              </Link>
+            </motion.div>
+          )}
         </motion.div>
       </div>
 
-      {/* Related products */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6, delay: 0.2 }}
-        className="mt-12"
-      >
-        <div className="flex items-end justify-between mb-4">
-          <Title text1="RELATED" text2="PRODUCTS" />
-          <Link
-            to={product.category ? `/category/${String(product.category).toLowerCase()}` : "/collection"}
-            className="text-xs sm:text-sm text-gray-500 hover:text-gray-700"
-          >
-            View all
-          </Link>
-        </div>
+      {/* Related Products */}
+      {related.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+          className="mt-16 sm:mt-20"
+        >
+          <div className="flex items-center justify-between mb-6">
+            <Title text1="YOU MAY" text2="Also Like" />
+            <Link
+              to={product.category ? `/category/${String(product.category).toLowerCase()}` : "/collection"}
+              className="text-xs font-medium text-gray-500 hover:text-black transition-colors"
+            >
+              View all →
+            </Link>
+          </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 gap-y-6">
-          {related.map((item, index) => (
-            <ProductItem
-              key={String(item._id ?? item.slug)}
-              id={String(item._id ?? item.slug)}
-              image={
-                Array.isArray(item.image)
-                  ? item.image[0]
-                  : (Array.isArray(item.images) ? item.images[0] : item.image)
-              }
-              name={item.name || item.title}
-              price={item.price}
-              i={index}
-            />
-          ))}
-        </div>
-      </motion.div>
+          <motion.div 
+            variants={staggerContainer}
+            initial="initial"
+            whileInView="animate"
+            viewport={{ once: true }}
+            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4"
+          >
+            {related.map((item, index) => (
+              <motion.div
+                key={String(item._id ?? item.slug)}
+                variants={fadeInUp}
+                custom={index}
+              >
+                <ProductItem
+                  id={String(item._id ?? item.slug)}
+                  image={
+                    Array.isArray(item.image)
+                      ? item.image[0]
+                      : (Array.isArray(item.images) ? item.images[0] : item.image)
+                  }
+                  name={item.name || item.title}
+                  price={item.price}
+                  i={index}
+                />
+              </motion.div>
+            ))}
+          </motion.div>
+        </motion.div>
+      )}
     </motion.div>
   );
 }
