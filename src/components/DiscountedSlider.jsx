@@ -1,36 +1,23 @@
-import React, { useEffect, useRef, useState, useContext } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ShopContext } from '../context/ShopContext';
 import Title from './Title';
-import $ from 'jquery';
-import 'slick-carousel/slick/slick.css';
-import 'slick-carousel/slick/slick-theme.css';
-import 'slick-carousel';
 import './HeroSlider.css';
-
-// Make jQuery available globally for Slick
-if (typeof window !== 'undefined' && !window.jQuery) {
-  window.jQuery = $;
-  window.$ = $;
-}
 
 const NO_IMAGE_PLACEHOLDER = '/assets/no-image.svg';
 
 const DiscountedSlider = () => {
-  const sliderRef = useRef(null);
   const [sliderProducts, setSliderProducts] = useState([]);
   const { products, loadingProducts } = useContext(ShopContext);
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!loadingProducts && Array.isArray(products) && products.length > 0) {
-      // Filter products from Discounted category
       const discountedProducts = products.filter(p => {
         const catRaw = String(p.categoryRaw || '').toLowerCase();
         return catRaw === 'discounted';
       });
 
-      // Separate by subCategory
       const topwearProducts = discountedProducts
         .filter(p => {
           const subCat = String(p.subCategory || '').toLowerCase();
@@ -45,7 +32,6 @@ const DiscountedSlider = () => {
         })
         .slice(0, 5);
 
-      // Combine: first 5 topwear, then 5 footwear
       const combinedProducts = [...topwearProducts, ...footwearProducts]
         .map(p => ({
           _id: p._id || p.slug || '',
@@ -62,211 +48,85 @@ const DiscountedSlider = () => {
     }
   }, [products, loadingProducts]);
 
-  useEffect(() => {
-    if (
-      loadingProducts ||
-      sliderProducts.length === 0 ||
-      !sliderRef.current ||
-      typeof window === 'undefined'
-    ) {
-      return;
-    }
-
-    const $slider = $(sliderRef.current);
-    let resizeObserver = null;
-    let rafId = null;
-    let resizeRaf = null;
-
-    const slidesFor = (target) => Math.min(target, sliderProducts.length);
-    const shouldLoop = sliderProducts.length > 2;
-
-    const refreshSlider = () => {
-      if (resizeRaf) {
-        cancelAnimationFrame(resizeRaf);
-      }
-      resizeRaf = requestAnimationFrame(() => {
-        if ($slider.hasClass('slick-initialized')) {
-          $slider.slick('setPosition');
-        }
-      });
-    };
-
-    const initSlider = () => {
-      if (!$slider || $slider.length === 0) {
-        return;
-      }
-
-      if ($slider.hasClass('slick-initialized')) {
-        $slider.slick('unslick');
-      }
-
-      $slider.slick({
-        slidesToShow: slidesFor(3),
-        slidesToScroll: 1,
-        infinite: shouldLoop,
-        dots: false,
-        arrows: sliderProducts.length > 2,
-        variableWidth: false,
-        centerMode: true,
-        centerPadding: '120px',
-        adaptiveHeight: true,
-        swipe: true,
-        swipeToSlide: true,
-        touchMove: true,
-        draggable: sliderProducts.length > 1,
-        respondTo: 'window',
-        speed: 400,
-        cssEase: 'ease',
-        touchThreshold: 8,
-        mobileFirst: false,
-        responsive: [
-          {
-            breakpoint: 1280,
-            settings: {
-              slidesToShow: slidesFor(3),
-              centerMode: true,
-              centerPadding: '100px'
-            }
-          },
-          {
-            breakpoint: 1024,
-            settings: {
-              slidesToShow: slidesFor(3),
-              centerMode: true,
-              centerPadding: '80px'
-            }
-          },
-          {
-            breakpoint: 900,
-            settings: {
-              slidesToShow: slidesFor(2),
-              centerMode: true,
-              centerPadding: '60px'
-            }
-          },
-          {
-            breakpoint: 768,
-            settings: {
-              slidesToShow: slidesFor(2),
-              centerMode: true,
-              centerPadding: '40px',
-              arrows: false,
-              dots: false
-            }
-          },
-          {
-            breakpoint: 640,
-            settings: {
-              slidesToShow: slidesFor(2),
-              centerMode: true,
-              centerPadding: '20px',
-              arrows: false,
-              dots: false
-            }
-          },
-          {
-            breakpoint: 480,
-            settings: {
-              slidesToShow: slidesFor(2),
-              centerMode: true,
-              centerPadding: '20px',
-              arrows: false,
-              dots: false
-            }
-          }
-        ]
-      });
-
-      refreshSlider();
-      $(window).on('resize.discountedSlider orientationchange.discountedSlider', refreshSlider);
-
-      if (typeof ResizeObserver !== 'undefined' && sliderRef.current) {
-        resizeObserver = new ResizeObserver(() => refreshSlider());
-        resizeObserver.observe(sliderRef.current);
-      }
-    };
-
-    const timeoutId = setTimeout(() => {
-      rafId = requestAnimationFrame(initSlider);
-    }, 80);
-
-    return () => {
-      clearTimeout(timeoutId);
-      if (rafId) {
-        cancelAnimationFrame(rafId);
-      }
-      if (resizeRaf) {
-        cancelAnimationFrame(resizeRaf);
-      }
-      $(window).off('.discountedSlider');
-      if (resizeObserver) {
-        resizeObserver.disconnect();
-      }
-      if ($slider.hasClass('slick-initialized')) {
-        $slider.slick('unslick');
-      }
-    };
-  }, [loadingProducts, sliderProducts]);
-
-  if (loadingProducts) {
-    return (
-      <div className="hero-slider-wrapper">
-        <div className="hero-slider-loading">Loading products...</div>
-      </div>
-    );
-  }
-
-  if (sliderProducts.length === 0 && !loadingProducts) {
-    return null;
-  }
-
   const handleProductClick = (product) => {
     if (product._id || product.slug) {
       navigate(`/product/${product._id || product.slug}`);
     }
   };
 
+  if (loadingProducts) {
+    return (
+      <div className="w-full py-8 bg-gray-50/50">
+        <div className="flex justify-center items-center py-12">
+          <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-800 rounded-full animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  if (sliderProducts.length === 0) {
+    return null;
+  }
+
+  const ProductCard = ({ product }) => (
+    <div
+      className="flex-shrink-0 w-[42vw] sm:w-[30vw] md:w-[24vw] lg:w-[20vw] xl:w-[16vw] max-w-[220px] px-1.5"
+    >
+      <div
+        className="bg-white rounded-lg overflow-hidden shadow-sm cursor-pointer h-full flex flex-col hover:shadow-md transition-shadow"
+        onClick={() => handleProductClick(product)}
+      >
+        <div className="aspect-square overflow-hidden bg-gray-50">
+          <img
+            src={product.image || NO_IMAGE_PLACEHOLDER}
+            alt={product.title || 'Product'}
+            className="w-full h-full object-contain"
+            onError={(e) => { e.target.src = NO_IMAGE_PLACEHOLDER; }}
+            draggable={false}
+          />
+        </div>
+        <div className="p-2.5 flex flex-col gap-1 flex-1">
+          <h3 className="text-xs sm:text-sm font-medium text-gray-900 line-clamp-2 leading-snug">
+            {product.title || 'Product'}
+          </h3>
+          <div className="flex items-center gap-2 mt-auto">
+            <span className="text-sm font-semibold text-gray-900">
+              ₹{Number(product.price || 0).toLocaleString('en-IN')}
+            </span>
+            {product.mrp && product.mrp > product.price && (
+              <span className="text-xs text-gray-400 line-through">
+                ₹{Number(product.mrp).toLocaleString('en-IN')}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="hero-slider-wrapper">
-      <div className="text-center" style={{ marginBottom: '4px' }}>
+    <div className="w-full py-4 sm:py-6 bg-gray-50/50 overflow-hidden">
+      <div className="text-center mb-4">
         <Title text1="SPECIAL" text2="Offers" />
       </div>
-      <div className="center" ref={sliderRef}>
-        {sliderProducts.map((product, index) => (
-          <div key={product._id || index} className="hero-slide">
-            <div 
-              className="hero-product-card"
-              onClick={() => handleProductClick(product)}
-            >
-              <div className="hero-product-image-wrapper">
-                <img
-                  src={product.image || NO_IMAGE_PLACEHOLDER}
-                  alt={product.title || 'Product'}
-                  className="hero-product-image"
-                  onError={(e) => {
-                    e.target.src = NO_IMAGE_PLACEHOLDER;
-                  }}
-                />
-              </div>
-              <div className="hero-product-info">
-                <h3 className="hero-product-title">{product.title || 'Product'}</h3>
-                <div className="hero-product-price">
-                  {product.mrp && product.mrp > product.price ? (
-                    <>
-                      <span className="hero-price-current">₹{Number(product.price || 0).toLocaleString('en-IN')}</span>
-                      <span className="hero-price-mrp">₹{Number(product.mrp || 0).toLocaleString('en-IN')}</span>
-                    </>
-                  ) : (
-                    <span className="hero-price-current">₹{Number(product.price || 0).toLocaleString('en-IN')}</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
+
+      {/* Infinite Marquee */}
+      <div className="relative">
+        <div className="flex slider-track">
+          {sliderProducts.map((product, index) => (
+            <ProductCard key={`a-${product._id || index}`} product={product} />
+          ))}
+          {sliderProducts.map((product, index) => (
+            <ProductCard key={`b-${product._id || index}`} product={product} />
+          ))}
+        </div>
       </div>
-      <div className="hero-view-all-wrapper">
-        <Link to="/category/discounted" className="hero-view-all-button">
+
+      <div className="flex justify-center mt-5">
+        <Link
+          to="/category/discounted"
+          className="px-6 py-2.5 bg-gray-900 text-white text-xs font-medium tracking-wide hover:bg-gray-800 transition-colors"
+        >
           View All
         </Link>
       </div>
@@ -275,4 +135,3 @@ const DiscountedSlider = () => {
 };
 
 export default DiscountedSlider;
-

@@ -1,7 +1,8 @@
-import React, { useEffect, useState, useContext, useRef } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ShopContext } from '../context/ShopContext';
 import Title from './Title';
+import './HeroSlider.css';
 
 const NO_IMAGE_PLACEHOLDER = '/assets/no-image.svg';
 
@@ -9,7 +10,6 @@ const HeroSlider = () => {
   const [sliderProducts, setSliderProducts] = useState([]);
   const { products, loadingProducts } = useContext(ShopContext);
   const navigate = useNavigate();
-  const scrollRef = useRef(null);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -58,33 +58,6 @@ const HeroSlider = () => {
     }
   };
 
-  // Infinite scroll loop
-  useEffect(() => {
-    const container = scrollRef.current;
-    if (!container || sliderProducts.length === 0) return;
-
-    const handleScroll = () => {
-      const { scrollLeft, scrollWidth, clientWidth } = container;
-      const halfScroll = (scrollWidth - clientWidth) / 2;
-      
-      if (scrollLeft <= 0) {
-        container.scrollLeft = halfScroll;
-      } else if (scrollLeft >= scrollWidth - clientWidth - 1) {
-        container.scrollLeft = halfScroll;
-      }
-    };
-
-    container.addEventListener('scroll', handleScroll);
-    
-    // Set initial position to middle
-    requestAnimationFrame(() => {
-      const { scrollWidth, clientWidth } = container;
-      container.scrollLeft = (scrollWidth - clientWidth) / 2;
-    });
-
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, [sliderProducts]);
-
   if (loadingProducts) {
     return (
       <div className="w-full py-8 bg-gray-50/50">
@@ -99,65 +72,62 @@ const HeroSlider = () => {
     return null;
   }
 
-  // Triple the products for seamless loop
-  const loopedProducts = [...sliderProducts, ...sliderProducts, ...sliderProducts];
+  const ProductCard = ({ product }) => (
+    <div
+      className="flex-shrink-0 w-[42vw] sm:w-[30vw] md:w-[24vw] lg:w-[20vw] xl:w-[16vw] max-w-[220px] px-1.5"
+    >
+      <div
+        className="bg-white rounded-lg overflow-hidden shadow-sm cursor-pointer h-full flex flex-col hover:shadow-md transition-shadow"
+        onClick={() => handleProductClick(product)}
+      >
+        <div className="aspect-square overflow-hidden bg-gray-50">
+          <img
+            src={product.image || NO_IMAGE_PLACEHOLDER}
+            alt={product.title || 'Product'}
+            className="w-full h-full object-contain"
+            onError={(e) => { e.target.src = NO_IMAGE_PLACEHOLDER; }}
+            draggable={false}
+          />
+        </div>
+        <div className="p-2.5 flex flex-col gap-1 flex-1">
+          <h3 className="text-xs sm:text-sm font-medium text-gray-900 line-clamp-2 leading-snug">
+            {product.title || 'Product'}
+          </h3>
+          <div className="flex items-center gap-2 mt-auto">
+            <span className="text-sm font-semibold text-gray-900">
+              ₹{Number(product.price || 0).toLocaleString('en-IN')}
+            </span>
+            {product.mrp && product.mrp > product.price && (
+              <span className="text-xs text-gray-400 line-through">
+                ₹{Number(product.mrp).toLocaleString('en-IN')}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="w-full py-4 sm:py-6 bg-gray-50/50">
-      {/* Title */}
+    <div className="w-full py-4 sm:py-6 bg-gray-50/50 overflow-hidden">
       <div className="text-center mb-4">
         <Title text1="BEST SELLING" text2="Shoes" />
       </div>
 
-      {/* Carousel */}
-      <div
-        ref={scrollRef}
-        className="flex gap-3 overflow-x-auto scrollbar-hide px-4 sm:px-6"
-        style={{ scrollBehavior: 'auto', scrollSnapType: 'x mandatory' }}
-      >
-        {loopedProducts.map((product, index) => (
-          <div
-            key={`${product._id}-${index}`}
-            className="flex-shrink-0 w-[42vw] sm:w-[30vw] md:w-[24vw] lg:w-[20vw] xl:w-[16vw] max-w-[220px]"
-            style={{ scrollSnapAlign: 'start' }}
-          >
-            <div
-              className="bg-white rounded-lg overflow-hidden shadow-sm cursor-pointer h-full flex flex-col hover:shadow-md transition-shadow"
-              onClick={() => handleProductClick(product)}
-            >
-              {/* Image */}
-              <div className="aspect-square overflow-hidden bg-gray-50">
-                <img
-                  src={product.image || NO_IMAGE_PLACEHOLDER}
-                  alt={product.title || 'Product'}
-                  className="w-full h-full object-contain"
-                  onError={(e) => { e.target.src = NO_IMAGE_PLACEHOLDER; }}
-                  draggable={false}
-                />
-              </div>
-
-              {/* Info */}
-              <div className="p-2.5 flex flex-col gap-1 flex-1">
-                <h3 className="text-xs sm:text-sm font-medium text-gray-900 line-clamp-2 leading-snug">
-                  {product.title || 'Product'}
-                </h3>
-                <div className="flex items-center gap-2 mt-auto">
-                  <span className="text-sm font-semibold text-gray-900">
-                    ₹{Number(product.price || 0).toLocaleString('en-IN')}
-                  </span>
-                  {product.mrp && product.mrp > product.price && (
-                    <span className="text-xs text-gray-400 line-through">
-                      ₹{Number(product.mrp).toLocaleString('en-IN')}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
+      {/* Infinite Marquee */}
+      <div className="relative">
+        <div className="flex slider-track">
+          {/* First set */}
+          {sliderProducts.map((product, index) => (
+            <ProductCard key={`a-${product._id || index}`} product={product} />
+          ))}
+          {/* Duplicate for seamless loop */}
+          {sliderProducts.map((product, index) => (
+            <ProductCard key={`b-${product._id || index}`} product={product} />
+          ))}
+        </div>
       </div>
 
-      {/* View All Button */}
       <div className="flex justify-center mt-5">
         <Link
           to="/category/shoes"

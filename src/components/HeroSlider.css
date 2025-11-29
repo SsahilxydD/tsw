@@ -1,6 +1,41 @@
-/* HeroSlider - Minimal styles (using Tailwind + Framer Motion) */
+/* Infinite Marquee Slider */
+.slider-track {
+  animation: scroll 35s linear infinite;
+  width: max-content;
+}
 
-/* Line clamp utility if not available in Tailwind config */
+.slider-track:hover {
+  animation-play-state: paused;
+}
+
+.slider-track-reverse {
+  animation: scroll-reverse 35s linear infinite;
+  width: max-content;
+}
+
+.slider-track-reverse:hover {
+  animation-play-state: paused;
+}
+
+@keyframes scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes scroll-reverse {
+  0% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+/* Line clamp utility */
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
