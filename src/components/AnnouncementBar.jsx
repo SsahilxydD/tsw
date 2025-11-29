@@ -14,26 +14,26 @@ const AnnouncementBar = ({ isTransparent }) => {
                         <div className="annc-seq flex gap-8 items-center">
                             <span>Honest Prices, Curated Drops</span>
                             <span className="w-1 h-1 bg-white/40 rounded-full"></span>
-                            <span>Free Shipping on Orders Over ₹999</span>
+                            <span>3 Days Return Policy</span>
                             <span className="w-1 h-1 bg-white/40 rounded-full"></span>
                             <span>New Collection Live Now</span>
                             <span className="w-1 h-1 bg-white/40 rounded-full"></span>
                             <span>Honest Prices, Curated Drops</span>
                             <span className="w-1 h-1 bg-white/40 rounded-full"></span>
-                            <span>Free Shipping on Orders Over ₹999</span>
+                            <span>3 Days Return Policy</span>
                             <span className="w-1 h-1 bg-white/40 rounded-full"></span>
                             <span>New Collection Live Now</span>
                         </div>
                         <div className="annc-seq flex gap-8 items-center" aria-hidden="true">
                             <span>Honest Prices, Curated Drops</span>
                             <span className="w-1 h-1 bg-white/40 rounded-full"></span>
-                            <span>Free Shipping on Orders Over ₹999</span>
+                            <span>3 Days Return Policy</span>
                             <span className="w-1 h-1 bg-white/40 rounded-full"></span>
                             <span>New Collection Live Now</span>
                             <span className="w-1 h-1 bg-white/40 rounded-full"></span>
                             <span>Honest Prices, Curated Drops</span>
                             <span className="w-1 h-1 bg-white/40 rounded-full"></span>
-                            <span>Free Shipping on Orders Over ₹999</span>
+                            <span>3 Days Return Policy</span>
                             <span className="w-1 h-1 bg-white/40 rounded-full"></span>
                             <span>New Collection Live Now</span>
                         </div>
