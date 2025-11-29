@@ -1,6 +1,7 @@
 import React from 'react'
 import OurPolicy from '../components/OurPolicy'
 import Categories from '../components/Categories'
+import Hero from '../components/Hero'
 import HeroSlider from '../components/HeroSlider'
 import AllCategoriesSlider from '../components/AllCategoriesSlider'
 import DiscountedSlider from '../components/DiscountedSlider'
@@ -37,6 +38,8 @@ const Home = () => {
           }
         ]}
       />
+
+      <Hero />
 
       <div className="animate-slide-up opacity-0" style={{ animationDelay: '0.2s', animationFillMode: 'forwards', overflow: 'visible' }}>
         <HeroSlider />
