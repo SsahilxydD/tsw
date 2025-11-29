@@ -63,12 +63,13 @@ const CategoryCard = ({ name, count, image, i }) => {
     overflowWrap: 'normal',
   }; // fixed height keeps divider/count aligned
 
+  // Removed reveal-item animation class to prevent CLS
   return (
     <Link
       to={href}
       aria-label={`${display} (${count} items)`}
-      className={`group block cv-auto overflow-hidden border bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30 hover:shadow-md transition-shadow hover-lift reveal-item ${i != null ? 'in' : ''}`}
-      style={{ transitionDelay: `${((i ?? 0) % 10) * 70}ms`, WebkitTapHighlightColor: "transparent" }}
+      className="group block cv-auto overflow-hidden border bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30 hover:shadow-md transition-shadow"
+      style={{ WebkitTapHighlightColor: "transparent" }}
     >
       {/* fixed aspect for zero CLS; smaller height and no backdrop */}
       <div className="relative aspect-[5/4] overflow-hidden bg-white">

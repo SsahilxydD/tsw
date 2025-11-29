@@ -109,24 +109,28 @@ const DiscountedSlider = () => {
     }
   };
 
-  if (loadingProducts) {
+  // Fixed height container to prevent CLS - always renders with same dimensions
+  const SLIDER_MIN_HEIGHT = 'min-h-[200px] sm:min-h-[220px]';
+
+  if (loadingProducts || sliderProducts.length === 0) {
     return (
-      <div className="w-full py-8 bg-gray-50/50">
-        <div className="flex justify-center items-center py-12">
-          <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-800 rounded-full animate-spin" />
+      <div className={`w-full py-4 sm:py-6 bg-gray-50/50 ${SLIDER_MIN_HEIGHT}`}>
+        <div className="text-center mb-4">
+          <Title text1="SPECIAL" text2="Offers" />
+        </div>
+        <div className="flex justify-center items-center py-8">
+          {loadingProducts && (
+            <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-800 rounded-full animate-spin" />
+          )}
         </div>
       </div>
     );
   }
 
-  if (sliderProducts.length === 0) {
-    return null;
-  }
-
   const loopedProducts = [...sliderProducts, ...sliderProducts, ...sliderProducts];
 
   return (
-    <div className="w-full py-4 sm:py-6 bg-gray-50/50 overflow-hidden">
+    <div className={`w-full py-4 sm:py-6 bg-gray-50/50 overflow-hidden ${SLIDER_MIN_HEIGHT}`}>
       <div className="text-center mb-4">
         <Title text1="SPECIAL" text2="Offers" />
       </div>
@@ -146,6 +150,10 @@ const DiscountedSlider = () => {
                 src={product.image || NO_IMAGE_PLACEHOLDER}
                 alt={product.title || 'Product'}
                 className="w-full h-full object-cover"
+                width={200}
+                height={200}
+                loading="lazy"
+                decoding="async"
                 onError={(e) => { e.target.src = NO_IMAGE_PLACEHOLDER; }}
                 draggable={false}
               />

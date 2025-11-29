@@ -52,12 +52,13 @@ const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd =
     preloadedRef.current = true;
   };
 
+  // Reduced animation to prevent CLS - start visible, only animate transform
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, y: 20 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.5, delay: (i % 6) * 0.1 }}
+      initial={{ opacity: 1, y: 10 }}
+      animate={inView ? { opacity: 1, y: 0 } : { opacity: 1, y: 10 }}
+      transition={{ duration: 0.3, delay: Math.min((i % 6) * 0.05, 0.2) }}
       onMouseEnter={() => { setIsHovered(true); preload(); }}
       onMouseLeave={() => setIsHovered(false)}
       className="group relative"
