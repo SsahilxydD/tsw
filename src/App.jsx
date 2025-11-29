@@ -45,6 +45,7 @@ const routes = [
 
 export default function App() {
   const location = useLocation();
+  const isHome = location.pathname === "/";
 
   return (
     <>
@@ -55,6 +56,9 @@ export default function App() {
       <SearchBar />
       <ScrollProgress />
       <ScrollEffects />
+
+      {/* Spacer for fixed navbar on non-home pages */}
+      {!isHome && <div className="h-[calc(40px+96px)] sm:h-[calc(40px+80px)]" />}
 
       <main id="main-content" className="min-h-[60vh]">
         <div className="animate-page">

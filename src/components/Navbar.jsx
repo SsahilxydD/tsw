@@ -10,13 +10,18 @@ const Navbar = () => {
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // Scroll detection
+  const isHome = location.pathname === "/";
+
+  // Scroll detection - use hero height on home page
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
+    const onScroll = () => {
+      const heroHeight = isHome ? window.innerHeight * 0.85 : 20;
+      setScrolled(window.scrollY > heroHeight - 80);
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [isHome]);
 
   const count = getCartCount();
   const prevRef = useRef(count);
@@ -33,6 +38,9 @@ const Navbar = () => {
 
   const showAnnouncement = !/^(?:\/category\/discounted)(?:\/|$)/i.test(location.pathname || "");
 
+  // Transparent mode: on home page, not scrolled, menu closed
+  const isTransparent = isHome && !scrolled && !isMenuOpen;
+
   // Close menu on route change
   useEffect(() => {
     setIsMenuOpen(false);
@@ -40,16 +48,20 @@ const Navbar = () => {
 
   return (
     <>
-      {showAnnouncement && <AnnouncementBar />}
+      {showAnnouncement && <AnnouncementBar isTransparent={isTransparent} />}
       <header
-        className={`sticky top-0 z-40 transition-all duration-300 ${scrolled || isMenuOpen ? "bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-sm" : "bg-transparent border-b border-transparent"
-          }`}
+        className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${
+          isTransparent
+            ? "bg-transparent border-b border-transparent"
+            : "bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm"
+        }`}
+        style={{ top: showAnnouncement ? '40px' : '0' }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-24 sm:h-20 flex items-center justify-between overflow-hidden">
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden p-2 -ml-2 text-primary"
+            className={`md:hidden p-2 -ml-2 transition-colors ${isTransparent ? 'text-white' : 'text-primary'}`}
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             aria-label="Toggle menu"
           >
@@ -64,13 +76,13 @@ const Navbar = () => {
 
           {/* Desktop Nav (Left) */}
           <nav className="hidden md:flex items-center gap-8">
-            <NavLink to="/" className={({ isActive }) => `text-sm font-medium tracking-wide hover:text-accent transition-colors ${isActive ? 'text-primary' : 'text-secondary'}`}>
+            <NavLink to="/" className={({ isActive }) => `text-sm font-medium tracking-wide hover:text-accent transition-colors ${isTransparent ? 'text-white' : isActive ? 'text-primary' : 'text-secondary'}`}>
               HOME
             </NavLink>
-            <NavLink to="/about" className={({ isActive }) => `text-sm font-medium tracking-wide hover:text-accent transition-colors ${isActive ? 'text-primary' : 'text-secondary'}`}>
+            <NavLink to="/about" className={({ isActive }) => `text-sm font-medium tracking-wide hover:text-accent transition-colors ${isTransparent ? 'text-white' : isActive ? 'text-primary' : 'text-secondary'}`}>
               ABOUT
             </NavLink>
-            <NavLink to="/contact" className={({ isActive }) => `text-sm font-medium tracking-wide hover:text-accent transition-colors ${isActive ? 'text-primary' : 'text-secondary'}`}>
+            <NavLink to="/contact" className={({ isActive }) => `text-sm font-medium tracking-wide hover:text-accent transition-colors ${isTransparent ? 'text-white' : isActive ? 'text-primary' : 'text-secondary'}`}>
               CONTACT
             </NavLink>
           </nav>
@@ -81,10 +93,10 @@ const Navbar = () => {
               <img
                 src={assets.logo}
                 alt="Solo Wardrobe"
-                className="h-24 sm:h-[60px] w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+                className={`h-24 sm:h-[60px] w-auto object-contain transition-all duration-300 group-hover:scale-105 ${isTransparent ? 'brightness-0 invert' : ''}`}
               />
             ) : (
-              <span className="font-serif text-xl sm:text-2xl font-bold tracking-tight">SOLO WARDROBE</span>
+              <span className={`font-serif text-xl sm:text-2xl font-bold tracking-tight transition-colors ${isTransparent ? 'text-white' : ''}`}>SOLO WARDROBE</span>
             )}
           </Link>
 
@@ -95,7 +107,7 @@ const Navbar = () => {
               href="https://wa.me/919933778870"
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden sm:flex items-center gap-2 text-sm font-medium text-secondary hover:text-accent transition-colors"
+              className={`hidden sm:flex items-center gap-2 text-sm font-medium hover:text-accent transition-colors ${isTransparent ? 'text-white' : 'text-secondary'}`}
             >
               <span>Chat</span>
             </a>
@@ -107,9 +119,9 @@ const Navbar = () => {
               aria-label="Cart"
               className="relative p-1 group"
             >
-              <div className="w-6 h-6 text-primary transition-colors group-hover:text-accent">
+              <div className={`w-6 h-6 transition-colors group-hover:text-accent ${isTransparent ? 'text-white' : 'text-primary'}`}>
                 {assets.cart_icon ? (
-                  <img src={assets.cart_icon} alt="" className="w-full h-full" />
+                  <img src={assets.cart_icon} alt="" className={`w-full h-full transition-all ${isTransparent ? 'brightness-0 invert' : ''}`} />
                 ) : (
                   <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
                 )}

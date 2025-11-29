@@ -1,9 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-const AnnouncementBar = () => {
+const AnnouncementBar = ({ isTransparent }) => {
     return (
-        <div className="bg-primary text-white overflow-hidden relative z-50">
+        <div className={`fixed top-0 left-0 right-0 overflow-hidden z-50 transition-colors duration-300 ${isTransparent ? 'bg-black/30 backdrop-blur-sm' : 'bg-primary'} text-white`}>
             <Link
                 to="/category/discounted"
                 className="block group focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
