@@ -109,14 +109,11 @@ const AllCategoriesSlider = () => {
         <Title text1="SHOP BY" text2="Category" />
       </div>
 
-      {/* Infinite Marquee - reverse direction */}
-      <div className="relative">
-        <div className="flex slider-track-reverse">
+      {/* Scrollable Carousel */}
+      <div className="overflow-x-auto scrollbar-hide px-4 sm:px-6">
+        <div className="flex gap-3">
           {sliderProducts.map((product, index) => (
-            <ProductCard key={`a-${product._id || index}`} product={product} />
-          ))}
-          {sliderProducts.map((product, index) => (
-            <ProductCard key={`b-${product._id || index}`} product={product} />
+            <ProductCard key={product._id || index} product={product} />
           ))}
         </div>
       </div>

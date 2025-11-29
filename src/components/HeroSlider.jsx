@@ -114,16 +114,11 @@ const HeroSlider = () => {
         <Title text1="BEST SELLING" text2="Shoes" />
       </div>
 
-      {/* Infinite Marquee */}
-      <div className="relative">
-        <div className="flex slider-track">
-          {/* First set */}
+      {/* Scrollable Carousel */}
+      <div className="overflow-x-auto scrollbar-hide px-4 sm:px-6">
+        <div className="flex gap-3">
           {sliderProducts.map((product, index) => (
-            <ProductCard key={`a-${product._id || index}`} product={product} />
-          ))}
-          {/* Duplicate for seamless loop */}
-          {sliderProducts.map((product, index) => (
-            <ProductCard key={`b-${product._id || index}`} product={product} />
+            <ProductCard key={product._id || index} product={product} />
           ))}
         </div>
       </div>
