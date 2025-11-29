@@ -10,13 +10,8 @@ const DiscountedSlider = () => {
   const [sliderProducts, setSliderProducts] = useState([]);
   const { products, loadingProducts } = useContext(ShopContext);
   const navigate = useNavigate();
-  
-  const trackRef = useRef(null);
-  const position = useRef(0);
-  const isDragging = useRef(false);
-  const startX = useRef(0);
-  const startPos = useRef(0);
-  const itemWidth = useRef(0);
+  const scrollRef = useRef(null);
+  const isResetting = useRef(false);
 
   useEffect(() => {
     if (!loadingProducts && Array.isArray(products) && products.length > 0) {
@@ -55,55 +50,60 @@ const DiscountedSlider = () => {
     }
   }, [products, loadingProducts]);
 
-  const updatePosition = (newPos) => {
-    if (!trackRef.current || sliderProducts.length === 0) return;
-    
-    const totalItems = sliderProducts.length;
-    const singleSetWidth = itemWidth.current * totalItems;
-    
-    let normalized = newPos % singleSetWidth;
-    if (normalized > 0) normalized -= singleSetWidth;
-    
-    position.current = normalized;
-    trackRef.current.style.transform = `translateX(${normalized}px)`;
-  };
-
   useEffect(() => {
-    if (!trackRef.current || sliderProducts.length === 0) return;
+    const container = scrollRef.current;
+    if (!container || sliderProducts.length === 0) return;
+
+    const getSetWidth = () => {
+      const items = container.querySelectorAll('.slide-item');
+      if (items.length === 0) return 0;
+      const itemsPerSet = sliderProducts.length;
+      let width = 0;
+      for (let i = 0; i < itemsPerSet && i < items.length; i++) {
+        width += items[i].offsetWidth + 12;
+      }
+      return width;
+    };
+
+    const initScroll = () => {
+      const setWidth = getSetWidth();
+      if (setWidth > 0) {
+        container.scrollLeft = setWidth;
+      }
+    };
+
+    const handleScroll = () => {
+      if (isResetting.current) return;
+      
+      const setWidth = getSetWidth();
+      if (setWidth === 0) return;
+      
+      const { scrollLeft, scrollWidth, clientWidth } = container;
+      const maxScroll = scrollWidth - clientWidth;
+      
+      if (scrollLeft < setWidth * 0.3) {
+        isResetting.current = true;
+        container.style.scrollBehavior = 'auto';
+        container.scrollLeft = scrollLeft + setWidth;
+        container.style.scrollBehavior = '';
+        requestAnimationFrame(() => { isResetting.current = false; });
+      }
+      else if (scrollLeft > maxScroll - setWidth * 0.3) {
+        isResetting.current = true;
+        container.style.scrollBehavior = 'auto';
+        container.scrollLeft = scrollLeft - setWidth;
+        container.style.scrollBehavior = '';
+        requestAnimationFrame(() => { isResetting.current = false; });
+      }
+    };
+
+    requestAnimationFrame(initScroll);
+    container.addEventListener('scroll', handleScroll, { passive: true });
     
-    const firstItem = trackRef.current.querySelector('.slide-item');
-    if (firstItem) {
-      const gap = 12;
-      itemWidth.current = firstItem.offsetWidth + gap;
-    }
+    return () => container.removeEventListener('scroll', handleScroll);
   }, [sliderProducts]);
 
-  const handlePointerDown = (e) => {
-    isDragging.current = true;
-    startX.current = e.clientX || e.touches?.[0]?.clientX || 0;
-    startPos.current = position.current;
-    trackRef.current.style.cursor = 'grabbing';
-  };
-
-  const handlePointerMove = (e) => {
-    if (!isDragging.current) return;
-    const x = e.clientX || e.touches?.[0]?.clientX || 0;
-    const delta = x - startX.current;
-    updatePosition(startPos.current + delta);
-  };
-
-  const handlePointerUp = () => {
-    isDragging.current = false;
-    if (trackRef.current) {
-      trackRef.current.style.cursor = 'grab';
-    }
-  };
-
-  const handleProductClick = (product, e) => {
-    if (Math.abs(position.current - startPos.current) > 5) {
-      e.preventDefault();
-      return;
-    }
+  const handleProductClick = (product) => {
     if (product._id || product.slug) {
       navigate(`/product/${product._id || product.slug}`);
     }
@@ -132,38 +132,26 @@ const DiscountedSlider = () => {
       </div>
 
       <div 
-        className="overflow-hidden px-4 sm:px-6"
-        onMouseDown={handlePointerDown}
-        onMouseMove={handlePointerMove}
-        onMouseUp={handlePointerUp}
-        onMouseLeave={handlePointerUp}
-        onTouchStart={handlePointerDown}
-        onTouchMove={handlePointerMove}
-        onTouchEnd={handlePointerUp}
+        ref={scrollRef}
+        className="flex gap-3 overflow-x-auto scrollbar-hide px-4 sm:px-6 scroll-smooth"
       >
-        <div 
-          ref={trackRef}
-          className="flex gap-3 cursor-grab select-none"
-          style={{ willChange: 'transform' }}
-        >
-          {loopedProducts.map((product, index) => (
-            <div 
-              key={`${product._id}-${index}`}
-              className="slide-item flex-shrink-0 w-[40vw] sm:w-[28vw] md:w-[22vw] lg:w-[18vw] xl:w-[14vw] max-w-[200px] aspect-square"
-              onClick={(e) => handleProductClick(product, e)}
-            >
-              <div className="w-full h-full bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                <img
-                  src={product.image || NO_IMAGE_PLACEHOLDER}
-                  alt={product.title || 'Product'}
-                  className="w-full h-full object-cover pointer-events-none"
-                  onError={(e) => { e.target.src = NO_IMAGE_PLACEHOLDER; }}
-                  draggable={false}
-                />
-              </div>
+        {loopedProducts.map((product, index) => (
+          <div 
+            key={`${product._id}-${index}`}
+            className="slide-item flex-shrink-0 w-[40vw] sm:w-[28vw] md:w-[22vw] lg:w-[18vw] xl:w-[14vw] max-w-[200px] aspect-square cursor-pointer"
+            onClick={() => handleProductClick(product)}
+          >
+            <div className="w-full h-full bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+              <img
+                src={product.image || NO_IMAGE_PLACEHOLDER}
+                alt={product.title || 'Product'}
+                className="w-full h-full object-cover"
+                onError={(e) => { e.target.src = NO_IMAGE_PLACEHOLDER; }}
+                draggable={false}
+              />
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
 
       <div className="flex justify-center mt-5">
