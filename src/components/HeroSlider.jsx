@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useEffect, useState, useContext, useRef, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ShopContext } from '../context/ShopContext';
 import Title from './Title';
@@ -10,6 +10,7 @@ const HeroSlider = () => {
   const [sliderProducts, setSliderProducts] = useState([]);
   const { products, loadingProducts } = useContext(ShopContext);
   const navigate = useNavigate();
+  const scrollRef = useRef(null);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -52,6 +53,36 @@ const HeroSlider = () => {
     }
   }, [products, loadingProducts]);
 
+  // Infinite scroll loop
+  const handleScroll = useCallback(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+    
+    const { scrollLeft, scrollWidth, clientWidth } = container;
+    const maxScroll = scrollWidth - clientWidth;
+    const singleSetWidth = maxScroll / 2;
+    
+    if (scrollLeft <= 1) {
+      container.scrollLeft = singleSetWidth + 1;
+    } else if (scrollLeft >= maxScroll - 1) {
+      container.scrollLeft = singleSetWidth - 1;
+    }
+  }, []);
+
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container || sliderProducts.length === 0) return;
+
+    // Start in the middle (second set)
+    requestAnimationFrame(() => {
+      const { scrollWidth, clientWidth } = container;
+      container.scrollLeft = (scrollWidth - clientWidth) / 2;
+    });
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [sliderProducts, handleScroll]);
+
   const handleProductClick = (product) => {
     if (product._id || product.slug) {
       navigate(`/product/${product._id || product.slug}`);
@@ -73,40 +104,24 @@ const HeroSlider = () => {
   }
 
   const ProductCard = ({ product }) => (
-    <div
-      className="flex-shrink-0 w-[42vw] sm:w-[30vw] md:w-[24vw] lg:w-[20vw] xl:w-[16vw] max-w-[220px] px-1.5"
+    <div 
+      className="flex-shrink-0 w-[40vw] sm:w-[28vw] md:w-[22vw] lg:w-[18vw] xl:w-[14vw] max-w-[200px] aspect-square cursor-pointer"
+      onClick={() => handleProductClick(product)}
     >
-      <div
-        className="bg-white rounded-lg overflow-hidden shadow-sm cursor-pointer h-full flex flex-col hover:shadow-md transition-shadow"
-        onClick={() => handleProductClick(product)}
-      >
-        <div className="aspect-square overflow-hidden bg-gray-50">
-          <img
-            src={product.image || NO_IMAGE_PLACEHOLDER}
-            alt={product.title || 'Product'}
-            className="w-full h-full object-contain"
-            onError={(e) => { e.target.src = NO_IMAGE_PLACEHOLDER; }}
-            draggable={false}
-          />
-        </div>
-        <div className="p-2.5 flex flex-col gap-1 flex-1">
-          <h3 className="text-xs sm:text-sm font-medium text-gray-900 line-clamp-2 leading-snug">
-            {product.title || 'Product'}
-          </h3>
-          <div className="flex items-center gap-2 mt-auto">
-            <span className="text-sm font-semibold text-gray-900">
-              ₹{Number(product.price || 0).toLocaleString('en-IN')}
-            </span>
-            {product.mrp && product.mrp > product.price && (
-              <span className="text-xs text-gray-400 line-through">
-                ₹{Number(product.mrp).toLocaleString('en-IN')}
-              </span>
-            )}
-          </div>
-        </div>
+      <div className="w-full h-full bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+        <img
+          src={product.image || NO_IMAGE_PLACEHOLDER}
+          alt={product.title || 'Product'}
+          className="w-full h-full object-cover"
+          onError={(e) => { e.target.src = NO_IMAGE_PLACEHOLDER; }}
+          draggable={false}
+        />
       </div>
     </div>
   );
+
+  // Triple the products for seamless infinite scroll
+  const loopedProducts = [...sliderProducts, ...sliderProducts, ...sliderProducts];
 
   return (
     <div className="w-full py-4 sm:py-6 bg-gray-50/50 overflow-hidden">
@@ -114,11 +129,14 @@ const HeroSlider = () => {
         <Title text1="BEST SELLING" text2="Shoes" />
       </div>
 
-      {/* Scrollable Carousel */}
-      <div className="overflow-x-auto scrollbar-hide px-4 sm:px-6">
+      {/* Infinite Scroll Carousel */}
+      <div 
+        ref={scrollRef}
+        className="overflow-x-auto scrollbar-hide px-4 sm:px-6"
+      >
         <div className="flex gap-3">
-          {sliderProducts.map((product, index) => (
-            <ProductCard key={product._id || index} product={product} />
+          {loopedProducts.map((product, index) => (
+            <ProductCard key={`${product._id}-${index}`} product={product} />
           ))}
         </div>
       </div>
