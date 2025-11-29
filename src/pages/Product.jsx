@@ -152,7 +152,6 @@ export default function Product() {
   const { id } = useParams();
   const { products, currency, addToCart, navigate, loadingProducts } = React.useContext(ShopContext);
   const [added, setAdded] = React.useState(false);
-  const [imageLoaded, setImageLoaded] = React.useState(false);
 
   React.useEffect(() => {
     if (isRestoring()) return;
@@ -190,7 +189,7 @@ export default function Product() {
   }, [product]);
 
   const [activeIdx, setActiveIdx] = React.useState(0);
-  React.useEffect(() => { setActiveIdx(0); setImageLoaded(false); }, [id]);
+  React.useEffect(() => { setActiveIdx(0); }, [id]);
 
   const [selectedSize, setSelectedSize] = React.useState("");
   React.useEffect(() => setSelectedSize(""), [id]);
@@ -386,17 +385,13 @@ export default function Product() {
                 className="absolute inset-0"
               >
                 {gallery[activeIdx] ? (
-                  <motion.img
+                  <img
                     id="product-main-image"
                     src={gallery[activeIdx]}
                     alt={product.name || product.title}
                     className="h-full w-full object-contain"
                     loading="eager"
                     decoding="sync"
-                    onLoad={() => setImageLoaded(true)}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: imageLoaded ? 1 : 0 }}
-                    transition={{ duration: 0.3 }}
                   />
                 ) : (
                   <div className="h-full w-full grid place-content-center text-sm text-gray-400">
@@ -421,7 +416,7 @@ export default function Product() {
                   variants={scaleIn}
                   custom={i}
                   type="button"
-                  onClick={() => { setActiveIdx(i); setImageLoaded(false); }}
+                  onClick={() => setActiveIdx(i)}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className={`aspect-square rounded-md overflow-hidden bg-gray-50 transition-all duration-200
@@ -470,7 +465,7 @@ export default function Product() {
 
           {/* Price Block */}
           <motion.div variants={fadeInUp} className="mt-4 flex items-baseline gap-3 flex-wrap">
-            <span className="text-2xl sm:text-3xl font-bold text-gray-900">
+            <span className="text-xl sm:text-2xl font-bold text-gray-900">
               {currency}{Number(product.price).toLocaleString()}
             </span>
             {discountPercent > 0 && (
