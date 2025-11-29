@@ -87,16 +87,20 @@ const Navbar = () => {
             </NavLink>
           </nav>
 
-          {/* Brand (Center) */}
-          <Link to="/" className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center group" aria-label="Go to homepage">
+          {/* Brand (Center) - hidden when transparent over video */}
+          <Link 
+            to="/" 
+            className={`absolute left-1/2 -translate-x-1/2 flex flex-col items-center group transition-opacity duration-300 ${isTransparent ? 'opacity-0 pointer-events-none' : 'opacity-100'}`} 
+            aria-label="Go to homepage"
+          >
             {assets.logo ? (
               <img
                 src={assets.logo}
                 alt="Solo Wardrobe"
-                className={`h-12 sm:h-[42px] w-auto object-contain transition-all duration-300 group-hover:scale-105 ${isTransparent ? 'drop-shadow-[0_2px_4px_rgba(255,255,255,0.8)]' : ''}`}
+                className="h-12 sm:h-[42px] w-auto object-contain transition-all duration-300 group-hover:scale-105"
               />
             ) : (
-              <span className={`font-serif text-lg sm:text-xl font-bold tracking-tight transition-colors ${isTransparent ? 'text-white drop-shadow-lg' : ''}`}>SOLO WARDROBE</span>
+              <span className="font-serif text-lg sm:text-xl font-bold tracking-tight">SOLO WARDROBE</span>
             )}
           </Link>
 
