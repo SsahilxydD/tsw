@@ -1,24 +1,15 @@
 // src/components/ProductItem.jsx
 import React, { useContext, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { ShopContext } from "../context/ShopContext";
-import useInView from "../hooks/useInView";
 import SafeImg from "./SafeImg";
 import { isFootwearProduct, isJeansProduct, normalizeJeansSizes, uniqueUKLabels } from "../utils/size";
-import { motion } from "framer-motion";
 
-// variant: "default" | "recommendation"
-const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd = false, sizeHint, requireSize = false, disableFly = false }) => {
-  const { currency, addToCart, updateQuantity, products, cartItems } = useContext(ShopContext);
+const ProductItem = ({ id, image, name, price, i = 0, showAdd = false }) => {
+  const { currency, addToCart, products } = useContext(ShopContext);
   const cover = Array.isArray(image) ? (image[0] || "") : (image || "");
-  const preloadedRef = useRef(false);
-  const [ref, inView] = useInView({ once: true });
-  const [adding, setAdding] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-
-  // ... (keep size logic same as before for now, or simplify if needed)
-  // For brevity in this refactor, I'm keeping the core logic but cleaning up the UI
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   const productObj = useMemo(() => {
     const pid = String(id);
@@ -42,80 +33,94 @@ const ProductItem = ({ id, image, name, price, variant = "default", i, showAdd =
     return out;
   }, [productObj]);
 
-  const visibleSizes = useMemo(() => tileSizes.slice(0, 5), [tileSizes]);
-  const sizesOverflow = tileSizes.length > visibleSizes.length ? (tileSizes.length - visibleSizes.length) : 0;
+  const displaySizes = tileSizes.slice(0, 4);
+  const hasMoreSizes = tileSizes.length > 4;
 
-  const preload = () => {
-    if (preloadedRef.current || !cover) return;
-    const img = new Image();
-    img.src = cover;
-    preloadedRef.current = true;
+  const handleQuickAdd = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addToCart(String(id), tileSizes[0] || 'std');
   };
 
-  // Reduced animation to prevent CLS - start visible, only animate transform
   return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 1, y: 10 }}
-      animate={inView ? { opacity: 1, y: 0 } : { opacity: 1, y: 10 }}
-      transition={{ duration: 0.3, delay: Math.min((i % 6) * 0.05, 0.2) }}
-      onMouseEnter={() => { setIsHovered(true); preload(); }}
+    <Link 
+      to={`/product/${id}`} 
+      className="group block"
+      onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="group relative"
     >
-      <Link to={`/product/${id}`} className="block">
-        <div className="relative w-full aspect-[3/4] overflow-hidden bg-gray-100 mb-3">
-          <SafeImg
-            src={cover}
-            alt={name}
-            width={400}
-            height={533}
-            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-          />
+      {/* Image Container */}
+      <div className="relative aspect-[3/4] overflow-hidden rounded-lg bg-gray-100 mb-3">
+        {/* Skeleton loader */}
+        {!imageLoaded && (
+          <div className="absolute inset-0 bg-gray-200 animate-pulse" />
+        )}
+        
+        <SafeImg
+          src={cover}
+          alt={name}
+          width={400}
+          height={533}
+          className={`w-full h-full object-cover transition-all duration-500 ${
+            isHovered ? 'scale-105' : 'scale-100'
+          } ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+          onLoad={() => setImageLoaded(true)}
+        />
 
-          {/* Overlay on hover */}
-          <div className={`absolute inset-0 bg-black/5 transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`} />
+        {/* Hover overlay */}
+        <div className={`absolute inset-0 bg-black/10 transition-opacity duration-300 ${
+          isHovered ? 'opacity-100' : 'opacity-0'
+        }`} />
 
-          {/* Quick Add Button (Visible on Hover) */}
-          {showAdd && (
-            <div className={`absolute bottom-4 left-0 right-0 px-4 transition-all duration-300 transform ${isHovered ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
-              <button
-                className="w-full py-2.5 bg-white text-primary font-medium text-xs tracking-wide uppercase hover:bg-primary hover:text-white transition-colors shadow-lg"
-                onClick={(e) => {
-                  e.preventDefault();
-                  // Add to cart logic (simplified for UI demo)
-                  addToCart(String(id), tileSizes[0] || 'std');
-                }}
-              >
-                {adding ? 'Adding...' : 'Quick Add'}
-              </button>
+        {/* Quick Add Button */}
+        {showAdd && tileSizes.length > 0 && (
+          <div className={`absolute bottom-0 left-0 right-0 p-3 transition-all duration-300 ${
+            isHovered ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
+          }`}>
+            <button
+              onClick={handleQuickAdd}
+              className="w-full py-2.5 bg-white/95 backdrop-blur-sm text-black text-xs font-semibold uppercase tracking-wider rounded-md hover:bg-black hover:text-white transition-colors shadow-lg"
+            >
+              Quick Add
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Product Info */}
+      <div className="space-y-2">
+        {/* Product Name */}
+        <h3 className="text-sm font-medium text-gray-900 leading-snug line-clamp-2 group-hover:text-gray-600 transition-colors min-h-[2.5rem]">
+          {name}
+        </h3>
+
+        {/* Price & Sizes Row */}
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm font-bold text-gray-900">
+            {currency}{Number(price).toLocaleString('en-IN')}
+          </p>
+          
+          {/* Size Pills */}
+          {displaySizes.length > 0 && (
+            <div className="flex items-center gap-1 overflow-hidden">
+              {displaySizes.map(sz => (
+                <span 
+                  key={sz} 
+                  className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded font-medium whitespace-nowrap"
+                >
+                  {String(sz).replace(/^UK-/, '')}
+                </span>
+              ))}
+              {hasMoreSizes && (
+                <span className="text-[10px] text-gray-400 font-medium">
+                  +{tileSizes.length - 4}
+                </span>
+              )}
             </div>
           )}
         </div>
-
-        <div className="space-y-1">
-          <h3 className="text-sm font-medium text-primary leading-tight line-clamp-1 group-hover:text-secondary transition-colors">
-            {name}
-          </h3>
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-secondary font-medium">
-              {currency}{price}
-            </p>
-            {/* Size badges (minimal) */}
-            {tileSizes.length > 0 && (
-              <div className="flex items-center gap-1 flex-wrap justify-end">
-                {visibleSizes.map(sz => (
-                  <span key={sz} className="text-[10px] sm:text-xs border border-gray-200 px-1 rounded text-gray-600 bg-gray-50">
-                    {String(sz).replace(/^UK-/, '')}
-                  </span>
-                ))}
-                {sizesOverflow > 0 && <span className="text-[10px] text-gray-400">+{sizesOverflow}</span>}
-              </div>
-            )}
-          </div>
-        </div>
-      </Link>
-    </motion.div>
+      </div>
+    </Link>
   );
 };
 
