@@ -49,6 +49,7 @@ const routes = [
 export default function App() {
   const location = useLocation();
   const isHome = location.pathname === "/";
+  const isCheckout = location.pathname === "/address";
 
   return (
     <>
@@ -69,7 +70,8 @@ export default function App() {
         </div>
       </main>
 
-      <Footer />
+      {/* Hide footer on checkout page to avoid blocking the sticky CTA */}
+      {!isCheckout && <Footer />}
 
 
 
