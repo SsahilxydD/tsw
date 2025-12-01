@@ -177,7 +177,7 @@ const Cart = () => {
         <button
           type='button'
           disabled={cartData.length === 0}
-          onClick={() => navigate('/place-order')}
+          onClick={() => navigate('/address')}
           className={`px-6 py-3 text-sm rounded text-white pressable ${cartData.length === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-black hover:opacity-90'}`}
         >
           Proceed to checkout
