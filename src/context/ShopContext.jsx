@@ -68,7 +68,8 @@ const ShopContextProvider = (props) => {
         let lastErr = null;
         for (const src of sources) {
           try {
-            const r = await fetch(src.url, { cache: "no-store" });
+            // Use default cache to leverage browser's preload cache
+            const r = await fetch(src.url);
             if (!r.ok) {
               lastErr = new Error(`Failed to load ${src.url}: ${r.status} ${r.statusText}`);
               continue;

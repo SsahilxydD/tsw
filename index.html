@@ -11,6 +11,12 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="theme-color" content="#000000" />
     <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- Preload critical resources to break the network chain -->
+    <link rel="preload" href="/data/products.json" as="fetch" crossorigin="anonymous" />
+    
+    <!-- DNS prefetch for faster subsequent requests -->
+    <link rel="dns-prefetch" href="https://thesolowardrobe.com" />
+    
     <!-- Font preconnect for faster loading -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
