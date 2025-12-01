@@ -230,7 +230,7 @@ const Collection = () => {
 
           {isEmpty && <p className="text-sm text-gray-500 mb-6">No products match your filters.</p>}
 
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4 lg:gap-6">
             {isLoading ? (
               <>
                 <SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard />

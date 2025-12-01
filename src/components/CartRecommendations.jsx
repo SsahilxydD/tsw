@@ -176,7 +176,7 @@ export default function CartRecommendations() {
       <div className="flex items-center justify-between">
         <Title text1={"YOU MAY ALSO"} text2={"LIKE"} />
       </div>
-      <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-8 sm:gap-x-6 sm:gap-y-10">
+      <div className="mt-4 grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4 lg:gap-6">
         {list.map((item, index) => (
           <ProductItem
             key={item._id || item.slug || index}

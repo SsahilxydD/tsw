@@ -22,7 +22,7 @@ const LatestCollection = () => {
       </div>
 
       {/* Rendering Products */}
-      <div className='grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-8'>
+      <div className='grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4 lg:gap-6'>
         {latestProducts.map((item, index) => (
           <ProductItem
             key={item._id || index}

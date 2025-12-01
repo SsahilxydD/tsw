@@ -25,7 +25,7 @@ const RelatedProducts = ({ category, subCategory }) => {
                 <Title text1={"RELATED"} text2={"PRODUCTS"} />
             </div>
 
-            <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-8 sm:gap-x-6 sm:gap-y-10'>
+            <div className='grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4 lg:gap-6'>
                 {
                     related.map((item, index) => (
                         <ProductItem key={index} id={item._id} image={item.image} name={item.name} price={item.price} />
