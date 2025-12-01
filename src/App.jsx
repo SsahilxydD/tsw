@@ -1,5 +1,5 @@
 // src/App.jsx
-import React, { lazy, Suspense } from "react";
+import React from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
@@ -14,24 +14,20 @@ import "react-toastify/dist/ReactToastify.css";
 import ScrollToTop from "./components/ScrollToTop";
 import CartDrawer from "./components/CartDrawer";
 import CachedRoutes from "./components/CachedRoutes";
-import PageLoader from "./components/PageLoader";
 
-// Eagerly load Home for fastest LCP (critical path)
 import Home from "./pages/Home";
-
-// Lazy load all other pages - each becomes a separate chunk
-const Category = lazy(() => import("./pages/Category"));
-const Collection = lazy(() => import("./pages/Collection"));
-const Product = lazy(() => import("./pages/Product"));
-const About = lazy(() => import("./pages/About"));
-const Contact = lazy(() => import("./pages/Contact"));
-const Cart = lazy(() => import("./pages/Cart"));
-const Address = lazy(() => import("./pages/Address"));
-const Payment = lazy(() => import("./pages/Payment"));
-const PlaceOrder = lazy(() => import("./pages/PlaceOrder"));
-const Orders = lazy(() => import("./pages/Orders"));
-const Login = lazy(() => import("./pages/Login"));
-const NotFound = lazy(() => import("./pages/NotFound"));
+import Category from "./pages/Category";
+import Collection from "./pages/Collection";
+import Product from "./pages/Product";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
+import Cart from "./pages/Cart";
+import Address from "./pages/Address";
+import Payment from "./pages/Payment";
+import PlaceOrder from "./pages/PlaceOrder";
+import Orders from "./pages/Orders";
+import Login from "./pages/Login";
+import NotFound from "./pages/NotFound";
 
 // Route configuration for caching
 const routes = [
@@ -42,10 +38,7 @@ const routes = [
   { path: "/about", element: <About /> },
   { path: "/contact", element: <Contact /> },
   { path: "/cart", element: <Cart /> },
-  { path: "/address", element: <Address /> },
-  { path: "/payment", element: <Payment /> },
   { path: "/place-order", element: <PlaceOrder /> },
-  { path: "/orders", element: <Orders /> },
   { path: "/login", element: <Login /> },
   { path: "*", element: <NotFound /> },
 ];
@@ -69,9 +62,7 @@ export default function App() {
 
       <main id="main-content" className="min-h-[60vh]">
         <div className="animate-page">
-          <Suspense fallback={<PageLoader />}>
-            <CachedRoutes routes={routes} />
-          </Suspense>
+          <CachedRoutes routes={routes} />
         </div>
       </main>
 

@@ -59,32 +59,7 @@ export default defineConfig({
       output: {
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash][extname]',
-        // Manual chunk splitting for optimal loading
-        manualChunks: (id) => {
-          // Vendor chunks - split heavy libraries
-          if (id.includes('node_modules')) {
-            // React core - needed everywhere
-            if (id.includes('react-dom') || id.includes('/react/')) {
-              return 'vendor-react';
-            }
-            // Router - needed for navigation
-            if (id.includes('react-router')) {
-              return 'vendor-router';
-            }
-            // Animation library - can load later
-            if (id.includes('framer-motion') || id.includes('motion')) {
-              return 'vendor-motion';
-            }
-            // Toast notifications
-            if (id.includes('react-toastify')) {
-              return 'vendor-toast';
-            }
-            // Other vendor code
-            return 'vendor';
-          }
-          // Let Vite handle page chunks automatically via dynamic imports
-        }
+        assetFileNames: 'assets/[name]-[hash][extname]'
       }
     }
   }
