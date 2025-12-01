@@ -1,5 +1,5 @@
 // src/App.jsx
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
@@ -14,33 +14,47 @@ import "react-toastify/dist/ReactToastify.css";
 import ScrollToTop from "./components/ScrollToTop";
 import CartDrawer from "./components/CartDrawer";
 import CachedRoutes from "./components/CachedRoutes";
+import PageLoader from "./components/PageLoader";
 
+// Eagerly load Home for fastest LCP (critical path)
 import Home from "./pages/Home";
-import Category from "./pages/Category";
-import Collection from "./pages/Collection";
-import Product from "./pages/Product";
-import About from "./pages/About";
-import Contact from "./pages/Contact";
-import Cart from "./pages/Cart";
-import Address from "./pages/Address";
-import Payment from "./pages/Payment";
-import PlaceOrder from "./pages/PlaceOrder";
-import Orders from "./pages/Orders";
-import Login from "./pages/Login";
-import NotFound from "./pages/NotFound";
+
+// Lazy load all other pages - each becomes a separate chunk
+const Category = lazy(() => import("./pages/Category"));
+const Collection = lazy(() => import("./pages/Collection"));
+const Product = lazy(() => import("./pages/Product"));
+const About = lazy(() => import("./pages/About"));
+const Contact = lazy(() => import("./pages/Contact"));
+const Cart = lazy(() => import("./pages/Cart"));
+const Address = lazy(() => import("./pages/Address"));
+const Payment = lazy(() => import("./pages/Payment"));
+const PlaceOrder = lazy(() => import("./pages/PlaceOrder"));
+const Orders = lazy(() => import("./pages/Orders"));
+const Login = lazy(() => import("./pages/Login"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+
+// Suspense wrapper for lazy components
+const LazyPage = ({ children }) => (
+  <Suspense fallback={<PageLoader />}>
+    {children}
+  </Suspense>
+);
 
 // Route configuration for caching
 const routes = [
   { path: "/", element: <Home /> },
-  { path: "/collection", element: <Collection /> },
-  { path: "/category/:cat", element: <Category /> },
-  { path: "/product/:id", element: <Product /> },
-  { path: "/about", element: <About /> },
-  { path: "/contact", element: <Contact /> },
-  { path: "/cart", element: <Cart /> },
-  { path: "/place-order", element: <PlaceOrder /> },
-  { path: "/login", element: <Login /> },
-  { path: "*", element: <NotFound /> },
+  { path: "/collection", element: <LazyPage><Collection /></LazyPage> },
+  { path: "/category/:cat", element: <LazyPage><Category /></LazyPage> },
+  { path: "/product/:id", element: <LazyPage><Product /></LazyPage> },
+  { path: "/about", element: <LazyPage><About /></LazyPage> },
+  { path: "/contact", element: <LazyPage><Contact /></LazyPage> },
+  { path: "/cart", element: <LazyPage><Cart /></LazyPage> },
+  { path: "/address", element: <LazyPage><Address /></LazyPage> },
+  { path: "/payment", element: <LazyPage><Payment /></LazyPage> },
+  { path: "/place-order", element: <LazyPage><PlaceOrder /></LazyPage> },
+  { path: "/orders", element: <LazyPage><Orders /></LazyPage> },
+  { path: "/login", element: <LazyPage><Login /></LazyPage> },
+  { path: "*", element: <LazyPage><NotFound /></LazyPage> },
 ];
 
 export default function App() {
