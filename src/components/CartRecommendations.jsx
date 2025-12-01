@@ -186,7 +186,6 @@ export default function CartRecommendations() {
             price={item.price}
             variant="recommendation"
             i={index}
-            showAdd
             requireSize
             disableFly
           />

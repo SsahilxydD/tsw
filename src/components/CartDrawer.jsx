@@ -97,23 +97,36 @@ const CartDrawer = () => {
 
                                     return (
                                         <div key={index} className="flex gap-4">
-                                            <div className="w-20 h-24 flex-shrink-0 bg-gray-50 rounded overflow-hidden">
+                                            <Link 
+                                                to={`/product/${item._id}`}
+                                                onClick={() => setIsCartOpen(false)}
+                                                className="w-20 h-24 flex-shrink-0 bg-gray-50 rounded overflow-hidden hover:opacity-80 transition-opacity"
+                                            >
                                                 <img
                                                     src={cover}
                                                     alt={productData.name}
                                                     className="w-full h-full object-cover"
                                                     onError={(e) => { e.target.src = '/assets/no-image.svg'; }}
                                                 />
-                                            </div>
-                                            <div className="flex-1 flex flex-col justify-between">
+                                            </Link>
+                                            <div className="flex-1 flex flex-col justify-between min-w-0">
                                                 <div>
-                                                    <div className="flex justify-between items-start">
-                                                        <h3 className="text-sm font-medium text-gray-900 line-clamp-2">{productData.name}</h3>
+                                                    <div className="flex items-start gap-2">
+                                                        <Link 
+                                                            to={`/product/${item._id}`}
+                                                            onClick={() => setIsCartOpen(false)}
+                                                            className="flex-1 text-sm font-medium text-gray-900 line-clamp-2 hover:text-gray-600 transition-colors"
+                                                        >
+                                                            {productData.name}
+                                                        </Link>
                                                         <button
                                                             onClick={() => updateQuantity(item._id, item.size, 0)}
-                                                            className="text-gray-400 hover:text-red-500 ml-2"
+                                                            className="flex-shrink-0 p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                                                            aria-label="Remove item"
                                                         >
-                                                            <img src={assets.bin_icon} className="w-4 h-4" alt="Remove" />
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                            </svg>
                                                         </button>
                                                     </div>
                                                     <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">

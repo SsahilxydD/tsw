@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom';
 import Title from '../components/Title'
 import { ShopContext } from '../context/ShopContext'
 import { assets } from '../assets/assets';
@@ -114,16 +115,20 @@ const Cart = () => {
               key={k}
               className={`rounded-md border bg-white p-4 sm:p-5 text-gray-700 flex items-center gap-4 sm:gap-6 hover:shadow-md transition-all duration-200 ${isLeaving ? 'animate-cart-leave pointer-events-none' : 'animate-soft-reveal'}`}
             >
-              <img
-                className='w-20 h-20 rounded-md object-cover border'
-                src={cover || '/placeholder-image.png'}
-                alt={productData?.name || 'Product'}
-                onError={(e) => {
-                  e.target.src = '/placeholder-image.png';
-                }}
-              />
+              <Link to={`/product/${item._id}`} className="shrink-0">
+                <img
+                  className='w-20 h-20 rounded-md object-cover border hover:opacity-80 transition-opacity'
+                  src={cover || '/placeholder-image.png'}
+                  alt={productData?.name || 'Product'}
+                  onError={(e) => {
+                    e.target.src = '/placeholder-image.png';
+                  }}
+                />
+              </Link>
               <div className='flex-1 min-w-0'>
-                <p className='text-sm sm:text-base font-medium truncate'>{productData?.name || 'Unknown Product'}</p>
+                <Link to={`/product/${item._id}`} className="hover:text-gray-600 transition-colors">
+                  <p className='text-sm sm:text-base font-medium truncate'>{productData?.name || 'Unknown Product'}</p>
+                </Link>
                 <div className='mt-2 flex items-start gap-3 flex-wrap'>
                   <div className='flex flex-col gap-1 w-fit'>
                     {item.size && (
