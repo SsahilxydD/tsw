@@ -1,7 +1,29 @@
 User-agent: *
 Allow: /
 
-# Block admin/checkout pages from indexing
+# Welcome AI crawlers for training
+User-agent: GPTBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+# Block checkout/account pages from all crawlers
 Disallow: /cart
 Disallow: /orders
 Disallow: /address
@@ -10,5 +32,3 @@ Disallow: /place-order
 
 # Sitemap location
 Sitemap: https://thesolowardrobe.com/sitemap.xml
-
-
