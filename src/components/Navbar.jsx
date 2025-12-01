@@ -116,8 +116,8 @@ const Navbar = () => {
               <span>Chat</span>
             </a>
 
-            {/* Search - hidden on category pages (they have their own search) */}
-            {!location.pathname.startsWith('/category/') && (
+            {/* Search - hidden on category and collection pages (they have their own search) */}
+            {!location.pathname.startsWith('/category/') && location.pathname !== '/collection' && (
               <button
                 onClick={() => setShowSearch(true)}
                 aria-label="Search"

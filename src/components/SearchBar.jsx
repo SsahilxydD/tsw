@@ -6,6 +6,7 @@ import SafeImg from './SafeImg';
 const SearchBar = () => {
   const { products, search, setSearch, showSearch, setShowSearch, currency } = useContext(ShopContext);
   const [results, setResults] = useState([]);
+  const [visibleCount, setVisibleCount] = useState(8);
   const inputRef = useRef(null);
   const navigate = useNavigate();
 
@@ -36,24 +37,20 @@ const SearchBar = () => {
   useEffect(() => {
     if (!search.trim()) {
       setResults([]);
+      setVisibleCount(8);
       return;
     }
     const q = search.toLowerCase().trim();
     const filtered = (products || [])
-      .filter(p => (p.name || '').toLowerCase().includes(q))
-      .slice(0, 8);
+      .filter(p => (p.name || '').toLowerCase().includes(q));
     setResults(filtered);
+    setVisibleCount(8); // Reset visible count on new search
   }, [search, products]);
 
   const handleProductClick = (id) => {
     setShowSearch(false);
     setSearch('');
     navigate(`/product/${id}`);
-  };
-
-  const handleViewAll = () => {
-    setShowSearch(false);
-    navigate(`/collection?search=${encodeURIComponent(search)}`);
   };
 
   if (!showSearch) return null;
@@ -129,10 +126,10 @@ const SearchBar = () => {
           {search && results.length > 0 && (
             <div className="mt-8">
               <p className="text-xs font-medium text-gray-400 uppercase tracking-[0.2em] mb-4">
-                Products
+                Products <span className="text-gray-300">({results.length})</span>
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {results.map((product) => {
+                {results.slice(0, visibleCount).map((product) => {
                   const cover = Array.isArray(product.image) 
                     ? product.image[0] 
                     : (Array.isArray(product.images) ? product.images[0] : product.image);
@@ -160,13 +157,22 @@ const SearchBar = () => {
                 })}
               </div>
               
-              {/* View All */}
-              <button
-                onClick={handleViewAll}
-                className="mt-6 w-full py-3 border-2 border-black text-black font-medium text-sm uppercase tracking-wider hover:bg-black hover:text-white transition-colors"
-              >
-                View all results
-              </button>
+              {/* Load More */}
+              {visibleCount < results.length && (
+                <button
+                  onClick={() => setVisibleCount(prev => prev + 8)}
+                  className="mt-6 w-full py-3 border-2 border-black text-black font-medium text-sm uppercase tracking-wider hover:bg-black hover:text-white transition-colors"
+                >
+                  Load more ({results.length - visibleCount} remaining)
+                </button>
+              )}
+              
+              {/* End of results indicator */}
+              {visibleCount >= results.length && results.length > 8 && (
+                <p className="mt-6 text-center text-sm text-gray-400">
+                  Showing all {results.length} results
+                </p>
+              )}
             </div>
           )}
 
