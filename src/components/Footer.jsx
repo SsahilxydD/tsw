@@ -15,7 +15,7 @@ const Footer = () => {
               <span className="font-serif text-2xl font-bold tracking-tight">SOLO WARDROBE</span>
             )}
           </Link>
-          <p className="text-gray-400 text-sm leading-relaxed max-w-xs">
+          <p className="text-gray-300 text-sm leading-relaxed max-w-xs">
             Curated essentials for the modern individual. Honest prices, premium quality, and timeless design.
           </p>
         </div>
@@ -23,7 +23,7 @@ const Footer = () => {
         {/* Company */}
         <div>
           <h3 className="font-serif text-lg font-medium mb-6">Company</h3>
-          <ul className="space-y-4 text-sm text-gray-400">
+          <ul className="space-y-4 text-sm text-gray-300">
             <li><Link to="/" className="hover:text-white transition-colors">Home</Link></li>
             <li><Link to="/about" className="hover:text-white transition-colors">About Us</Link></li>
             <li><Link to="/contact" className="hover:text-white transition-colors">Contact</Link></li>
@@ -34,7 +34,7 @@ const Footer = () => {
         {/* Get in Touch */}
         <div>
           <h3 className="font-serif text-lg font-medium mb-6">Get in Touch</h3>
-          <ul className="space-y-4 text-sm text-gray-400">
+          <ul className="space-y-4 text-sm text-gray-300">
             <li>
               <a href="tel:+919933778870" className="hover:text-white transition-colors">+91 99337 78870</a>
             </li>
@@ -55,7 +55,7 @@ const Footer = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 border-t border-white/10 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-500">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 border-t border-white/10 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-400">
         <p>&copy; {new Date().getFullYear()} Solo Wardrobe. All rights reserved.</p>
         <div className="flex gap-6">
           <Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>

@@ -40,7 +40,7 @@ export default function OurPolicy() {
               loading="lazy"
             />
             <p className="font-semibold">{title}</p>
-            <p className="text-gray-400">{subtitle}</p>
+            <p className="text-gray-600">{subtitle}</p>
           </div>
         ))}
       </div>
