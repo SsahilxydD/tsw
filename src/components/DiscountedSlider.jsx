@@ -12,6 +12,7 @@ const DiscountedSlider = () => {
   const navigate = useNavigate();
   const scrollRef = useRef(null);
   const isResetting = useRef(false);
+  const cachedSetWidth = useRef(0);
 
   useEffect(() => {
     if (!loadingProducts && Array.isArray(products) && products.length > 0) {
@@ -54,7 +55,8 @@ const DiscountedSlider = () => {
     const container = scrollRef.current;
     if (!container || sliderProducts.length === 0) return;
 
-    const getSetWidth = () => {
+    // Calculate and cache width once to avoid forced reflows
+    const calculateSetWidth = () => {
       const items = container.querySelectorAll('.slide-item');
       if (items.length === 0) return 0;
       const itemsPerSet = sliderProducts.length;
@@ -62,24 +64,26 @@ const DiscountedSlider = () => {
       for (let i = 0; i < itemsPerSet && i < items.length; i++) {
         width += items[i].offsetWidth + 12;
       }
+      cachedSetWidth.current = width;
       return width;
     };
 
     const initScroll = () => {
-      const setWidth = getSetWidth();
+      const setWidth = calculateSetWidth();
       if (setWidth > 0) {
         container.scrollLeft = setWidth;
       }
     };
 
+    // Use cached width to avoid reflow during scroll
     const handleScroll = () => {
       if (isResetting.current) return;
       
-      const setWidth = getSetWidth();
+      const setWidth = cachedSetWidth.current;
       if (setWidth === 0) return;
       
-      const { scrollLeft, scrollWidth, clientWidth } = container;
-      const maxScroll = scrollWidth - clientWidth;
+      const scrollLeft = container.scrollLeft;
+      const maxScroll = container.scrollWidth - container.clientWidth;
       
       if (scrollLeft < setWidth * 0.3) {
         isResetting.current = true;
@@ -97,10 +101,17 @@ const DiscountedSlider = () => {
       }
     };
 
-    requestAnimationFrame(initScroll);
-    container.addEventListener('scroll', handleScroll, { passive: true });
+    requestAnimationFrame(() => {
+      initScroll();
+      const recalc = () => { calculateSetWidth(); };
+      window.addEventListener('resize', recalc, { passive: true });
+      container.addEventListener('scroll', handleScroll, { passive: true });
+    });
     
-    return () => container.removeEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('resize', () => {});
+      container.removeEventListener('scroll', handleScroll);
+    };
   }, [sliderProducts]);
 
   const handleProductClick = (product) => {
