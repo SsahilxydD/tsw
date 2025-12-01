@@ -38,7 +38,10 @@ const routes = [
   { path: "/about", element: <About /> },
   { path: "/contact", element: <Contact /> },
   { path: "/cart", element: <Cart /> },
+  { path: "/address", element: <Address /> },
+  { path: "/payment", element: <Payment /> },
   { path: "/place-order", element: <PlaceOrder /> },
+  { path: "/orders", element: <Orders /> },
   { path: "/login", element: <Login /> },
   { path: "*", element: <NotFound /> },
 ];
