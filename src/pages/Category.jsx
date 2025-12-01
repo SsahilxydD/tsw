@@ -49,8 +49,13 @@ const Category = () => {
   const catKey = decodeURIComponent(cat || "");
   const catKeyLower = catKey.toLowerCase();
 
-  const { products, search, showSearch, setShowSearch, loadingProducts } = useContext(ShopContext);
-  const debouncedSearch = useDebouncedValue(search, 250);
+  const { products, loadingProducts, currency } = useContext(ShopContext);
+  
+  // Local search state (category-specific)
+  const [localSearch, setLocalSearch] = useState("");
+  const [showLocalSearch, setShowLocalSearch] = useState(false);
+  const debouncedSearch = useDebouncedValue(localSearch, 250);
+  const searchInputRef = React.useRef(null);
 
   // base list for this category (enforce sizes for jeans & discounted)
   const baseProducts = useMemo(() => {
@@ -231,8 +236,8 @@ const Category = () => {
   const applyFilterAndOrder = () => {
     let copy = baseProducts.slice();
 
-    // search (only when global search UI is visible)
-    if (showSearch && debouncedSearch) {
+    // Local category search
+    if (debouncedSearch) {
       const q = debouncedSearch.trim().toLowerCase();
       copy = copy.filter((p) => (p.name || "").toLowerCase().includes(q));
     }
@@ -273,7 +278,20 @@ const Category = () => {
   useEffect(() => {
     applyFilterAndOrder();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [baseProducts, sizeSource, hasSizes, sizeFilters, showSearch, debouncedSearch, sortValue, catKeyLower, subFilter]);
+  }, [baseProducts, sizeSource, hasSizes, sizeFilters, debouncedSearch, sortValue, catKeyLower, subFilter]);
+  
+  // Focus search input when opened
+  useEffect(() => {
+    if (showLocalSearch && searchInputRef.current) {
+      setTimeout(() => searchInputRef.current?.focus(), 100);
+    }
+  }, [showLocalSearch]);
+  
+  // Reset local search when category changes
+  useEffect(() => {
+    setLocalSearch("");
+    setShowLocalSearch(false);
+  }, [catKeyLower]);
 
   // Auto-load more when the sentinel becomes visible
   useEffect(() => {
@@ -360,56 +378,112 @@ const Category = () => {
         <section className="flex-1">
           {/* Mobile toolbar */}
           <div className="sm:hidden sticky z-10 bg-white/95 backdrop-blur border-b -mx-4 px-4 py-2 mb-4" style={{ top: stickyTop }}>
-            <div className="flex items-center justify-between">
+            {/* Search bar (expandable) */}
+            {showLocalSearch ? (
               <div className="flex items-center gap-2">
-                {hasSizes && (!isDiscounted || !!subFilter) && (
-                  <button onClick={() => setFiltersOpen(true)} className="px-3 h-9 border rounded text-sm">
-                    Filters{selectedCount ? ` (${selectedCount})` : ""}
-                  </button>
-                )}
+                <div className="flex-1 relative">
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    value={localSearch}
+                    onChange={(e) => setLocalSearch(e.target.value)}
+                    placeholder={`Search in ${isDiscounted ? 'Sale' : toDisplay(catKey)}...`}
+                    className="w-full h-9 pl-9 pr-3 border rounded-lg text-sm bg-gray-50 focus:bg-white focus:border-gray-400 outline-none transition-colors"
+                  />
+                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
                 <button
-                  type="button"
-                  aria-label="Search products"
-                  onClick={() => setShowSearch((v) => !v)}
-                  className="px-3 h-9 border rounded text-sm flex items-center justify-center"
+                  onClick={() => { setShowLocalSearch(false); setLocalSearch(""); }}
+                  className="h-9 px-3 text-sm text-gray-500"
                 >
-                  {assets.search_icon ? (
-                    <img src={assets.search_icon} alt="" className="w-4 h-4" />
-                  ) : (
-                    <span>Search</span>
-                  )}
+                  Cancel
                 </button>
               </div>
-              <select
-                aria-label="Sort products"
-                value={sortValue}
-                onChange={(e) => setSortValue(e.target.value)}
-                className="h-9 px-3 border-2 border-gray-300 rounded text-sm"
-              >
-                <option value="">Featured</option>
-                <option value="price-high-low">Price: High → Low</option>
-                <option value="price-low-high">Price: Low → High</option>
-              </select>
-            </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {hasSizes && (!isDiscounted || !!subFilter) && (
+                    <button onClick={() => setFiltersOpen(true)} className="px-3 h-9 border rounded text-sm">
+                      Filters{selectedCount ? ` (${selectedCount})` : ""}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    aria-label="Search in category"
+                    onClick={() => setShowLocalSearch(true)}
+                    className="px-3 h-9 border rounded text-sm flex items-center justify-center"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </button>
+                </div>
+                <select
+                  aria-label="Sort products"
+                  value={sortValue}
+                  onChange={(e) => setSortValue(e.target.value)}
+                  className="h-9 px-3 border-2 border-gray-300 rounded text-sm"
+                >
+                  <option value="">Featured</option>
+                  <option value="price-high-low">Price: High → Low</option>
+                  <option value="price-low-high">Price: Low → High</option>
+                </select>
+              </div>
+            )}
           </div>
 
           {/* Desktop header */}
-          <div className="hidden sm:flex justify-between items-center text-base sm:text-2xl mb-4">
-            <Title
-              text1={"CATEGORY"}
-              text2={isDiscounted ? 'Sale' : toDisplay(catKey)}
-              text2ClassName={isDiscounted ? 'text-red-600' : undefined}
-            />
-            <select
-              aria-label="Sort products"
-              value={sortValue}
-              onChange={(e) => setSortValue(e.target.value)}
-              className="h-9 px-3 border-2 border-gray-300 rounded text-sm"
-            >
-              <option value="">Featured</option>
-              <option value="price-high-low">Price: High → Low</option>
-              <option value="price-low-high">Price: Low → High</option>
-            </select>
+          <div className="hidden sm:block mb-4">
+            <div className="flex justify-between items-center text-base sm:text-2xl">
+              <Title
+                text1={"CATEGORY"}
+                text2={isDiscounted ? 'Sale' : toDisplay(catKey)}
+                text2ClassName={isDiscounted ? 'text-red-600' : undefined}
+              />
+              <div className="flex items-center gap-3">
+                {/* Desktop search */}
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={localSearch}
+                    onChange={(e) => setLocalSearch(e.target.value)}
+                    placeholder={`Search...`}
+                    className="w-48 h-9 pl-9 pr-3 border rounded-lg text-sm bg-gray-50 focus:bg-white focus:border-gray-400 focus:w-64 outline-none transition-all"
+                  />
+                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  {localSearch && (
+                    <button
+                      onClick={() => setLocalSearch("")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center text-gray-400 hover:text-gray-600"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+                <select
+                  aria-label="Sort products"
+                  value={sortValue}
+                  onChange={(e) => setSortValue(e.target.value)}
+                  className="h-9 px-3 border-2 border-gray-300 rounded text-sm"
+                >
+                  <option value="">Featured</option>
+                  <option value="price-high-low">Price: High → Low</option>
+                  <option value="price-low-high">Price: Low → High</option>
+                </select>
+              </div>
+            </div>
+            {/* Active search indicator */}
+            {localSearch && (
+              <p className="mt-2 text-sm text-gray-500">
+                Showing results for "<span className="font-medium text-gray-700">{localSearch}</span>" in {isDiscounted ? 'Sale' : toDisplay(catKey)}
+              </p>
+            )}
           </div>
 
           {/* Discounted sub-category tiles styled like home */}

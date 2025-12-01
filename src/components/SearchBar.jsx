@@ -67,13 +67,13 @@ const SearchBar = () => {
       />
       
       {/* Search Panel */}
-      <div className="absolute inset-x-0 top-0 bg-white animate-slide-down">
+      <div className="absolute inset-x-0 top-0 bottom-0 bg-white animate-slide-down overflow-y-auto">
         {/* Search Input Area */}
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          {/* Close button */}
+        <div className="max-w-4xl mx-auto px-4 py-8 pb-24">
+          {/* Close button - fixed position */}
           <button
             onClick={() => setShowSearch(false)}
-            className="absolute top-4 right-4 sm:top-6 sm:right-6 w-10 h-10 flex items-center justify-center text-gray-400 hover:text-black transition-colors"
+            className="fixed top-4 right-4 sm:top-6 sm:right-6 z-10 w-10 h-10 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-full text-gray-400 hover:text-black hover:bg-gray-100 transition-colors shadow-sm"
             aria-label="Close search"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
