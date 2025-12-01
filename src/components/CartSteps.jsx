@@ -3,8 +3,7 @@ import React from "react";
 export default function CartSteps({ active = "bag" }) {
   const steps = [
     { key: "bag", label: "MY BAG" },
-    { key: "address", label: "ADDRESS" },
-    { key: "payment", label: "PAYMENT" },
+    { key: "address", label: "CHECKOUT" },
   ];
 
   const idx = steps.findIndex((s) => s.key === active);
@@ -28,4 +27,3 @@ export default function CartSteps({ active = "bag" }) {
     </div>
   );
 }
-
