@@ -36,15 +36,33 @@ function copyExtraAssets({ from = 'src/assets', to = 'assets' } = {}) {
   };
 }
 
-// CSS preload plugin disabled - was causing render issues
-// Vite's default CSS handling is sufficient
+// Plugin to convert render-blocking CSS to preload + async load
+function cssPreloadPlugin() {
+  return {
+    name: 'css-preload',
+    apply: 'build',
+    transformIndexHtml(html, ctx) {
+      // Find CSS link tags and convert to preload pattern
+      return html.replace(
+        /<link rel="stylesheet" crossorigin href="(\/assets\/[^"]+\.css)">/g,
+        (match, href) => {
+          // Add preload link + non-blocking stylesheet load
+          return `<link rel="preload" href="${href}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="${href}"></noscript>`;
+        }
+      );
+    }
+  };
+}
 
 // Vite config tuned for VPS/nginx deploys at root domain
 export default defineConfig({
   plugins: [
     react(),
     // Copy all original files from src/assets into dist/assets alongside hashed outputs.
-    copyExtraAssets({ from: 'src/assets', to: 'assets' })
+    copyExtraAssets({ from: 'src/assets', to: 'assets' }),
+    // Convert CSS to non-render-blocking preload pattern
+    cssPreloadPlugin()
   ],
   base: '/',   // IMPORTANT: ensures assets load correctly at thesolowardrobe.com/
   server: { port: 5173, host: true },
@@ -60,11 +78,11 @@ export default defineConfig({
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash][extname]',
-        // Split vendor libraries for better caching (doesn't affect app code)
+        // Split vendor libraries for better caching
+        // NOTE: framer-motion is NOT in manualChunks - it bundles with lazy-loaded components
         manualChunks: {
           'vendor-react': ['react', 'react-dom'],
           'vendor-router': ['react-router-dom'],
-          'vendor-motion': ['framer-motion', 'motion'],
           'vendor-ui': ['react-toastify']
         }
       }
