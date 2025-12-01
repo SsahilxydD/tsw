@@ -56,7 +56,7 @@ import p_img52 from './p_img52.png'
 
 
 import logo from './logo.png'
-import hero_video from './hero.mp4'
+import hero_image from './hero.webp'
 import cart_icon from './cart_icon.png'
 import bin_icon from './bin_icon.png'
 import dropdown_icon from './dropdown_icon.png'
@@ -78,7 +78,7 @@ import whatsapp from './whatsapp.png'
 
 export const assets = {
     logo,
-    hero_video,
+    hero_image,
     cart_icon,
     dropdown_icon,
     exchange_icon,
