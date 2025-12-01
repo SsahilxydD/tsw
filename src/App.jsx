@@ -33,28 +33,21 @@ const Orders = lazy(() => import("./pages/Orders"));
 const Login = lazy(() => import("./pages/Login"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
-// Suspense wrapper for lazy components
-const LazyPage = ({ children }) => (
-  <Suspense fallback={<PageLoader />}>
-    {children}
-  </Suspense>
-);
-
 // Route configuration for caching
 const routes = [
   { path: "/", element: <Home /> },
-  { path: "/collection", element: <LazyPage><Collection /></LazyPage> },
-  { path: "/category/:cat", element: <LazyPage><Category /></LazyPage> },
-  { path: "/product/:id", element: <LazyPage><Product /></LazyPage> },
-  { path: "/about", element: <LazyPage><About /></LazyPage> },
-  { path: "/contact", element: <LazyPage><Contact /></LazyPage> },
-  { path: "/cart", element: <LazyPage><Cart /></LazyPage> },
-  { path: "/address", element: <LazyPage><Address /></LazyPage> },
-  { path: "/payment", element: <LazyPage><Payment /></LazyPage> },
-  { path: "/place-order", element: <LazyPage><PlaceOrder /></LazyPage> },
-  { path: "/orders", element: <LazyPage><Orders /></LazyPage> },
-  { path: "/login", element: <LazyPage><Login /></LazyPage> },
-  { path: "*", element: <LazyPage><NotFound /></LazyPage> },
+  { path: "/collection", element: <Collection /> },
+  { path: "/category/:cat", element: <Category /> },
+  { path: "/product/:id", element: <Product /> },
+  { path: "/about", element: <About /> },
+  { path: "/contact", element: <Contact /> },
+  { path: "/cart", element: <Cart /> },
+  { path: "/address", element: <Address /> },
+  { path: "/payment", element: <Payment /> },
+  { path: "/place-order", element: <PlaceOrder /> },
+  { path: "/orders", element: <Orders /> },
+  { path: "/login", element: <Login /> },
+  { path: "*", element: <NotFound /> },
 ];
 
 export default function App() {
@@ -76,7 +69,9 @@ export default function App() {
 
       <main id="main-content" className="min-h-[60vh]">
         <div className="animate-page">
-          <CachedRoutes routes={routes} />
+          <Suspense fallback={<PageLoader />}>
+            <CachedRoutes routes={routes} />
+          </Suspense>
         </div>
       </main>
 
