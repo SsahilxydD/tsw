@@ -88,13 +88,21 @@ const CartDrawer = () => {
                                     const productData = products.find((product) => product._id === item._id);
                                     if (!productData) return null;
 
+                                    // Handle different image formats
+                                    const cover = Array.isArray(productData.images) 
+                                        ? productData.images[0] 
+                                        : (Array.isArray(productData.image) 
+                                            ? productData.image[0] 
+                                            : productData.image) || '/assets/no-image.svg';
+
                                     return (
                                         <div key={index} className="flex gap-4">
                                             <div className="w-20 h-24 flex-shrink-0 bg-gray-50 rounded overflow-hidden">
                                                 <img
-                                                    src={productData.image[0]}
+                                                    src={cover}
                                                     alt={productData.name}
                                                     className="w-full h-full object-cover"
+                                                    onError={(e) => { e.target.src = '/assets/no-image.svg'; }}
                                                 />
                                             </div>
                                             <div className="flex-1 flex flex-col justify-between">
