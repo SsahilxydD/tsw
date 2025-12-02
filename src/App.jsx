@@ -17,15 +17,11 @@ import CachedRoutes from "./components/CachedRoutes";
 // Lazy load CartDrawer (uses framer-motion) - only loads when cart opens
 const CartDrawer = lazy(() => import("./components/CartDrawer"));
 
-// Eager load critical pages (homepage)
+// All pages eagerly loaded (required for CachedRoutes to work properly)
 import Home from "./pages/Home";
 import Category from "./pages/Category";
 import Collection from "./pages/Collection";
-
-// Lazy load pages with heavy dependencies (framer-motion animations)
-const Product = lazy(() => import("./pages/Product"));
-
-// Eager load lightweight pages
+import Product from "./pages/Product";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Cart from "./pages/Cart";
@@ -36,19 +32,12 @@ import Orders from "./pages/Orders";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
-// Minimal loading fallback
-const PageLoader = () => (
-  <div className="min-h-[60vh] flex items-center justify-center">
-    <div className="w-6 h-6 border-2 border-gray-300 border-t-black rounded-full animate-spin" />
-  </div>
-);
-
 // Route configuration for caching
 const routes = [
   { path: "/", element: <Home /> },
   { path: "/collection", element: <Collection /> },
   { path: "/category/:cat", element: <Category /> },
-  { path: "/product/:id", element: <Suspense fallback={<PageLoader />}><Product /></Suspense> },
+  { path: "/product/:id", element: <Product /> },
   { path: "/about", element: <About /> },
   { path: "/contact", element: <Contact /> },
   { path: "/cart", element: <Cart /> },
