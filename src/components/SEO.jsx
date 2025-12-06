@@ -62,6 +62,7 @@ export default function SEO({
       {imageUrl ? <meta property="og:image:secure_url" content={imageUrl} /> : null}
       {imageWidth ? <meta property="og:image:width" content={String(imageWidth)} /> : null}
       {imageHeight ? <meta property="og:image:height" content={String(imageHeight)} /> : null}
+      {imageUrl ? <meta property="og:image:type" content="image/jpeg" /> : null}
       <meta property="og:site_name" content="Solo Wardrobe" />
 
       {/* Product-specific Open Graph tags */}

@@ -316,6 +316,7 @@ export default {
     <meta property="og:image:secure_url" content="${imageUrl}" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="1200" />
+    <meta property="og:image:type" content="image/jpeg" />
     <meta property="og:site_name" content="Solo Wardrobe" />
     <meta property="product:price:amount" content="${displayPrice}" />
     <meta property="product:price:currency" content="INR" />
