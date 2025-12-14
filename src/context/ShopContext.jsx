@@ -4,6 +4,11 @@ import { useNavigate } from "react-router-dom";
 
 export const ShopContext = createContext();
 
+// CDN Configuration for R2
+// Set this to your R2 custom domain once configured (e.g., 'https://cdn.thesolowardrobe.com')
+// Leave empty to use local/origin images
+const CDN_BASE = import.meta.env.VITE_CDN_URL || '';
+
 const ShopContextProvider = (props) => {
   const currency = '₹';
   const delivery_fee = 10;
@@ -100,14 +105,22 @@ const ShopContextProvider = (props) => {
           const images = Array.isArray(item.images)
             ? item.images.map((src) => {
               if (!src) return "";
+              // Already absolute URL - use as-is
               if (/^https?:\/\//i.test(src)) return src;
-              // If the source file was under /data, prefix /data for relative-rooted paths
+              
+              // Use CDN if configured
+              if (CDN_BASE) {
+                // Strip leading slash and any /data prefix for CDN
+                const cleanPath = src.replace(/^\/?(data\/)?/, '');
+                return `${CDN_BASE}/${cleanPath}`;
+              }
+              
+              // Fallback to origin (existing logic)
               if (basePrefix) {
                 if (src.startsWith(basePrefix + "/")) return src;
                 if (src.startsWith("/")) return `${basePrefix}${src}`;
                 return `${basePrefix}/${src}`;
               }
-              // root-based dataset: keep leading-slash paths as-is
               if (src.startsWith("/")) return src;
               return `/${src}`;
             })

@@ -11,8 +11,10 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="theme-color" content="#000000" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <!-- Preload LCP hero image for faster initial render -->
-    <link rel="preload" href="/hero.webp" as="image" type="image/webp" fetchpriority="high" />
+    <!-- Preload LCP hero images - mobile local, desktop CDN -->
+    <link rel="preload" href="/hero.webp" as="image" type="image/webp" fetchpriority="high" media="(max-width: 639px)" />
+    <link rel="preload" href="https://imagedelivery.net/Ysm_SanI713eaOY5mRhkPQ/33b43c5b-c26c-4f5b-3adf-fec4eaada300/public" as="image" fetchpriority="high" media="(min-width: 640px)" />
+    <link rel="preconnect" href="https://imagedelivery.net" />
     
     <!-- Preload critical resources to break the network chain -->
     <link rel="preload" href="/data/products.json" as="fetch" crossorigin="anonymous" />
