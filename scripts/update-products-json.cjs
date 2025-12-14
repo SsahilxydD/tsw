@@ -79,8 +79,26 @@ function normalizePath(imagePath) {
 function findCloudflareUrl(imagePath, mapping) {
   if (!imagePath) return null;
   
-  // If already a Cloudflare Images URL, return as-is
+  // If already a Cloudflare Images URL, check if it's correct
   if (imagePath.includes('imagedelivery.net')) {
+    // Check if URL has filename instead of account hash (needs fixing)
+    // Pattern: https://imagedelivery.net/{filename}/{image_id}/public
+    const urlMatch = imagePath.match(/^https:\/\/imagedelivery\.net\/([^\/]+)\/([^\/]+)\/([^\/]+)$/);
+    if (urlMatch) {
+      const [, firstPart, imageId] = urlMatch;
+      // If first part looks like a filename (has extension), try to find correct URL
+      if (firstPart.match(/\.(webp|jpg|jpeg|png|gif|svg|avif)$/i)) {
+        // Try to find in mapping by image ID
+        for (const [key, value] of Object.entries(mapping)) {
+          if (value.includes(`/${imageId}/`)) {
+            return value; // Return correct URL from mapping
+          }
+        }
+        // If not found in mapping, return null to keep old URL (or could fix it)
+        return null;
+      }
+    }
+    // URL looks correct, return as-is
     return imagePath;
   }
   

@@ -32,9 +32,13 @@ const CONFIG = {
   // Your Cloudflare account ID (from dashboard URL)
   accountId: process.env.CLOUDFLARE_ACCOUNT_ID || 'YOUR_ACCOUNT_ID',
   
+  // Your Cloudflare Images account hash (from dashboard → Images → Developer Resources)
+  // This is a fixed value for your account, not per-image
+  accountHash: process.env.CLOUDFLARE_ACCOUNT_HASH || 'Ysm_SanI713eaOY5mRhkPQ',
+  
   // Number of parallel uploads (5-10 is optimal for API rate limits)
   // For 10000+ images, 8-10 is a good balance
-  concurrency: 5,
+  concurrency: 3,
   
   // Maximum file size to upload (10MB default for Cloudflare Images)
   maxFileSizeMB: 10,
@@ -144,7 +148,11 @@ async function uploadImage(fileInfo) {
   }
   
   const imageId = result.result.id;
-  const accountHash = result.result.filename.split('/')[0]; // Extract account hash from filename
+  const accountHash = CONFIG.accountHash;
+  
+  if (!accountHash || accountHash === 'YOUR_ACCOUNT_HASH') {
+    throw new Error('Please set CLOUDFLARE_ACCOUNT_HASH in environment or CONFIG');
+  }
   
   // Build Cloudflare Images URL
   // Format: https://imagedelivery.net/{account_hash}/{image_id}/{variant}
