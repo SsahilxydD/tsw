@@ -9,25 +9,41 @@ export default {
     const productMatch = url.pathname.match(/^\/product\/([^\/]+)$/);
 
     if (!productMatch) {
-      // Not a product page, fetch normally
+      // Not a product page, fetch normally from Pages origin
       return fetch(request);
     }
 
-    // Check if it's a bot/crawler
+    // Check if it's a bot/crawler (Facebook uses 'facebookexternalhit' and 'Facebot')
     const userAgent = request.headers.get('User-Agent') || '';
-    const isBot = /bot|crawler|spider|facebook|whatsapp|twitter|linkedin|slack|telegram/i.test(userAgent);
+    const isBot = /bot|crawler|spider|facebook|facebookexternalhit|facebot|whatsapp|twitter|linkedin|slack|telegram|pinterest|googlebot|bingbot/i.test(userAgent);
+    
+    // Also check for Facebook's specific crawler headers
+    const isFacebookBot = userAgent.includes('facebookexternalhit') || userAgent.includes('Facebot');
 
-    if (!isBot) {
+    if (!isBot && !isFacebookBot) {
       // Regular user, serve normally
       return fetch(request);
     }
 
     // It's a bot on a product page - inject meta tags
     const productId = productMatch[1];
+    
+    console.log('Bot detected on product page:', userAgent, 'Product ID:', productId);
 
     try {
-      // Fetch products data
-      const productsResponse = await fetch('https://thesolowardrobe.com/data/products.json');
+      // Get origin URL once for all fetches (ensures we fetch from Cloudflare Pages, not old VPS)
+      const originUrl = new URL(request.url);
+      const origin = `${originUrl.protocol}//${originUrl.host}`;
+      
+      // Fetch products data from Pages origin
+      const productsUrl = `${origin}/data/products.json`;
+      const productsResponse = await fetch(productsUrl);
+      
+      if (!productsResponse.ok) {
+        console.error('Failed to fetch products.json:', productsResponse.status);
+        return fetch(request);
+      }
+      
       const products = await productsResponse.json();
 
       // Find product
@@ -37,28 +53,100 @@ export default {
       );
 
       if (!product) {
+        console.log('Product not found for ID:', productId);
         return fetch(request);
       }
+      
+      console.log('Product found:', product.name || product.title);
 
       // Extract product details
-      const productName = product.name || product.title || 'Product';
-      const productImage = Array.isArray(product.images)
-        ? product.images[0]
-        : (Array.isArray(product.image) ? product.image[0] : product.image);
+      const productName = product.name || product.title || product.slug_name || 'Product';
+      
+      // Get product image - try multiple sources
+      let productImage = null;
+      if (Array.isArray(product.images) && product.images.length > 0) {
+        productImage = product.images[0];
+      } else if (Array.isArray(product.image) && product.image.length > 0) {
+        productImage = product.image[0];
+      } else if (product.image) {
+        productImage = product.image;
+      }
 
-      const baseUrl = 'https://thesolowardrobe.com';
-
-      // Images are served from /data/images/* path
-      let imageUrl = productImage;
-      if (productImage?.startsWith('http')) {
-        imageUrl = productImage;
-      } else if (productImage?.startsWith('/images/')) {
-        // Need to add /data prefix
-        imageUrl = `${baseUrl}/data${productImage}`;
-      } else if (productImage?.startsWith('/')) {
-        imageUrl = `${baseUrl}${productImage}`;
+      // Build absolute image URL - handle all cases and optimize for OG
+      let imageUrl = null;
+      if (productImage) {
+        const imgStr = String(productImage).trim();
+        let baseImageUrl = null;
+        
+        if (imgStr.startsWith('http://') || imgStr.startsWith('https://')) {
+          // Already absolute URL
+          baseImageUrl = imgStr;
+        } else if (imgStr.startsWith('/')) {
+          // Absolute path - use origin
+          baseImageUrl = `${origin}${imgStr}`;
+        } else {
+          // Relative path
+          baseImageUrl = `${origin}/${imgStr}`;
+        }
+        
+        // OPTIMIZE FOR OG: Resize and optimize image for social media
+        // Facebook/WhatsApp prefer 1200x630 (1.91:1), but 1200x1200 works well too
+        if (baseImageUrl.includes('imagedelivery.net')) {
+          // Cloudflare Images: Add optimization parameters
+          // Format: https://imagedelivery.net/{account_hash}/{image_id}/{variant}
+          try {
+            const url = new URL(baseImageUrl);
+            const pathParts = url.pathname.split('/').filter(Boolean);
+            
+            if (pathParts.length >= 2) {
+              const accountHash = pathParts[0];
+              const imageId = pathParts[1];
+              
+              // Build optimized OG image URL with:
+              // - w=1200: width 1200px (Facebook/WhatsApp optimal)
+              // - h=1200: height 1200px (square format works well)
+              // - q=85: quality 85% (good balance of quality/size)
+              // - f=auto: auto format (WebP/AVIF when supported, falls back to JPEG)
+              // - fit=cover: cover the dimensions (cropping if needed)
+              imageUrl = `https://imagedelivery.net/${accountHash}/${imageId}/w=1200,h=1200,q=85,f=auto,fit=cover`;
+            } else {
+              imageUrl = baseImageUrl;
+            }
+          } catch (e) {
+            // If URL parsing fails, use original
+            console.warn('Failed to parse Cloudflare Images URL:', e);
+            imageUrl = baseImageUrl;
+          }
+        } else {
+          // For images on your own domain, use Cloudflare's image resizing service
+          // This requires Cloudflare Image Resizing to be enabled
+          // Format: https://yourdomain.com/cdn-cgi/image/{options}/{path}
+          try {
+            const baseUrlObj = new URL(baseImageUrl);
+            const originObj = new URL(origin);
+            
+            // Check if image is on the same domain as origin
+            if (baseUrlObj.hostname === originObj.hostname) {
+              const imagePath = baseUrlObj.pathname + baseUrlObj.search + baseUrlObj.hash;
+              imageUrl = `${origin}/cdn-cgi/image/width=1200,height=1200,quality=85,format=auto,fit=cover${imagePath}`;
+            } else {
+              // For other domains, use as-is
+              imageUrl = baseImageUrl;
+            }
+          } catch (e) {
+            // If URL parsing fails, use original
+            console.warn('Failed to parse image URL for CDN optimization:', e);
+            imageUrl = baseImageUrl;
+          }
+        }
+      }
+      
+      // Only set imageUrl if we have a valid product image
+      if (!imageUrl) {
+        console.warn('No product image found for product:', productId);
+        // Don't set fallback - let imageUrl be null so we don't include invalid og:image
       } else {
-        imageUrl = `${baseUrl}/${productImage}`;
+        console.log('Product image URL (optimized for OG):', imageUrl);
       }
 
       // Apply same price adjustments as ShopContext
@@ -285,10 +373,11 @@ export default {
         description = description.substring(0, 197) + '...';
       }
 
-      const productUrl = `${baseUrl}/product/${productId}`;
+      const productUrl = `${origin}/product/${productId}`;
 
-      // Fetch the base HTML
-      const htmlResponse = await fetch(`${baseUrl}/index.html`);
+      // Fetch the base HTML from Pages origin (reuse origin from above)
+      const htmlUrl = `${origin}/index.html`;
+      const htmlResponse = await fetch(htmlUrl);
       let html = await htmlResponse.text();
 
       // Helper to escape HTML
@@ -312,25 +401,32 @@ export default {
     <meta property="og:description" content="${escapeHtml(description)}" />
     <meta property="og:url" content="${productUrl}" />
     <meta property="og:type" content="product" />
-    <meta property="og:image" content="${imageUrl}" />
-    <meta property="og:image:secure_url" content="${imageUrl}" />
+    ${imageUrl ? `<meta property="og:image" content="${escapeHtml(imageUrl)}" />
+    <meta property="og:image:secure_url" content="${escapeHtml(imageUrl)}" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="1200" />
     <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:alt" content="${escapeHtml(productName)}" />` : ''}
     <meta property="og:site_name" content="Solo Wardrobe" />
-    <meta property="product:price:amount" content="${displayPrice}" />
+    <meta property="product:price:amount" content="${displayPrice || 0}" />
     <meta property="product:price:currency" content="INR" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${escapeHtml(productName)} – Solo Wardrobe" />
     <meta name="twitter:description" content="${escapeHtml(description)}" />
-    <meta name="twitter:image" content="${imageUrl}" />
+    ${imageUrl ? `<meta name="twitter:image" content="${escapeHtml(imageUrl)}" />` : ''}
     `;
 
-      // Inject meta tags
+      // Remove existing OG tags and meta tags before injecting new ones
       html = html.replace(/<title>.*?<\/title>/i, '');
       html = html.replace(/<meta\s+name=["']description["'][^>]*>/gi, '');
+      // Remove all existing OG tags
+      html = html.replace(/<meta\s+property=["']og:[^>]*>/gi, '');
+      html = html.replace(/<meta\s+name=["']twitter:[^>]*>/gi, '');
+      // Remove canonical link if exists
+      html = html.replace(/<link\s+rel=["']canonical["'][^>]*>/gi, '');
+      // Inject new meta tags
       html = html.replace('</head>', `${metaTags}\n</head>`);
 
       return new Response(html, {

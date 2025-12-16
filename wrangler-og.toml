@@ -1,0 +1,7 @@
+name = "og-meta-handler"
+main = "cloudflare-worker.js"
+compatibility_date = "2024-01-01"
+
+# Routes will be configured in Cloudflare Dashboard
+# Route: thesolowardrobe.com/product/*
+
