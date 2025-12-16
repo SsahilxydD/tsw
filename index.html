@@ -122,6 +122,7 @@
 
     <script>
       // Clean up deprecated apple meta and block any GA/gtm network calls (from stale SW or third-parties)
+      // Also suppress Cloudflare Insights errors to prevent them from breaking the app
       (function(){
         try {
           var old = document.querySelector('meta[name="apple-mobile-web-app-capable"]');
@@ -146,6 +147,24 @@
               return obeacon(url, data);
             };
           }
+          // Suppress Cloudflare Insights errors (ERR_BLOCKED_BY_CLIENT) - they're non-critical
+          window.addEventListener('error', function(e) {
+            if (e.message && (e.message.indexOf('cloudflareinsights') !== -1 || 
+                e.message.indexOf('beacon.min.js') !== -1 || 
+                e.filename && e.filename.indexOf('cloudflareinsights') !== -1)) {
+              e.preventDefault();
+              e.stopPropagation();
+              return false;
+            }
+          }, true);
+          // Suppress unhandled promise rejections from Cloudflare Insights
+          window.addEventListener('unhandledrejection', function(e) {
+            if (e.reason && (String(e.reason).indexOf('cloudflareinsights') !== -1 || 
+                String(e.reason).indexOf('beacon') !== -1)) {
+              e.preventDefault();
+              return false;
+            }
+          });
           // Do not unregister service workers here; leave control to app hosting
         } catch (e) {}
       })();

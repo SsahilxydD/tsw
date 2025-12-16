@@ -169,9 +169,6 @@ const HeroSlider = () => {
                 height={200}
                 loading="lazy"
                 quality={85}
-                decoding="async"
-                onError={(e) => { e.target.src = NO_IMAGE_PLACEHOLDER; }}
-                draggable={false}
               />
             </div>
           </div>

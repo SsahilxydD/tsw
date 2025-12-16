@@ -3,6 +3,7 @@ import OurPolicy from '../components/OurPolicy'
 import Categories from '../components/Categories'
 import Hero from '../components/Hero'
 import SEO from '../components/SEO'
+import ErrorBoundary from '../components/ErrorBoundary'
 
 // Lazy load heavy slider components (below the fold) to reduce initial bundle
 const HeroSlider = lazy(() => import('../components/HeroSlider'))
@@ -44,15 +45,21 @@ const Home = () => {
       <Hero />
 
       {/* Lazy load sliders below the fold */}
-      <Suspense fallback={<div className="h-64 bg-gray-50 animate-pulse" />}>
-        <HeroSlider />
-      </Suspense>
-      <Suspense fallback={<div className="h-64 bg-gray-50 animate-pulse" />}>
-        <AllCategoriesSlider />
-      </Suspense>
-      <Suspense fallback={<div className="h-64 bg-gray-50 animate-pulse" />}>
-        <DiscountedSlider />
-      </Suspense>
+      <ErrorBoundary fallback={<div className="h-64 bg-gray-50 animate-pulse" />}>
+        <Suspense fallback={<div className="h-64 bg-gray-50 animate-pulse" />}>
+          <HeroSlider />
+        </Suspense>
+      </ErrorBoundary>
+      <ErrorBoundary fallback={<div className="h-64 bg-gray-50 animate-pulse" />}>
+        <Suspense fallback={<div className="h-64 bg-gray-50 animate-pulse" />}>
+          <AllCategoriesSlider />
+        </Suspense>
+      </ErrorBoundary>
+      <ErrorBoundary fallback={<div className="h-64 bg-gray-50 animate-pulse" />}>
+        <Suspense fallback={<div className="h-64 bg-gray-50 animate-pulse" />}>
+          <DiscountedSlider />
+        </Suspense>
+      </ErrorBoundary>
       <Categories />
       <OurPolicy />
     </div>
