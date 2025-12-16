@@ -13,6 +13,10 @@ class ErrorBoundary extends React.Component {
   componentDidCatch(error, errorInfo) {
     // Log error but don't break the app
     console.error('ErrorBoundary caught an error:', error, errorInfo);
+    // Reset error state after a delay to allow retry
+    setTimeout(() => {
+      this.setState({ hasError: false, error: null });
+    }, 5000);
   }
 
   render() {

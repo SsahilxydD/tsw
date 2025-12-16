@@ -15,39 +15,68 @@ const AllCategoriesSlider = () => {
   const isResetting = useRef(false);
   const cachedSetWidth = useRef(0);
 
+  // Debug: Log when component renders
   useEffect(() => {
-    if (!loadingProducts && Array.isArray(products) && products.length > 0) {
-      const categoryMap = new Map();
-      
-      products.forEach(p => {
-        const category = p.categoryRaw || p.category || 'Misc';
-        if (!categoryMap.has(category)) {
-          categoryMap.set(category, []);
-        }
-        categoryMap.get(category).push(p);
-      });
+    console.log('[AllCategoriesSlider] Component mounted, loadingProducts:', loadingProducts, 'products count:', products?.length || 0);
+  }, []);
 
-      const allCategoryProducts = [];
-      const categories = Array.from(categoryMap.keys());
-      
-      for (const category of categories.slice(0, 21)) {
-        const categoryProducts = categoryMap.get(category);
-        if (categoryProducts && categoryProducts.length > 0) {
-          const product = categoryProducts[0];
-          allCategoryProducts.push({
-            _id: product._id || product.slug || '',
-            title: product.name || '',
-            price: Number(product.price || 0),
-            mrp: Number(product.mrp || 0),
-            image: product.image || (Array.isArray(product.images) ? product.images[0] : '') || '',
-            slug: product.slug || product._id || '',
-            category: category
-          });
+  useEffect(() => {
+    try {
+      if (!loadingProducts && Array.isArray(products) && products.length > 0) {
+        const categoryMap = new Map();
+        
+        products.forEach(p => {
+          try {
+            const category = p.categoryRaw || p.category || 'Misc';
+            if (!categoryMap.has(category)) {
+              categoryMap.set(category, []);
+            }
+            categoryMap.get(category).push(p);
+          } catch (e) {
+            console.warn('Error processing product for category slider:', e);
+          }
+        });
+
+        const allCategoryProducts = [];
+        const categories = Array.from(categoryMap.keys());
+        
+        for (const category of categories.slice(0, 21)) {
+          try {
+            const categoryProducts = categoryMap.get(category);
+            if (categoryProducts && categoryProducts.length > 0) {
+              const product = categoryProducts[0];
+              const productTitle = product.name || product.title || product.slug_name || 'Product';
+              const productId = product._id || product.slug || '';
+              
+              // Only add if we have at least an ID
+              if (productId) {
+                allCategoryProducts.push({
+                  _id: productId,
+                  title: productTitle,
+                  price: Number(product.price || 0),
+                  mrp: Number(product.mrp || 0),
+                  image: product.image || (Array.isArray(product.images) ? product.images[0] : '') || '',
+                  slug: product.slug || product._id || '',
+                  category: category
+                });
+              }
+            }
+          } catch (e) {
+            console.warn('Error processing category:', category, e);
+          }
         }
+
+        // Filter out products without IDs, but allow products without titles
+        const validProducts = allCategoryProducts.filter(p => p._id);
+        console.log('[AllCategoriesSlider] Setting products:', validProducts.length, 'from', categories.length, 'categories');
+        setSliderProducts(validProducts);
+      } else if (!loadingProducts && products.length === 0) {
+        // Products loaded but empty - set empty array
+        setSliderProducts([]);
       }
-
-      const validProducts = allCategoryProducts.filter(p => p._id && p.title);
-      setSliderProducts(validProducts);
+    } catch (error) {
+      console.error('Error in AllCategoriesSlider:', error);
+      setSliderProducts([]);
     }
   }, [products, loadingProducts]);
 
@@ -124,7 +153,7 @@ const AllCategoriesSlider = () => {
   const SLIDER_MIN_HEIGHT = 'min-h-[200px] sm:min-h-[220px]';
 
   // Show skeleton placeholders while loading
-  if (loadingProducts || sliderProducts.length === 0) {
+  if (loadingProducts) {
     return (
       <div className={`w-full py-4 sm:py-6 bg-gray-50/50 ${SLIDER_MIN_HEIGHT}`}>
         <div className="text-center mb-4">
@@ -145,6 +174,11 @@ const AllCategoriesSlider = () => {
         </div>
       </div>
     );
+  }
+
+  // If no products after loading, show empty state or don't render
+  if (sliderProducts.length === 0) {
+    return null; // Don't render if no products
   }
 
   const loopedProducts = [...sliderProducts, ...sliderProducts, ...sliderProducts];

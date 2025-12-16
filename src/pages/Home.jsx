@@ -6,9 +6,25 @@ import SEO from '../components/SEO'
 import ErrorBoundary from '../components/ErrorBoundary'
 
 // Lazy load heavy slider components (below the fold) to reduce initial bundle
-const HeroSlider = lazy(() => import('../components/HeroSlider'))
-const AllCategoriesSlider = lazy(() => import('../components/AllCategoriesSlider'))
-const DiscountedSlider = lazy(() => import('../components/DiscountedSlider'))
+// Add error handling for failed imports
+const HeroSlider = lazy(() => 
+  import('../components/HeroSlider').catch(err => {
+    console.error('Failed to load HeroSlider:', err);
+    return { default: () => <div className="h-64 bg-gray-50 animate-pulse" /> };
+  })
+);
+const AllCategoriesSlider = lazy(() => 
+  import('../components/AllCategoriesSlider').catch(err => {
+    console.error('Failed to load AllCategoriesSlider:', err);
+    return { default: () => <div className="h-64 bg-gray-50 animate-pulse" /> };
+  })
+);
+const DiscountedSlider = lazy(() => 
+  import('../components/DiscountedSlider').catch(err => {
+    console.error('Failed to load DiscountedSlider:', err);
+    return { default: () => <div className="h-64 bg-gray-50 animate-pulse" /> };
+  })
+);
 
 const Home = () => {
   return (
