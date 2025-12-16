@@ -39,6 +39,12 @@ export default function SafeImg({
     // Skip if already a data URL
     if (originalSrc.startsWith('data:')) return originalSrc;
     
+    // Skip local files (relative paths) - they shouldn't be resized
+    if (originalSrc.startsWith('/') && !originalSrc.startsWith('//')) return originalSrc;
+    
+    // Skip R2 URLs and other non-Cloudflare Images URLs
+    if (!originalSrc.includes('imagedelivery.net')) return originalSrc;
+    
     // Check if this is a Cloudflare Images URL (imagedelivery.net)
     if (originalSrc.includes('imagedelivery.net')) {
       // Cloudflare Images format: https://imagedelivery.net/{account_hash}/{image_id}/{variant}
@@ -76,9 +82,15 @@ export default function SafeImg({
 
   const finalSrc = broken || !src ? FALLBACK : src;
 
-  // Generate srcset for responsive images (if width is provided and CF is enabled)
+  // Generate srcset for responsive images (only for Cloudflare Images URLs)
   const generateSrcSet = () => {
     if (!src || broken || !width || !CF_IMAGE_RESIZING) return undefined;
+    
+    // Only generate srcset for Cloudflare Images URLs
+    if (!src.includes('imagedelivery.net')) return undefined;
+    
+    // Skip for local files
+    if (src.startsWith('/') && !src.startsWith('//')) return undefined;
     
     const widths = [width, width * 1.5, width * 2].map(Math.round);
     return widths.map(w => {
@@ -88,7 +100,14 @@ export default function SafeImg({
   };
 
   const srcSet = generateSrcSet();
-  const optimizedSrc = CF_IMAGE_RESIZING && width 
+  
+  // Only optimize Cloudflare Images URLs, leave local/R2 files as-is
+  const shouldOptimize = CF_IMAGE_RESIZING && width && 
+    src && 
+    src.includes('imagedelivery.net') && 
+    !src.startsWith('/');
+  
+  const optimizedSrc = shouldOptimize
     ? getCFOptimizedUrl(finalSrc, width, height) 
     : finalSrc;
 
