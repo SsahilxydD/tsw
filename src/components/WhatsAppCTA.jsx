@@ -1,5 +1,6 @@
 // src/components/WhatsAppCTA.jsx
 import React, { useCallback, useEffect, useState } from "react";
+import SafeImg from "./SafeImg";
 
 /**
  * Floating WhatsApp CTA
@@ -77,11 +78,14 @@ export default function WhatsAppCTA({
         `}
         style={{ color: iconOnly ? "#fff" : undefined }}
       >
-        <img
+        <SafeImg
           src={iconSrc}
           alt=""
           className={iconOnly ? "h-7 w-7" : "h-5 w-5"}
+          width={iconOnly ? 28 : 20}
+          height={iconOnly ? 28 : 20}
           loading="lazy"
+          quality={90}
           onError={(e) => { e.currentTarget.style.display = "none"; }}
         />
         {!iconOnly && <span className="text-white">{label}</span>}

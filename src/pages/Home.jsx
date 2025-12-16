@@ -1,11 +1,13 @@
-import React from 'react'
+import React, { lazy, Suspense } from 'react'
 import OurPolicy from '../components/OurPolicy'
 import Categories from '../components/Categories'
 import Hero from '../components/Hero'
-import HeroSlider from '../components/HeroSlider'
-import AllCategoriesSlider from '../components/AllCategoriesSlider'
-import DiscountedSlider from '../components/DiscountedSlider'
 import SEO from '../components/SEO'
+
+// Lazy load heavy slider components (below the fold) to reduce initial bundle
+const HeroSlider = lazy(() => import('../components/HeroSlider'))
+const AllCategoriesSlider = lazy(() => import('../components/AllCategoriesSlider'))
+const DiscountedSlider = lazy(() => import('../components/DiscountedSlider'))
 
 const Home = () => {
   return (
@@ -41,10 +43,16 @@ const Home = () => {
 
       <Hero />
 
-      {/* Removed opacity-0 animations to prevent CLS - content renders immediately */}
-      <HeroSlider />
-      <AllCategoriesSlider />
-      <DiscountedSlider />
+      {/* Lazy load sliders below the fold */}
+      <Suspense fallback={<div className="h-64 bg-gray-50 animate-pulse" />}>
+        <HeroSlider />
+      </Suspense>
+      <Suspense fallback={<div className="h-64 bg-gray-50 animate-pulse" />}>
+        <AllCategoriesSlider />
+      </Suspense>
+      <Suspense fallback={<div className="h-64 bg-gray-50 animate-pulse" />}>
+        <DiscountedSlider />
+      </Suspense>
       <Categories />
       <OurPolicy />
     </div>

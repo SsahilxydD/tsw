@@ -29,7 +29,7 @@ export default function SafeImg({
   const [broken, setBroken] = useState(false);
 
   // Check if Cloudflare Image Resizing is available (set to true if you've enabled it)
-  const CF_IMAGE_RESIZING = false; // Set to true after enabling in Cloudflare dashboard
+  const CF_IMAGE_RESIZING = true; // Set to true after enabling in Cloudflare dashboard
 
   // Generate Cloudflare optimized URL
   const getCFOptimizedUrl = (originalSrc, w) => {

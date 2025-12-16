@@ -2,6 +2,7 @@ import React, { useEffect, useState, useContext, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ShopContext } from '../context/ShopContext';
 import Title from './Title';
+import SafeImg from './SafeImg';
 import './HeroSlider.css';
 
 const NO_IMAGE_PLACEHOLDER = '/assets/no-image.svg';
@@ -165,13 +166,14 @@ const AllCategoriesSlider = () => {
             onClick={() => handleProductClick(product)}
           >
             <div className="w-full h-full bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-              <img
+              <SafeImg
                 src={product.image || NO_IMAGE_PLACEHOLDER}
                 alt={product.title || 'Product'}
                 className="w-full h-full object-cover"
                 width={200}
                 height={200}
                 loading="lazy"
+                quality={85}
                 decoding="async"
                 onError={(e) => { e.target.src = NO_IMAGE_PLACEHOLDER; }}
                 draggable={false}

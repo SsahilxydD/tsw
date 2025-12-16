@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ShopContext } from "../context/ShopContext";
+import SafeImg from "../components/SafeImg";
 
 const EMPTY = {
   firstName: "",
@@ -395,11 +396,13 @@ export default function Address() {
                 {cartList.map((item, idx) => (
                   <div key={idx} className="flex gap-3">
                     <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                      <img
+                      <SafeImg
                         src={item.image}
                         alt={item.name}
                         className="w-full h-full object-cover"
-                        onError={(e) => { e.target.src = '/assets/no-image.svg'; }}
+                        width={64}
+                        height={64}
+                        quality={85}
                       />
                     </div>
                     <div className="flex-1 min-w-0">

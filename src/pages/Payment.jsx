@@ -3,6 +3,7 @@ import CartSteps from "../components/CartSteps";
 import { ShopContext } from "../context/ShopContext";
 import CartTotal from "../components/CartTotal";
 import CartStickyBar from "../components/CartStickyBar";
+import SafeImg from "../components/SafeImg";
 
 export default function Payment() {
   const { products, currency, cartItems, address, navigate, getCartCount } = useContext(ShopContext);
@@ -117,7 +118,7 @@ export default function Payment() {
                 : (Array.isArray(p?.images) ? (p.images[0] || '') : (p?.image || ''));
               return (
                 <div key={idx} className="rounded-md border bg-white p-4 flex items-center gap-4">
-                  <img className="w-16 h-16 rounded-md object-cover border" src={cover} alt="" />
+                  <SafeImg className="w-16 h-16 rounded-md object-cover border" src={cover} alt="" width={64} height={64} quality={85} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{p?.name}</p>
                     <p className="text-xs text-gray-500 mt-1">

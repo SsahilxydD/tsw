@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import SafeImg from './SafeImg';
 import './Carousel.css';
 
 const DRAG_BUFFER = 0;
@@ -182,13 +183,13 @@ export default function Carousel({
                 onClick={() => onProductClick && onProductClick(item)}
               >
                 <div className="carousel-item-image-container">
-                  <img
+                  <SafeImg
                     src={item.image || '/assets/no-image.png'}
                     alt={item.title || ''}
                     className="carousel-item-image"
-                    onError={(e) => {
-                      e.target.src = '/assets/no-image.png';
-                    }}
+                    width={baseWidth}
+                    height={baseWidth}
+                    quality={85}
                   />
                 </div>
                 <div className="carousel-item-content">

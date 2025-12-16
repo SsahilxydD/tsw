@@ -78,12 +78,29 @@ export default defineConfig({
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash][extname]',
-        // Split vendor libraries for better caching
-        // NOTE: framer-motion is NOT in manualChunks - it bundles with lazy-loaded components
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom'],
-          'vendor-router': ['react-router-dom'],
-          'vendor-ui': ['react-toastify']
+        // Split vendor libraries for better caching and reduce unused code
+        manualChunks: (id) => {
+          // Split node_modules into separate chunks
+          if (id.includes('node_modules')) {
+            // React core
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'vendor-react';
+            }
+            // Router
+            if (id.includes('react-router')) {
+              return 'vendor-router';
+            }
+            // Framer Motion - heavy library, split out
+            if (id.includes('framer-motion') || id.includes('@use-gesture')) {
+              return 'vendor-motion';
+            }
+            // UI libraries
+            if (id.includes('react-toastify')) {
+              return 'vendor-ui';
+            }
+            // Other vendor code
+            return 'vendor-other';
+          }
         }
       }
     }

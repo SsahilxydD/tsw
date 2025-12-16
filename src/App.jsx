@@ -17,20 +17,22 @@ import CachedRoutes from "./components/CachedRoutes";
 // Lazy load CartDrawer (uses framer-motion) - only loads when cart opens
 const CartDrawer = lazy(() => import("./components/CartDrawer"));
 
-// All pages eagerly loaded (required for CachedRoutes to work properly)
+// Critical pages - eagerly loaded for fast initial navigation
 import Home from "./pages/Home";
 import Category from "./pages/Category";
 import Collection from "./pages/Collection";
 import Product from "./pages/Product";
-import About from "./pages/About";
-import Contact from "./pages/Contact";
 import Cart from "./pages/Cart";
 import Address from "./pages/Address";
 import Payment from "./pages/Payment";
 import PlaceOrder from "./pages/PlaceOrder";
-import Orders from "./pages/Orders";
-import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
+
+// Non-critical pages - lazy loaded to reduce initial bundle size
+const About = lazy(() => import("./pages/About"));
+const Contact = lazy(() => import("./pages/Contact"));
+const Orders = lazy(() => import("./pages/Orders"));
+const Login = lazy(() => import("./pages/Login"));
 
 // Route configuration for caching
 const routes = [
@@ -71,7 +73,13 @@ export default function App() {
 
       <main id="main-content" className="min-h-[60vh]">
         <div className="animate-page">
-          <CachedRoutes routes={routes} />
+          <Suspense fallback={
+            <div className="flex items-center justify-center min-h-[60vh]">
+              <div className="animate-pulse text-gray-400">Loading...</div>
+            </div>
+          }>
+            <CachedRoutes routes={routes} />
+          </Suspense>
         </div>
       </main>
 

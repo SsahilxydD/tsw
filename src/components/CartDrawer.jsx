@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ShopContext } from '../context/ShopContext';
 import { assets } from '../assets/assets';
 import { motion, AnimatePresence } from 'framer-motion';
+import SafeImg from './SafeImg';
 
 const CartDrawer = () => {
     const {
@@ -64,7 +65,7 @@ const CartDrawer = () => {
                                 onClick={() => setIsCartOpen(false)}
                                 className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                             >
-                                <img src={assets.cross_icon} className="w-5 h-5" alt="Close" />
+                                <SafeImg src={assets.cross_icon} className="w-5 h-5" alt="Close" width={20} height={20} quality={90} />
                             </button>
                         </div>
 
@@ -102,11 +103,13 @@ const CartDrawer = () => {
                                                 onClick={() => setIsCartOpen(false)}
                                                 className="w-20 h-24 flex-shrink-0 bg-gray-50 rounded overflow-hidden hover:opacity-80 transition-opacity"
                                             >
-                                                <img
+                                                <SafeImg
                                                     src={cover}
                                                     alt={productData.name}
                                                     className="w-full h-full object-cover"
-                                                    onError={(e) => { e.target.src = '/assets/no-image.svg'; }}
+                                                    width={80}
+                                                    height={96}
+                                                    quality={85}
                                                 />
                                             </Link>
                                             <div className="flex-1 flex flex-col justify-between min-w-0">

@@ -3,6 +3,7 @@ import { Link, useLocation, NavLink } from "react-router-dom";
 import { assets } from "../assets/assets";
 import { ShopContext } from "../context/ShopContext";
 import AnnouncementBar from "./AnnouncementBar";
+import SafeImg from "./SafeImg";
 
 const Navbar = () => {
   const { getCartCount, setIsCartOpen, setShowSearch } = useContext(ShopContext);
@@ -94,10 +95,13 @@ const Navbar = () => {
             aria-label="Go to homepage"
           >
             {assets.logo ? (
-              <img
+              <SafeImg
                 src={assets.logo}
                 alt="Solo Wardrobe"
                 className="h-12 sm:h-[42px] w-auto object-contain transition-all duration-300 group-hover:scale-105"
+                width={168}
+                height={42}
+                quality={90}
               />
             ) : (
               <span className="font-serif text-lg sm:text-xl font-bold tracking-tight">SOLO WARDROBE</span>
@@ -138,7 +142,7 @@ const Navbar = () => {
             >
               <div className={`w-6 h-6 transition-colors group-hover:text-accent ${isTransparent ? 'text-white' : 'text-primary'}`}>
                 {assets.cart_icon ? (
-                  <img src={assets.cart_icon} alt="" className={`w-full h-full transition-all ${isTransparent ? 'brightness-0 invert' : ''}`} />
+                  <SafeImg src={assets.cart_icon} alt="" className={`w-full h-full transition-all ${isTransparent ? 'brightness-0 invert' : ''}`} width={24} height={24} quality={90} />
                 ) : (
                   <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
                 )}

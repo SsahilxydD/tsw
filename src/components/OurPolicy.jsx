@@ -1,6 +1,7 @@
 // src/components/OurPolicy.jsx
 import React from "react";
 import { assets } from "../assets/assets";
+import SafeImg from "./SafeImg";
 
 const POLICIES = [
   {
@@ -33,11 +34,14 @@ export default function OurPolicy() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 sm:gap-2 text-center text-xs sm:text-sm md:text-base">
         {POLICIES.map(({ icon, title, subtitle }) => (
           <div key={title}>
-            <img
+            <SafeImg
               className="w-12 m-auto mb-5"
               src={icon}
               alt={title}
+              width={48}
+              height={48}
               loading="lazy"
+              quality={90}
             />
             <p className="font-semibold">{title}</p>
             <p className="text-gray-600">{subtitle}</p>

@@ -9,6 +9,7 @@ import { isFootwearProduct, isJeansProduct, normalizeJeansSizes, toUKLabel, uniq
 import SEO from "../components/SEO";
 import CircularText from "../components/CircularText";
 import { motion, AnimatePresence } from "framer-motion";
+import SafeImg from "../components/SafeImg";
 
 // --- Animation Variants ---
 const pageVariants = {
@@ -385,13 +386,15 @@ export default function Product() {
                 className="absolute inset-0"
               >
                 {gallery[activeIdx] ? (
-                  <img
+                  <SafeImg
                     id="product-main-image"
                     src={gallery[activeIdx]}
                     alt={product.name || product.title}
                     className="h-full w-full object-contain"
+                    width={800}
+                    height={800}
                     loading="eager"
-                    decoding="sync"
+                    quality={90}
                   />
                 ) : (
                   <div className="h-full w-full grid place-content-center text-sm text-gray-400">
@@ -425,12 +428,14 @@ export default function Product() {
                       : "ring-1 ring-gray-200 hover:ring-gray-400"
                     }`}
                 >
-                  <img
+                  <SafeImg
                     src={src}
                     alt={`View ${i + 1}`}
                     className="h-full w-full object-cover"
+                    width={150}
+                    height={150}
                     loading="lazy"
-                    decoding="async"
+                    quality={85}
                   />
                 </motion.button>
               ))}

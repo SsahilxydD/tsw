@@ -10,6 +10,7 @@ import Accordion from '../components/Accordion';
 import CartRecommendations from '../components/CartRecommendations';
 // import CartStickyBar from '../components/CartStickyBar';
 import { isFootwearProduct, toUKLabel } from '../utils/size';
+import SafeImg from '../components/SafeImg';
 
 const Cart = () => {
 
@@ -116,13 +117,13 @@ const Cart = () => {
               className={`rounded-md border bg-white p-4 sm:p-5 text-gray-700 flex items-center gap-4 sm:gap-6 hover:shadow-md transition-all duration-200 ${isLeaving ? 'animate-cart-leave pointer-events-none' : 'animate-soft-reveal'}`}
             >
               <Link to={`/product/${item._id}`} className="shrink-0">
-                <img
+                <SafeImg
                   className='w-20 h-20 rounded-md object-cover border hover:opacity-80 transition-opacity'
                   src={cover || '/placeholder-image.png'}
                   alt={productData?.name || 'Product'}
-                  onError={(e) => {
-                    e.target.src = '/placeholder-image.png';
-                  }}
+                  width={80}
+                  height={80}
+                  quality={85}
                 />
               </Link>
               <div className='flex-1 min-w-0'>
@@ -160,7 +161,7 @@ const Cart = () => {
                   onClick={() => requestRemove(item._id, item.size)}
                   className='p-2 rounded hover:bg-gray-100 active:scale-95 transition sm:hidden pressable'
                 >
-                  <img className='w-5 sm:w-5' src={assets.bin_icon} alt='' />
+                  <SafeImg className='w-5 sm:w-5' src={assets.bin_icon} alt='' width={20} height={20} quality={90} />
                 </button>
               </div>
             </div>
