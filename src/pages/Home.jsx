@@ -1,30 +1,12 @@
-import React, { lazy, Suspense } from 'react'
+import React from 'react'
 import OurPolicy from '../components/OurPolicy'
 import Categories from '../components/Categories'
 import Hero from '../components/Hero'
 import SEO from '../components/SEO'
-import ErrorBoundary from '../components/ErrorBoundary'
-
-// Lazy load heavy slider components (below the fold) to reduce initial bundle
-// Add error handling for failed imports
-const HeroSlider = lazy(() => 
-  import('../components/HeroSlider').catch(err => {
-    console.error('Failed to load HeroSlider:', err);
-    return { default: () => <div className="h-64 bg-gray-50 animate-pulse" /> };
-  })
-);
-const AllCategoriesSlider = lazy(() => 
-  import('../components/AllCategoriesSlider').catch(err => {
-    console.error('Failed to load AllCategoriesSlider:', err);
-    return { default: () => <div className="h-64 bg-gray-50 animate-pulse" /> };
-  })
-);
-const DiscountedSlider = lazy(() => 
-  import('../components/DiscountedSlider').catch(err => {
-    console.error('Failed to load DiscountedSlider:', err);
-    return { default: () => <div className="h-64 bg-gray-50 animate-pulse" /> };
-  })
-);
+// Eagerly import sliders - Vite will still code-split them via manual chunks
+import HeroSlider from '../components/HeroSlider'
+import AllCategoriesSlider from '../components/AllCategoriesSlider'
+import DiscountedSlider from '../components/DiscountedSlider'
 
 const Home = () => {
   return (
@@ -60,22 +42,10 @@ const Home = () => {
 
       <Hero />
 
-      {/* Lazy load sliders below the fold */}
-      <ErrorBoundary fallback={<div className="h-64 bg-gray-50 animate-pulse" />}>
-        <Suspense fallback={<div className="h-64 bg-gray-50 animate-pulse" />}>
-          <HeroSlider />
-        </Suspense>
-      </ErrorBoundary>
-      <ErrorBoundary fallback={<div className="h-64 bg-gray-50 animate-pulse" />}>
-        <Suspense fallback={<div className="h-64 bg-gray-50 animate-pulse" />}>
-          <AllCategoriesSlider />
-        </Suspense>
-      </ErrorBoundary>
-      <ErrorBoundary fallback={<div className="h-64 bg-gray-50 animate-pulse" />}>
-        <Suspense fallback={<div className="h-64 bg-gray-50 animate-pulse" />}>
-          <DiscountedSlider />
-        </Suspense>
-      </ErrorBoundary>
+      {/* Sliders - eagerly loaded but code-split via Vite manual chunks */}
+      <HeroSlider />
+      <AllCategoriesSlider />
+      <DiscountedSlider />
       <Categories />
       <OurPolicy />
     </div>

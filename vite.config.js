@@ -101,6 +101,12 @@ export default defineConfig({
             // Other vendor code
             return 'vendor-other';
           }
+          // Split slider components into their own chunk for code splitting
+          if (id.includes('src/components/HeroSlider.jsx') || 
+              id.includes('src/components/AllCategoriesSlider.jsx') || 
+              id.includes('src/components/DiscountedSlider.jsx')) {
+            return 'sliders';
+          }
         }
       }
     }
