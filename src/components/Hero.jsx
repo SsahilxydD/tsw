@@ -15,6 +15,7 @@ const Hero = () => {
         width={750}
         height={1000}
         loading="eager"
+        fetchPriority="high"
         quality={90}
       />
       {/* Desktop hero image from Cloudflare CDN */}
@@ -25,6 +26,7 @@ const Hero = () => {
         width={1920}
         height={1080}
         loading="eager"
+        fetchPriority="high"
         quality={90}
       />
     </div>
