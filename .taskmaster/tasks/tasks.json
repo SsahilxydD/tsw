@@ -2,7 +2,7 @@
   "master": {
     "tasks": [
       {
-        "id": "1",
+        "id": 1,
         "title": "Fix UI/UX inconsistencies",
         "description": "Address any inconsistencies in the user interface and user experience to ensure a cohesive and intuitive design.",
         "details": "Review the current UI/UX and identify areas where the design or functionality is inconsistent. Make necessary changes to align with the brand and user expectations.",
@@ -76,7 +76,7 @@
         "updatedAt": "2025-12-18T11:05:07.097Z"
       },
       {
-        "id": "2",
+        "id": 2,
         "title": "Implement proper error handling",
         "description": "Ensure that the application handles errors gracefully and provides meaningful feedback to users.",
         "details": "Identify potential error scenarios across the application and implement error handling mechanisms to prevent crashes and improve user experience.",
@@ -153,7 +153,7 @@
         "updatedAt": "2025-12-18T11:08:52.806Z"
       },
       {
-        "id": "3",
+        "id": 3,
         "title": "Add loading states and skeletons",
         "description": "Implement loading indicators and skeleton screens to improve user experience during data loading.",
         "details": "Design and implement loading states for all data-fetching operations. Use skeleton screens to provide visual feedback during loading.",
@@ -231,7 +231,7 @@
         "updatedAt": "2025-12-18T11:11:25.737Z"
       },
       {
-        "id": "4",
+        "id": 4,
         "title": "Fix mobile responsiveness",
         "description": "Ensure that the application is fully responsive and works seamlessly on all mobile devices.",
         "details": "Conduct a thorough review of the mobile layout and responsiveness. Make necessary adjustments to ensure compatibility with various screen sizes and orientations.",
@@ -310,7 +310,7 @@
         "updatedAt": "2025-12-18T11:15:43.930Z"
       },
       {
-        "id": "5",
+        "id": 5,
         "title": "Implement proper form validation",
         "description": "Ensure that all forms in the application have robust validation to prevent errors and improve data quality.",
         "details": "Review all form inputs and implement client-side and server-side validation. Provide clear error messages to guide users.",
@@ -389,7 +389,7 @@
         "updatedAt": "2025-12-18T11:26:00.003Z"
       },
       {
-        "id": "6",
+        "id": 6,
         "title": "Add accessibility features",
         "description": "Ensure that the application is accessible to users with disabilities, following WCAG 2.1 guidelines.",
         "details": "Implement accessibility features such as keyboard navigation, screen reader support, and proper contrast ratios. Ensure all UI elements are accessible.",
@@ -460,7 +460,7 @@
         "updatedAt": "2025-12-18T11:33:22.410Z"
       },
       {
-        "id": "7",
+        "id": 7,
         "title": "Fix cart persistence issues",
         "description": "Ensure that the cart data is preserved across sessions and sessions are properly managed.",
         "details": "Review the current cart functionality and implement mechanisms to persist cart data, such as using local storage or a backend service.",
@@ -540,7 +540,7 @@
         "updatedAt": "2025-12-18T11:39:00.127Z"
       },
       {
-        "id": "8",
+        "id": 8,
         "title": "Implement wishlist functionality",
         "description": "Add a wishlist feature that allows users to save products for later purchase.",
         "details": "Design and implement a wishlist system that allows users to add, remove, and manage products. Ensure it integrates with the cart and order systems.",
@@ -619,7 +619,7 @@
         "updatedAt": "2025-12-18T11:42:33.313Z"
       },
       {
-        "id": "9",
+        "id": 9,
         "title": "Implement Lenis smooth scrolling",
         "description": "Integrate Lenis smooth scrolling library throughout the site with 0.8 scrolling speed for enhanced user experience.",
         "details": "Install and configure Lenis smooth scrolling library. Set scrolling speed to 0.8. Ensure it works across all pages and doesn't conflict with existing scroll restoration or navigation.",
@@ -672,7 +672,7 @@
         "updatedAt": "2025-12-18T11:57:18.794Z"
       },
       {
-        "id": "10",
+        "id": 10,
         "title": "Fix desktop slider navigation",
         "description": "Add navigation buttons (prev/next) to hero sliders for desktop screens since they can only be swiped on mobile.",
         "details": "Add left/right arrow buttons to HeroSlider, AllCategoriesSlider, and DiscountedSlider components. Buttons should only show on desktop (hidden on mobile). Implement smooth scroll functionality for navigation.",
@@ -731,7 +731,7 @@
         "expansionPrompt": "This task improves desktop usability by adding navigation controls to sliders that are currently only swipeable on mobile."
       },
       {
-        "id": "11",
+        "id": 11,
         "title": "Implement functional coupon system",
         "description": "Make the coupon code system functional with validation, discount calculation, and application.",
         "details": "Implement backend/API for coupon validation, create discount calculation logic, update cart totals with discounts, and display discount breakdown in cart and checkout.",
@@ -810,7 +810,7 @@
         "updatedAt": "2025-12-18T11:53:59.505Z"
       },
       {
-        "id": "12",
+        "id": 12,
         "title": "Implement product reviews and ratings",
         "description": "Add a comprehensive product review and rating system for customers to share feedback.",
         "details": "Create review submission form, display reviews on product pages, implement rating system (1-5 stars), add review moderation, and include helpful votes.",
@@ -890,7 +890,7 @@
         "updatedAt": "2025-12-18T12:02:20.464Z"
       },
       {
-        "id": "13",
+        "id": 13,
         "title": "Implement enhanced search and filters",
         "description": "Enhance search functionality with autocomplete, filters, sorting, and advanced search options.",
         "details": "Add search autocomplete with suggestions, implement filter sidebar (price, size, color, brand), add sorting options, and improve search results display.",
@@ -966,7 +966,7 @@
         "updatedAt": "2025-12-18T12:17:26.165Z"
       },
       {
-        "id": "14",
+        "id": 14,
         "title": "Implement recently viewed products",
         "description": "Track and display recently viewed products to help users find items they were interested in.",
         "details": "Store viewed products in localStorage, create RecentlyViewed component, and display on product pages and home page.",
@@ -1033,7 +1033,7 @@
         "updatedAt": "2025-12-18T12:21:56.321Z"
       },
       {
-        "id": "15",
+        "id": 15,
         "title": "Implement size guide integration",
         "description": "Add size guide functionality to help customers choose the right size for products.",
         "details": "Create size guide component, add size guide button to product pages, implement size recommendations, and support different size charts for different categories.",
@@ -1097,16 +1097,110 @@
         "recommendedSubtasks": 4,
         "expansionPrompt": "This task helps reduce returns and improves customer satisfaction by providing clear size information.",
         "updatedAt": "2025-12-18T12:26:30.895Z"
+      },
+      {
+        "id": 16,
+        "title": "Fix PageSpeed Insights performance issues",
+        "description": "Address critical performance issues identified by Google PageSpeed Insights to improve page load times and Core Web Vitals scores.",
+        "details": "Based on PageSpeed Insights analysis, there are 7 performance issues to address: cache lifetimes (124 KiB savings), image delivery (94 KiB savings), LCP optimization, network dependency tree, unused JavaScript (57 KiB savings), enormous network payloads (6,811 KiB total), and long main-thread tasks. These optimizations will significantly improve page load performance and user experience.",
+        "testStrategy": "Run PageSpeed Insights before and after each optimization to measure improvements. Target: FCP < 1.5s, LCP < 2.5s, TTI < 3.5s, TBT < 300ms, CLS < 0.1.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "in-progress",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement efficient cache lifetimes",
+            "description": "Configure proper Cache-Control headers for static assets, API responses, and HTML to optimize caching.",
+            "dependencies": [],
+            "details": "Set cache headers: static assets (JS/CSS/images) - 1 year with immutable, API responses - shorter TTL (5-15 min), HTML - no-cache with revalidation. Estimated savings: 124 KiB. Update server configuration (Vercel/Cloudflare) and verify with browser DevTools.\n<info added on 2025-12-18T12:49:59.719Z>\n✅ COMPLETED: Implemented efficient cache lifetimes across all deployment targets.\n\n**Changes Made:**\n\n1. **Vercel Configuration (vercel.json):**\n   - Added headers for static assets (JS/CSS/fonts/images): `public, max-age=31536000, immutable` (1 year)\n   - Added headers for JSON/data files: `public, max-age=3600` (1 hour)\n   - Added headers for HTML: `no-cache, must-revalidate, max-age=0` (no cache with revalidation)\n\n2. **API Endpoints:**\n   - **api/products.js**: Added `Cache-Control: public, s-maxage=600, stale-while-revalidate=300` (10 min cache, 5 min stale-while-revalidate)\n   - **api/og.js**: Updated to `public, s-maxage=900, stale-while-revalidate=600` (15 min cache, 10 min stale-while-revalidate)\n   - **api/og-image.js**: Added `public, s-maxage=900, stale-while-revalidate=600` (15 min cache)\n   - All error responses use `no-cache, no-store, must-revalidate`\n\n3. **Cloudflare Worker (cloudflare-worker.js):**\n   - Updated OG meta tag responses: `public, s-maxage=900, stale-while-revalidate=600` (15 min cache)\n\n**Cache Strategy:**\n- Static assets (hashed JS/CSS/images): 1 year with immutable (safe because Vite adds content hashes)\n- API responses: 10-15 minutes with stale-while-revalidate (allows serving stale content while revalidating)\n- HTML: No cache (ensures fresh content on every request)\n- Error responses: No cache (prevents caching of error states)\n\n**Expected Impact:**\n- Estimated savings: 124 KiB per repeat visit\n- Improved repeat visit performance\n- Reduced bandwidth usage\n- Better Core Web Vitals scores\n\n**Testing:**\n- Verify cache headers in browser DevTools Network tab\n- Test repeat visits to confirm caching behavior\n- Verify HTML is not cached while static assets are cached\n</info added on 2025-12-18T12:49:59.719Z>",
+            "status": "done",
+            "testStrategy": "Verify cache headers in Network tab, test repeat visits, measure bandwidth savings.",
+            "parentId": "undefined",
+            "updatedAt": "2025-12-18T12:49:40.088Z"
+          },
+          {
+            "id": 2,
+            "title": "Improve image delivery optimization",
+            "description": "Optimize image delivery through format conversion, compression, responsive images, and CDN usage.",
+            "dependencies": [],
+            "details": "Convert images to WebP/AVIF formats, implement responsive images with srcset, optimize compression, ensure proper sizing, use CDN delivery. Estimated savings: 94 KiB. Update image components to use optimized formats and responsive loading.",
+            "status": "pending",
+            "testStrategy": "Compare image sizes before/after, test on different devices, verify format support fallbacks.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Optimize LCP request discovery",
+            "description": "Prioritize Largest Contentful Paint element loading through resource hints and optimization.",
+            "dependencies": [
+              2
+            ],
+            "details": "Identify LCP element (likely hero image or main product image), add preload hints for LCP resources, prioritize critical resources in HTML, optimize LCP image loading (format, size, delivery). Use Chrome DevTools to identify LCP element.",
+            "status": "pending",
+            "testStrategy": "Measure LCP in PageSpeed Insights and Chrome DevTools, verify LCP element loads first.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Optimize network dependency tree",
+            "description": "Improve resource loading order and parallelization to reduce total page load time.",
+            "dependencies": [],
+            "details": "Analyze network waterfall, optimize resource loading order, add preconnect for third-party domains, implement resource prioritization (preload critical, defer non-critical), ensure parallel loading where possible. Use Chrome DevTools Network tab to analyze.",
+            "status": "pending",
+            "testStrategy": "Analyze network waterfall before/after, measure total load time improvement.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Reduce unused JavaScript",
+            "description": "Remove unused JavaScript code from bundle through code splitting, tree shaking, and dynamic imports.",
+            "dependencies": [],
+            "details": "Analyze bundle with webpack-bundle-analyzer, implement code splitting for routes and components, enable tree shaking, use dynamic imports for non-critical code, remove unused dependencies. Estimated savings: 57 KiB. Update Vite config if needed.",
+            "status": "pending",
+            "testStrategy": "Compare bundle sizes before/after, verify functionality still works, check coverage report.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 6,
+            "title": "Reduce enormous network payloads",
+            "description": "Comprehensively reduce total page payload size through multiple optimization strategies.",
+            "dependencies": [
+              2,
+              5
+            ],
+            "details": "Total payload: 6,811 KiB. Implement code splitting, lazy loading for routes/components, optimize all images, enable compression (gzip/brotli), remove unused code, defer non-critical resources, minify CSS/JS, optimize fonts. This is a comprehensive optimization task.",
+            "status": "pending",
+            "testStrategy": "Measure total payload size before/after, target < 2MB for initial load, verify all functionality works.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 7,
+            "title": "Optimize long main-thread tasks",
+            "description": "Identify and break up long-running JavaScript tasks that block the main thread.",
+            "dependencies": [],
+            "details": "1 long task found. Use Chrome DevTools Performance tab to identify long tasks, break up long-running JavaScript, use Web Workers for heavy computations, implement requestIdleCallback for non-critical work, optimize component rendering with React.memo and useMemo where appropriate.",
+            "status": "pending",
+            "testStrategy": "Record performance profile, identify long tasks, verify tasks are < 50ms after optimization.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 8,
+        "recommendedSubtasks": 7,
+        "expansionPrompt": "This task addresses critical performance issues that directly impact user experience and SEO rankings. Prioritize high-impact optimizations first (cache, images, unused JS) before tackling comprehensive payload reduction.",
+        "updatedAt": "2025-12-18T12:49:40.088Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2025-12-18T12:26:30.895Z",
-      "taskCount": 15,
+      "lastModified": "2025-12-18T12:49:40.089Z",
+      "taskCount": 16,
       "completedCount": 15,
       "tags": [
         "master"
-      ]
+      ],
+      "created": "2025-12-18T12:49:45.650Z",
+      "description": "Tasks for master context"
     }
   }
 }

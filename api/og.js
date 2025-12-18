@@ -24,6 +24,7 @@ module.exports = async (req, res) => {
   // If no ID, return error
   if (!id) {
     res.setHeader('Content-Type', 'text/plain');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     return res.status(400).send('Product ID required');
   }
 
@@ -41,6 +42,7 @@ module.exports = async (req, res) => {
 
     if (!product) {
       res.setHeader('Content-Type', 'text/plain');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       return res.status(404).send('Product not found');
     }
 
@@ -121,13 +123,15 @@ module.exports = async (req, res) => {
     modifiedHtml = modifiedHtml.replace('</head>', `${metaTags}\n</head>`);
 
     // Return HTML with proper headers
+    // Cache OG meta tags for 15 minutes (900 seconds) since product data doesn't change frequently
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
+    res.setHeader('Cache-Control', 'public, s-maxage=900, stale-while-revalidate=600');
     return res.status(200).send(modifiedHtml);
 
   } catch (error) {
     console.error('Error in OG function:', error);
     res.setHeader('Content-Type', 'text/plain');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     return res.status(500).send(`Error: ${error.message}`);
   }
 };

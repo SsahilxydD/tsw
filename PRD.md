@@ -1182,6 +1182,72 @@ This PRD outlines a comprehensive overhaul of the Solo Wardrobe e-commerce platf
 - Database query caching
 - Static asset caching
 
+### 5. PageSpeed Insights Issues (December 2024)
+
+#### 5.1 Critical Performance Issues
+
+**INSIGHTS (Critical Issues):**
+- ✅ **Use efficient cache lifetimes** - COMPLETED (December 18, 2024)
+  - Estimated savings: 124 KiB
+  - Issue: Static assets and API responses not using optimal cache headers
+  - Impact: Reduces repeat visit performance and increases bandwidth usage
+  - Solution: Implement proper Cache-Control headers for static assets (1 year), API responses (shorter TTL), and HTML (no-cache with revalidation)
+  - **Implementation:**
+    - Updated `vercel.json` with headers for static assets (1 year immutable), JSON files (1 hour), and HTML (no-cache)
+    - Updated API endpoints (`api/products.js`, `api/og.js`, `api/og-image.js`) with 10-15 minute cache TTL and stale-while-revalidate
+    - Updated Cloudflare Worker with 15-minute cache for OG meta tags
+    - All error responses use no-cache headers
+    - Cache strategy: Static assets (hashed) = 1 year immutable, API responses = 10-15 min with stale-while-revalidate, HTML = no-cache
+
+- ⏳ **Improve image delivery** - PENDING
+  - Estimated savings: 94 KiB
+  - Issue: Images not optimized for delivery (format, compression, sizing)
+  - Impact: Slows down page load, especially on mobile networks
+  - Solution: Implement WebP/AVIF formats, responsive images with srcset, proper compression, and CDN delivery
+
+- ⏳ **LCP request discovery** - PENDING
+  - Issue: Largest Contentful Paint element not prioritized in resource loading
+  - Impact: Slows down perceived page load time
+  - Solution: Add resource hints (preload, prefetch) for LCP elements, prioritize critical resources, optimize LCP image loading
+
+- ⏳ **Network dependency tree** - PENDING
+  - Issue: Resources loaded sequentially instead of in parallel where possible
+  - Impact: Increases total page load time
+  - Solution: Optimize resource loading order, use preconnect for third-party domains, implement resource prioritization
+
+**DIAGNOSTICS (Performance Issues):**
+- ⏳ **Reduce unused JavaScript** - PENDING
+  - Estimated savings: 57 KiB
+  - Issue: JavaScript code included in bundle but not executed
+  - Impact: Increases bundle size and parse/compile time
+  - Solution: Implement code splitting, tree shaking, dynamic imports, remove unused dependencies, analyze bundle with webpack-bundle-analyzer
+
+- ⏳ **Avoid enormous network payloads** - PENDING
+  - Total size: 6,811 KiB
+  - Issue: Total page payload is too large, affecting load time
+  - Impact: Significantly slows down initial page load, especially on slower connections
+  - Solution: Implement code splitting, lazy loading, image optimization, compression (gzip/brotli), remove unused code, defer non-critical resources
+
+- ⏳ **Avoid long main-thread tasks** - PENDING
+  - Issue: 1 long task found blocking main thread
+  - Impact: Causes jank and delays interactivity
+  - Solution: Break up long-running JavaScript tasks, use Web Workers for heavy computations, implement requestIdleCallback for non-critical work, optimize component rendering
+
+#### 5.2 Performance Optimization Priority
+
+**High Priority:**
+1. ✅ Use efficient cache lifetimes (124 KiB savings, improves repeat visits) - COMPLETED
+2. Reduce unused JavaScript (57 KiB savings, quick win)
+3. Improve image delivery (94 KiB savings, high impact)
+
+**Medium Priority:**
+4. Avoid enormous network payloads (6,811 KiB total - requires comprehensive optimization)
+5. Optimize LCP request discovery (improves perceived performance)
+6. Optimize network dependency tree (improves parallel loading)
+
+**Low Priority:**
+7. Avoid long main-thread tasks (1 task - investigate and optimize)
+
 ---
 
 ## Accessibility & Compliance
@@ -1952,4 +2018,13 @@ This PRD provides a comprehensive roadmap for transforming Solo Wardrobe into a 
   - Size guide automatically detects product category (footwear, jeans, apparel) and shows appropriate chart
   - Features: category-specific charts, measurement instructions, size recommendations, responsive modal design
   - Accessibility: focus management, keyboard navigation, ARIA labels, escape key to close
+- ✅ Task 16.1: Implement efficient cache lifetimes - COMPLETED (December 18, 2024)
+  - Updated `vercel.json` with comprehensive cache headers configuration
+  - Static assets (JS/CSS/images/fonts): 1 year with immutable (safe due to Vite content hashing)
+  - JSON/data files: 1 hour cache
+  - HTML: no-cache with revalidation (ensures fresh content)
+  - Updated API endpoints (`api/products.js`, `api/og.js`, `api/og-image.js`) with 10-15 minute cache TTL and stale-while-revalidate
+  - Updated Cloudflare Worker with 15-minute cache for OG meta tags
+  - All error responses use no-cache headers
+  - Expected impact: 124 KiB savings per repeat visit, improved Core Web Vitals scores
 

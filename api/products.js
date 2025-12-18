@@ -23,6 +23,8 @@ module.exports = async (req, res) => {
 
   if (!category) {
     res.setHeader('Content-Type', 'application/json');
+    // Don't cache error responses
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     return res.status(400).json({ error: 'Category parameter required' });
   }
 
@@ -66,10 +68,14 @@ module.exports = async (req, res) => {
 
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Access-Control-Allow-Origin', '*');
+    // Cache API responses for 10 minutes (600 seconds)
+    res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=300');
     return res.status(200).json(formatted);
   } catch (error) {
     console.error('Error fetching products:', error);
     res.setHeader('Content-Type', 'application/json');
+    // Don't cache error responses
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     return res.status(500).json({ error: 'Failed to fetch products: ' + error.message });
   }
 };

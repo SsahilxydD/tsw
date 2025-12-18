@@ -432,7 +432,8 @@ export default {
       return new Response(html, {
         headers: {
           'Content-Type': 'text/html; charset=utf-8',
-          'Cache-Control': 'public, max-age=3600',
+          // Cache OG meta tags for 15 minutes (900 seconds) since product data doesn't change frequently
+          'Cache-Control': 'public, s-maxage=900, stale-while-revalidate=600',
         },
       });
 
