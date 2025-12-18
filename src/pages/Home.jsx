@@ -7,6 +7,7 @@ import SEO from '../components/SEO'
 import HeroSlider from '../components/HeroSlider'
 import AllCategoriesSlider from '../components/AllCategoriesSlider'
 import DiscountedSlider from '../components/DiscountedSlider'
+import RecentlyViewed from '../components/RecentlyViewed'
 
 const Home = () => {
   return (
@@ -46,6 +47,7 @@ const Home = () => {
       <HeroSlider />
       <AllCategoriesSlider />
       <DiscountedSlider />
+      <RecentlyViewed maxItems={10} />
       <Categories />
       <OurPolicy />
     </div>

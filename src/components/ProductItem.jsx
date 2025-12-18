@@ -6,10 +6,15 @@ import SafeImg from "./SafeImg";
 import { isFootwearProduct, isJeansProduct, normalizeJeansSizes, uniqueUKLabels } from "../utils/size";
 
 const ProductItem = ({ id, image, name, price, i = 0, showAdd = false }) => {
-  const { currency, addToCart, products } = useContext(ShopContext);
+  const { currency, addToCart, products, toggleWishlist, isInWishlist } = useContext(ShopContext);
   const cover = Array.isArray(image) ? (image[0] || "") : (image || "");
   const [isHovered, setIsHovered] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+
+  // Memoize the onLoad handler to prevent re-renders
+  const handleImageLoad = React.useCallback(() => {
+    setImageLoaded(true);
+  }, []);
 
   const productObj = useMemo(() => {
     const pid = String(id);
@@ -66,8 +71,25 @@ const ProductItem = ({ id, image, name, price, i = 0, showAdd = false }) => {
             className={`w-full h-full object-cover transition-transform duration-500 ease-out ${
               isHovered ? 'scale-105' : 'scale-100'
             } ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
-            onLoad={() => setImageLoaded(true)}
+            onLoad={handleImageLoad}
           />
+
+          {/* Wishlist Button */}
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              toggleWishlist(id);
+            }}
+            className={`absolute top-2 right-2 p-2 rounded-full bg-white/90 backdrop-blur-sm shadow-md hover:bg-white transition-all min-w-[44px] min-h-[44px] flex items-center justify-center ${
+              isInWishlist(id) ? 'text-red-500' : 'text-gray-600'
+            }`}
+            aria-label={isInWishlist(id) ? `Remove ${name} from wishlist` : `Add ${name} to wishlist`}
+          >
+            <svg className="w-5 h-5" fill={isInWishlist(id) ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+          </button>
 
           {/* Quick Add Button - only on desktop */}
           {showAdd && tileSizes.length > 0 && (
@@ -76,7 +98,8 @@ const ProductItem = ({ id, image, name, price, i = 0, showAdd = false }) => {
             }`}>
               <button
                 onClick={handleQuickAdd}
-                className="w-full py-2 bg-white text-black text-xs font-semibold uppercase tracking-wider rounded-lg hover:bg-black hover:text-white transition-colors shadow-lg"
+                className="w-full py-2 bg-white text-primary text-xs font-semibold uppercase tracking-wider rounded-lg hover:bg-primary hover:text-white transition-colors shadow-lg min-h-[44px]"
+                aria-label={`Quick add ${name} to cart`}
               >
                 Quick Add
               </button>

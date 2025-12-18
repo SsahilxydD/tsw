@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ShopContext } from '../context/ShopContext';
 import { assets } from '../assets/assets';
@@ -13,11 +13,63 @@ const CartDrawer = () => {
         products,
         currency,
         updateQuantity,
-        getCartAmount,
+        getCartAmount, getCartTotal, getCartSubtotal, getDiscountAmount, appliedCoupon,
         navigate
     } = useContext(ShopContext);
 
     const [cartData, setCartData] = React.useState([]);
+    const drawerRef = useRef(null);
+    const closeButtonRef = useRef(null);
+    const previousActiveElement = useRef(null);
+
+    // Focus management for accessibility
+    useEffect(() => {
+        if (isCartOpen) {
+            // Store the previously focused element
+            previousActiveElement.current = document.activeElement;
+            // Focus the close button when drawer opens
+            setTimeout(() => {
+                closeButtonRef.current?.focus();
+            }, 100);
+        } else {
+            // Restore focus when drawer closes
+            if (previousActiveElement.current) {
+                previousActiveElement.current.focus();
+            }
+        }
+    }, [isCartOpen]);
+
+    // Trap focus within drawer when open
+    useEffect(() => {
+        if (!isCartOpen) return;
+
+        const handleTabKey = (e) => {
+            if (e.key !== 'Tab') return;
+
+            const focusableElements = drawerRef.current?.querySelectorAll(
+                'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+            );
+            if (!focusableElements || focusableElements.length === 0) return;
+
+            const firstElement = focusableElements[0];
+            const lastElement = focusableElements[focusableElements.length - 1];
+
+            if (e.shiftKey) {
+                if (document.activeElement === firstElement) {
+                    e.preventDefault();
+                    lastElement.focus();
+                }
+            } else {
+                if (document.activeElement === lastElement) {
+                    e.preventDefault();
+                    firstElement.focus();
+                }
+            }
+        };
+
+        document.addEventListener('keydown', handleTabKey);
+        return () => document.removeEventListener('keydown', handleTabKey);
+    }, [isCartOpen]);
 
     React.useEffect(() => {
         if (products.length > 0) {
@@ -48,29 +100,36 @@ const CartDrawer = () => {
                         exit={{ opacity: 0 }}
                         onClick={() => setIsCartOpen(false)}
                         className="fixed inset-0 bg-black/50 z-[9998] backdrop-blur-sm"
+                        aria-hidden="true"
                     />
 
                     {/* Drawer */}
                     <motion.div
+                        ref={drawerRef}
                         initial={{ x: '100%' }}
                         animate={{ x: 0 }}
                         exit={{ x: '100%' }}
                         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
                         className="fixed top-0 right-0 h-full w-full sm:w-[400px] bg-white z-[9999] shadow-2xl flex flex-col"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="cart-title"
                     >
                         {/* Header */}
                         <div className="flex items-center justify-between p-5 border-b">
-                            <h2 className="text-xl font-medium prata-regular">Shopping Cart ({cartData.length})</h2>
+                            <h2 id="cart-title" className="text-xl font-medium prata-regular">Shopping Cart ({cartData.length})</h2>
                             <button
+                                ref={closeButtonRef}
                                 onClick={() => setIsCartOpen(false)}
-                                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                                className="p-2 hover:bg-gray-100 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                                aria-label="Close cart"
                             >
-                                <SafeImg src={assets.cross_icon} className="w-5 h-5" alt="Close" width={20} height={20} quality={90} />
+                                <SafeImg src={assets.cross_icon} className="w-5 h-5" alt="" width={20} height={20} quality={90} aria-hidden="true" />
                             </button>
                         </div>
 
                         {/* Items */}
-                        <div className="flex-1 overflow-y-auto p-5 space-y-6">
+                        <div className="flex-1 overflow-y-auto p-5 space-y-6" role="region" aria-label="Cart items">
                             {cartData.length === 0 ? (
                                 <div className="h-full flex flex-col items-center justify-center text-center space-y-4">
                                     <p className="text-gray-500">Your cart is empty</p>
@@ -142,17 +201,19 @@ const CartDrawer = () => {
                                                     <div className="flex items-center border rounded">
                                                         <button
                                                             onClick={() => updateQuantity(item._id, item.size, item.quantity - 1)}
-                                                            className="px-2 py-1 hover:bg-gray-50 text-gray-600"
+                                                            className="px-2 py-1 hover:bg-gray-50 text-gray-600 min-w-[44px] min-h-[44px] flex items-center justify-center"
                                                             disabled={item.quantity === 1}
+                                                            aria-label={`Decrease quantity of ${productData.name}, size ${item.size}`}
                                                         >
-                                                            -
+                                                            <span aria-hidden="true">-</span>
                                                         </button>
-                                                        <span className="px-2 text-sm font-medium w-8 text-center">{item.quantity}</span>
+                                                        <span className="px-2 text-sm font-medium w-8 text-center" aria-label={`Quantity: ${item.quantity}`}>{item.quantity}</span>
                                                         <button
                                                             onClick={() => updateQuantity(item._id, item.size, item.quantity + 1)}
-                                                            className="px-2 py-1 hover:bg-gray-50 text-gray-600"
+                                                            className="px-2 py-1 hover:bg-gray-50 text-gray-600 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                                                            aria-label={`Increase quantity of ${productData.name}, size ${item.size}`}
                                                         >
-                                                            +
+                                                            <span aria-hidden="true">+</span>
                                                         </button>
                                                     </div>
                                                     <p className="font-medium text-sm">
@@ -202,11 +263,17 @@ const CartDrawer = () => {
                                 <div className="space-y-2 text-sm">
                                     <div className="flex justify-between text-gray-600">
                                         <span>Subtotal</span>
-                                        <span>{currency}{getCartAmount()}</span>
+                                        <span>{currency}{getCartSubtotal().toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
+                                    {appliedCoupon && getDiscountAmount() > 0 && (
+                                        <div className="flex justify-between text-green-600">
+                                            <span>Discount ({appliedCoupon.code})</span>
+                                            <span>-{currency}{getDiscountAmount().toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                        </div>
+                                    )}
                                     <div className="flex justify-between font-medium text-lg">
                                         <span>Total</span>
-                                        <span>{currency}{getCartAmount()}</span>
+                                        <span>{currency}{getCartTotal().toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                     <p className="text-xs text-gray-500 text-center">Shipping & taxes calculated at checkout</p>
                                 </div>
@@ -217,7 +284,8 @@ const CartDrawer = () => {
                                             setIsCartOpen(false);
                                             navigate('/address');
                                         }}
-                                        className="w-full py-3 bg-black text-white text-sm font-medium uppercase tracking-wider hover:bg-gray-800 transition-colors"
+                                        className="w-full py-3 bg-black text-white text-sm font-medium uppercase tracking-wider hover:bg-gray-800 transition-colors min-h-[44px]"
+                                        aria-label="Proceed to checkout"
                                     >
                                         Checkout
                                     </button>
@@ -226,7 +294,8 @@ const CartDrawer = () => {
                                             setIsCartOpen(false);
                                             navigate('/cart');
                                         }}
-                                        className="w-full py-3 border border-black text-black text-sm font-medium uppercase tracking-wider hover:bg-gray-50 transition-colors"
+                                        className="w-full py-3 border border-black text-black text-sm font-medium uppercase tracking-wider hover:bg-gray-50 transition-colors min-h-[44px]"
+                                        aria-label="View full cart page"
                                     >
                                         View Cart
                                     </button>

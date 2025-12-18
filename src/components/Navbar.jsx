@@ -6,7 +6,7 @@ import AnnouncementBar from "./AnnouncementBar";
 import SafeImg from "./SafeImg";
 
 const Navbar = () => {
-  const { getCartCount, setIsCartOpen, setShowSearch } = useContext(ShopContext);
+  const { getCartCount, setIsCartOpen, setShowSearch, getWishlistCount, navigate } = useContext(ShopContext);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -25,6 +25,7 @@ const Navbar = () => {
   }, [isHome]);
 
   const count = getCartCount();
+  const wishlistCount = getWishlistCount();
   const prevRef = useRef(count);
   const [bump, setBump] = useState(false);
 
@@ -62,9 +63,11 @@ const Navbar = () => {
 
           {/* Mobile Menu Button */}
           <button
-            className={`md:hidden p-2 -ml-2 transition-colors ${isTransparent ? 'text-white' : 'text-primary'}`}
+            className={`md:hidden p-2.5 -ml-2 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center ${isTransparent ? 'text-white' : 'text-primary'}`}
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            aria-label="Toggle menu"
+            aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={isMenuOpen}
+            aria-controls="mobile-menu"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               {isMenuOpen ? (
@@ -76,7 +79,7 @@ const Navbar = () => {
           </button>
 
           {/* Desktop Nav (Left) */}
-          <nav className="hidden md:flex items-center gap-8">
+          <nav className="hidden md:flex items-center gap-8" role="navigation" aria-label="Main navigation">
             <NavLink to="/" className={({ isActive }) => `text-sm font-medium tracking-wide hover:text-accent transition-colors ${isTransparent ? 'text-white' : isActive ? 'text-primary' : 'text-secondary'}`}>
               HOME
             </NavLink>
@@ -115,7 +118,7 @@ const Navbar = () => {
               href="https://wa.me/919933778870"
               target="_blank"
               rel="noopener noreferrer"
-              className={`hidden sm:flex items-center gap-2 text-sm font-medium hover:text-accent transition-colors ${isTransparent ? 'text-white' : 'text-secondary'}`}
+              className={`hidden sm:flex items-center gap-2 text-sm font-medium hover:text-accent transition-colors min-h-[44px] sm:min-h-0 ${isTransparent ? 'text-white' : 'text-secondary'}`}
             >
               <span>Chat</span>
             </a>
@@ -125,7 +128,7 @@ const Navbar = () => {
               <button
                 onClick={() => setShowSearch(true)}
                 aria-label="Search"
-                className={`p-1 transition-colors hover:text-accent ${isTransparent ? 'text-white' : 'text-primary'}`}
+                className={`p-2 sm:p-1 transition-colors hover:text-accent min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center ${isTransparent ? 'text-white' : 'text-primary'}`}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -133,22 +136,39 @@ const Navbar = () => {
               </button>
             )}
 
+            {/* Wishlist */}
+            <button
+              onClick={() => navigate('/wishlist')}
+              aria-label={`Wishlist, ${wishlistCount > 0 ? `${wishlistCount} item${wishlistCount !== 1 ? 's' : ''}` : 'empty'}`}
+              className={`relative p-2 sm:p-1 group min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center ${isTransparent ? 'text-white' : 'text-primary'}`}
+            >
+              <svg className="w-6 h-6 transition-colors group-hover:text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+              {wishlistCount > 0 && (
+                <span className={`absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] text-[10px] font-bold text-white bg-red-500 rounded-full transition-transform duration-300`} aria-hidden="true">
+                  {wishlistCount}
+                </span>
+              )}
+            </button>
+
             {/* Cart */}
             <button
               id="cart-anchor"
               onClick={() => setIsCartOpen(true)}
-              aria-label="Cart"
-              className="relative p-1 group"
+              aria-label={`Cart, ${count > 0 ? `${count} item${count !== 1 ? 's' : ''} in cart` : 'empty'}`}
+              aria-expanded={false}
+              className="relative p-2 sm:p-1 group min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
             >
               <div className={`w-6 h-6 transition-colors group-hover:text-accent ${isTransparent ? 'text-white' : 'text-primary'}`}>
                 {assets.cart_icon ? (
-                  <SafeImg src={assets.cart_icon} alt="" className={`w-full h-full transition-all ${isTransparent ? 'brightness-0 invert' : ''}`} width={24} height={24} quality={90} />
+                  <SafeImg src={assets.cart_icon} alt="" className={`w-full h-full transition-all ${isTransparent ? 'brightness-0 invert' : ''}`} width={24} height={24} quality={90} aria-hidden="true" />
                 ) : (
                   <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
                 )}
               </div>
               {count > 0 && (
-                <span className={`absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] text-[10px] font-bold text-white bg-primary rounded-full transition-transform duration-300 ${bump ? 'scale-125' : 'scale-100'}`}>
+                <span className={`absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] text-[10px] font-bold text-white bg-primary rounded-full transition-transform duration-300 ${bump ? 'scale-125' : 'scale-100'}`} aria-hidden="true">
                   {count}
                 </span>
               )}
@@ -157,12 +177,16 @@ const Navbar = () => {
         </div>
 
         {/* Mobile Menu Dropdown */}
-        <div className={`md:hidden absolute top-full left-0 w-full bg-white border-b border-gray-100 shadow-lg transition-all duration-300 overflow-hidden ${isMenuOpen ? 'max-h-64 opacity-100' : 'max-h-0 opacity-0'}`}>
-          <nav className="flex flex-col p-6 gap-4 text-center">
-            <Link to="/" className="text-sm font-medium tracking-wide text-secondary hover:text-primary" onClick={() => setIsMenuOpen(false)}>HOME</Link>
-            <Link to="/about" className="text-sm font-medium tracking-wide text-secondary hover:text-primary" onClick={() => setIsMenuOpen(false)}>ABOUT</Link>
-            <Link to="/contact" className="text-sm font-medium tracking-wide text-secondary hover:text-primary" onClick={() => setIsMenuOpen(false)}>CONTACT</Link>
-            <a href="https://wa.me/919933778870" target="_blank" rel="noopener noreferrer" className="text-sm font-medium tracking-wide text-secondary hover:text-primary">WHATSAPP CHAT</a>
+        <div 
+          id="mobile-menu"
+          className={`md:hidden absolute top-full left-0 w-full bg-white border-b border-gray-100 shadow-lg transition-all duration-300 overflow-hidden z-50 ${isMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}
+          aria-hidden={!isMenuOpen}
+        >
+          <nav className="flex flex-col p-4 gap-2" role="navigation" aria-label="Main navigation">
+            <Link to="/" className="text-sm font-medium tracking-wide text-secondary hover:text-primary py-3 px-4 min-h-[44px] flex items-center justify-center rounded-md hover:bg-gray-50 transition-colors" onClick={() => setIsMenuOpen(false)}>HOME</Link>
+            <Link to="/about" className="text-sm font-medium tracking-wide text-secondary hover:text-primary py-3 px-4 min-h-[44px] flex items-center justify-center rounded-md hover:bg-gray-50 transition-colors" onClick={() => setIsMenuOpen(false)}>ABOUT</Link>
+            <Link to="/contact" className="text-sm font-medium tracking-wide text-secondary hover:text-primary py-3 px-4 min-h-[44px] flex items-center justify-center rounded-md hover:bg-gray-50 transition-colors" onClick={() => setIsMenuOpen(false)}>CONTACT</Link>
+            <a href="https://wa.me/919933778870" target="_blank" rel="noopener noreferrer" className="text-sm font-medium tracking-wide text-secondary hover:text-primary py-3 px-4 min-h-[44px] flex items-center justify-center rounded-md hover:bg-gray-50 transition-colors">WHATSAPP CHAT</a>
           </nav>
         </div>
       </header>

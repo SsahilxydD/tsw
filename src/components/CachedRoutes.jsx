@@ -1,5 +1,5 @@
-import { useEffect, useState, useMemo } from "react";
-import { useLocation, useRoutes, matchRoutes } from "react-router-dom";
+import { useEffect, useState, useMemo, useRef } from "react";
+import { useLocation, useRoutes } from "react-router-dom";
 
 /**
  * CachedRoutes - Keeps route components mounted to preserve state
@@ -13,25 +13,45 @@ const MAX_CACHE = 15;
 export default function CachedRoutes({ routes }) {
   const location = useLocation();
   const currentPath = location.pathname;
+  const previousPathRef = useRef(currentPath);
+  const currentElementRef = useRef(null);
   
   // Get current route element
   const currentElement = useRoutes(routes);
+  
+  // Store current element in ref to avoid dependency issues
+  currentElementRef.current = currentElement;
   
   const [cache, setCache] = useState(() => {
     const cached = routeCache.get(currentPath);
     return cached ? { [currentPath]: cached } : {};
   });
 
-  // Cache current route element - React will keep it mounted as long as it's rendered
+  // Cache current route element only when path changes
   useEffect(() => {
-    if (currentElement) {
-      routeCache.set(currentPath, currentElement);
-      setCache((prev) => ({
-        ...prev,
-        [currentPath]: currentElement,
-      }));
+    // Only update cache when path actually changes
+    if (currentPath !== previousPathRef.current) {
+      previousPathRef.current = currentPath;
+      
+      // Get the current element from ref
+      const element = currentElementRef.current;
+      
+      if (element) {
+        // Only cache if not already cached
+        if (!routeCache.has(currentPath)) {
+          routeCache.set(currentPath, element);
+          setCache((prev) => {
+            // Only update if not already in cache
+            if (prev[currentPath]) return prev;
+            return {
+              ...prev,
+              [currentPath]: element,
+            };
+          });
+        }
+      }
     }
-  }, [currentPath, currentElement]);
+  }, [currentPath]); // Only depend on currentPath, not currentElement
 
   // Clean up old cache entries
   useEffect(() => {

@@ -111,21 +111,26 @@ export default function SafeImg({
     ? getCFOptimizedUrl(finalSrc, width, height) 
     : finalSrc;
 
-  return (
-    <img
-      src={optimizedSrc}
-      srcSet={srcSet}
-      sizes={sizes || (width ? `(max-width: 768px) 100vw, ${width}px` : undefined)}
-      alt={alt}
-      width={width}
-      height={height}
-      loading={loading}
-      fetchPriority={fetchPriority}
-      decoding={loading === "eager" ? "sync" : "async"}
-      draggable={false}
-      onError={() => setBroken(true)}
-      className={className}
-      {...rest}
-    />
-  );
+  // Build props object, handling fetchPriority separately
+  const imgProps = {
+    src: optimizedSrc,
+    srcSet: srcSet,
+    sizes: sizes || (width ? `(max-width: 768px) 100vw, ${width}px` : undefined),
+    alt: alt,
+    width: width,
+    height: height,
+    loading: loading,
+    decoding: loading === "eager" ? "sync" : "async",
+    draggable: false,
+    onError: () => setBroken(true),
+    className: className,
+    ...rest
+  };
+
+  // Add fetchpriority (lowercase) if fetchPriority is provided
+  if (fetchPriority) {
+    imgProps.fetchpriority = fetchPriority;
+  }
+
+  return <img {...imgProps} />;
 }

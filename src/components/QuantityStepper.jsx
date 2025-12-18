@@ -3,11 +3,12 @@ import React from "react";
 function calcDims(w) {
   const WW = Number.isFinite(w) ? w : 1024;
   // Smart scaling for buttons (min..max bounds)
-  // Very small phones (~320-360): 26-28px; up to tablet: 32-36px
-  const btn = WW < 360 ? 26 : WW < 400 ? 28 : WW < 480 ? 30 : WW < 640 ? 32 : 36;
-  const gap = WW < 360 ? 6 : WW < 400 ? 8 : 8;
-  const font = WW < 360 ? 12 : 13; // number font size
-  const textMinW = Math.max(22, Math.round(btn * 0.8));
+  // Mobile: minimum 44px for touch targets (WCAG/PRD requirement)
+  // Desktop: can be smaller (32-36px)
+  const btn = WW < 640 ? 44 : WW < 1024 ? 36 : 36; // Minimum 44px on mobile
+  const gap = WW < 360 ? 8 : WW < 400 ? 10 : 12;
+  const font = WW < 360 ? 13 : WW < 640 ? 14 : 13; // number font size
+  const textMinW = Math.max(28, Math.round(btn * 0.7));
   return { btn, gap, font, textMinW };
 }
 
@@ -52,6 +53,7 @@ export default function QuantityStepper({ value = 1, min = 1, max, onChange }) {
       <span
         className={`text-center font-medium tabular-nums transition-transform ${bump ? 'scale-110' : 'scale-100'}`}
         style={{ minWidth: dims.textMinW, fontSize: dims.font }}
+        aria-label={`Quantity: ${v}`}
       >
         {v}
       </span>

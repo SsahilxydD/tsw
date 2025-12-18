@@ -1,12 +1,16 @@
-import React, { useContext, useState } from 'react'
+import React, { useContext, useState, useRef } from 'react'
 import Title from '../components/Title'
 import CartTotal from '../components/CartTotal'
 import { ShopContext } from '../context/ShopContext'
+import Button from '../components/Button'
+import Input from '../components/Input'
+import { validateName, validateNameRequired, validatePhone, validateEmail, validateAddress, validateCity, validateState, validateZip } from '../utils/validation'
 
 const PlaceOrder = () => {
-
-    const { navigate, address, setAddress, cartItems, products, currency, getCartAmount, setCartItems } = useContext(ShopContext);
+    const { navigate, address, setAddress, cartItems, products, currency, getCartTotal, getCartSubtotal, getDiscountAmount, appliedCoupon, setCartItems } = useContext(ShopContext);
     const [method, setMethod] = useState('cod');
+    const [errors, setErrors] = useState({});
+    const refs = useRef({});
 
     // Initialize form with context address or empty
     const [formData, setFormData] = useState({
@@ -25,18 +29,80 @@ const PlaceOrder = () => {
         const name = event.target.name;
         const value = event.target.value;
         setFormData(data => ({ ...data, [name]: value }));
-        // Update global address context as user types (optional, but good for persistence)
+        // Update global address context as user types
         setAddress(prev => ({ ...prev, [name]: value }));
+        // Clear error when user starts typing
+        if (errors[name]) {
+            setErrors(prev => ({ ...prev, [name]: null }));
+        }
     }
+
+    const validate = () => {
+        const errs = {};
+        
+        // Name validation
+        const nameError = validateNameRequired(formData.firstName, formData.lastName);
+        if (nameError) {
+            errs.firstName = nameError;
+        } else {
+            if (formData.firstName?.trim()) {
+                const firstNameError = validateName(formData.firstName, 'First name');
+                if (firstNameError) errs.firstName = firstNameError;
+            }
+            if (formData.lastName?.trim()) {
+                const lastNameError = validateName(formData.lastName, 'Last name');
+                if (lastNameError) errs.lastName = lastNameError;
+            }
+        }
+        
+        // Email validation
+        if (formData.email?.trim()) {
+            const emailError = validateEmail(formData.email);
+            if (emailError) errs.email = emailError;
+        }
+        
+        // Phone validation
+        const phoneError = validatePhone(formData.phone);
+        if (phoneError) errs.phone = phoneError;
+        
+        // Address validation
+        const addressError = validateAddress(formData.street, 'Street address');
+        if (addressError) errs.street = addressError;
+        
+        // City validation
+        const cityError = validateCity(formData.city, 'City');
+        if (cityError) errs.city = cityError;
+        
+        // State validation
+        const stateError = validateState(formData.state);
+        if (stateError) errs.state = stateError;
+        
+        // ZIP validation
+        const zipError = validateZip(formData.zipcode);
+        if (zipError) errs.zipcode = zipError;
+        
+        return errs;
+    };
 
     const onSubmitHandler = (event) => {
         event.preventDefault();
+        
+        const errs = validate();
+        if (Object.keys(errs).length > 0) {
+            setErrors(errs);
+            // Focus first error field
+            const firstKey = Object.keys(errs)[0];
+            refs.current[firstKey]?.focus();
+            refs.current[firstKey]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
 
         // Construct WhatsApp Message
         let message = `*New Order Request*\n\n`;
         message += `*Customer Details:*\n`;
         message += `Name: ${formData.firstName} ${formData.lastName}\n`;
         message += `Phone: ${formData.phone}\n`;
+        if (formData.email) message += `Email: ${formData.email}\n`;
         message += `Address: ${formData.street}, ${formData.city}, ${formData.state} - ${formData.zipcode}\n\n`;
 
         message += `*Order Items:*\n`;
@@ -58,16 +124,22 @@ const PlaceOrder = () => {
             return;
         }
 
-        message += `\n*Total Amount:* ${currency}${getCartAmount()}`;
+        const subtotal = getCartSubtotal();
+        const discount = getDiscountAmount();
+        const total = getCartTotal();
+        
+        message += `\n*Subtotal:* ${currency}${subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        if (appliedCoupon && discount > 0) {
+            message += `\n*Discount (${appliedCoupon.code}):* -${currency}${discount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        }
+        message += `\n*Total Amount:* ${currency}${total.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
         message += `\n\nPayment Method: ${method === 'cod' ? 'Cash on Delivery' : 'Online'}`;
 
         // Open WhatsApp
-        const phoneNumber = "919933778870"; // Using the number found in Navbar/Payment
+        const phoneNumber = "919933778870";
         const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
         window.open(url, '_blank');
 
-        // Clear cart (optional, but logical after order)
-        // setCartItems({}); 
         navigate('/');
     }
 
@@ -79,20 +151,105 @@ const PlaceOrder = () => {
                     <Title text1={'DELIVERY'} text2={'INFORMATION'} />
                 </div>
                 <div className='flex gap-3'>
-                    <input required name='firstName' onChange={onChangeHandler} value={formData.firstName} className='border border-gray-300 rounded py-1.5 px-3.5 w-full' type="text" placeholder='First name' />
-                    <input required name='lastName' onChange={onChangeHandler} value={formData.lastName} className='border border-gray-300 rounded py-1.5 px-3.5 w-full' type="text" placeholder='Last name' />
+                    <Input 
+                        ref={el => refs.current.firstName = el}
+                        name='firstName' 
+                        onChange={onChangeHandler} 
+                        value={formData.firstName} 
+                        type="text" 
+                        placeholder='First name *'
+                        error={!!errors.firstName}
+                        errorMessage={errors.firstName}
+                        required 
+                    />
+                    <Input 
+                        name='lastName' 
+                        onChange={onChangeHandler} 
+                        value={formData.lastName} 
+                        type="text" 
+                        placeholder='Last name'
+                        error={!!errors.lastName}
+                        errorMessage={errors.lastName}
+                    />
                 </div>
-                <input required name='email' onChange={onChangeHandler} value={formData.email} className='border border-gray-300 rounded py-1.5 px-3.5 w-full' type="email" placeholder='Email address' />
-                <input required name='street' onChange={onChangeHandler} value={formData.street} className='border border-gray-300 rounded py-1.5 px-3.5 w-full' type="text" placeholder='Street' />
+                <Input 
+                    name='email' 
+                    onChange={onChangeHandler} 
+                    value={formData.email} 
+                    type="email" 
+                    placeholder='Email address (optional)'
+                    error={!!errors.email}
+                    errorMessage={errors.email}
+                />
+                <Input 
+                    ref={el => refs.current.phone = el}
+                    name='phone' 
+                    onChange={onChangeHandler} 
+                    value={formData.phone} 
+                    type="tel"
+                    inputMode="tel"
+                    placeholder='Phone number *'
+                    error={!!errors.phone}
+                    errorMessage={errors.phone}
+                    required 
+                />
+                <Input 
+                    ref={el => refs.current.street = el}
+                    name='street' 
+                    onChange={onChangeHandler} 
+                    value={formData.street} 
+                    type="text" 
+                    placeholder='Street address *'
+                    error={!!errors.street}
+                    errorMessage={errors.street}
+                    required 
+                />
                 <div className='flex gap-3'>
-                    <input required name='city' onChange={onChangeHandler} value={formData.city} className='border border-gray-300 rounded py-1.5 px-3.5 w-full' type="text" placeholder='City' />
-                    <input required name='state' onChange={onChangeHandler} value={formData.state} className='border border-gray-300 rounded py-1.5 px-3.5 w-full' type="text" placeholder='State' />
+                    <Input 
+                        ref={el => refs.current.city = el}
+                        name='city' 
+                        onChange={onChangeHandler} 
+                        value={formData.city} 
+                        type="text" 
+                        placeholder='City *'
+                        error={!!errors.city}
+                        errorMessage={errors.city}
+                        required 
+                    />
+                    <Input 
+                        ref={el => refs.current.state = el}
+                        name='state' 
+                        onChange={onChangeHandler} 
+                        value={formData.state} 
+                        type="text" 
+                        placeholder='State *'
+                        error={!!errors.state}
+                        errorMessage={errors.state}
+                        required 
+                    />
                 </div>
                 <div className='flex gap-3'>
-                    <input required name='zipcode' onChange={onChangeHandler} value={formData.zipcode} className='border border-gray-300 rounded py-1.5 px-3.5 w-full' type="number" placeholder='Zipcode' />
-                    <input required name='country' onChange={onChangeHandler} value={formData.country} className='border border-gray-300 rounded py-1.5 px-3.5 w-full' type="text" placeholder='Country' />
+                    <Input 
+                        ref={el => refs.current.zipcode = el}
+                        name='zipcode' 
+                        onChange={onChangeHandler} 
+                        value={formData.zipcode} 
+                        type="text"
+                        inputMode="numeric"
+                        placeholder='PIN code *'
+                        maxLength={6}
+                        error={!!errors.zipcode}
+                        errorMessage={errors.zipcode}
+                        required 
+                    />
+                    <Input 
+                        name='country' 
+                        onChange={onChangeHandler} 
+                        value={formData.country} 
+                        type="text" 
+                        placeholder='Country'
+                    />
                 </div>
-                <input required name='phone' onChange={onChangeHandler} value={formData.phone} className='border border-gray-300 rounded py-1.5 px-3.5 w-full' type="number" placeholder='Phone' />
             </div>
 
             <div className='mt-8'>
@@ -111,7 +268,7 @@ const PlaceOrder = () => {
                     </div>
 
                     <div className='w-full text-end mt-8'>
-                        <button type='submit' className='bg-black text-white px-16 py-3 text-sm'>PLACE ORDER</button>
+                        <Button type='submit' className='px-16'>PLACE ORDER</Button>
                     </div>
                 </div>
             </div>

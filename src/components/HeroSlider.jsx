@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { ShopContext } from '../context/ShopContext';
 import Title from './Title';
 import SafeImg from './SafeImg';
+import Button from './Button';
 import './HeroSlider.css';
 
 const NO_IMAGE_PLACEHOLDER = '/assets/no-image.svg';
@@ -144,11 +145,49 @@ const HeroSlider = () => {
   // Triple for seamless looping
   const loopedProducts = [...sliderProducts, ...sliderProducts, ...sliderProducts];
 
+  const scrollLeft = () => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const itemWidth = container.querySelector('.slide-item')?.offsetWidth || 0;
+    const gap = 12;
+    const scrollAmount = itemWidth + gap;
+    container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+  };
+
+  const scrollRight = () => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const itemWidth = container.querySelector('.slide-item')?.offsetWidth || 0;
+    const gap = 12;
+    const scrollAmount = itemWidth + gap;
+    container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+  };
+
   return (
-    <div className={`w-full py-4 sm:py-6 bg-gray-50/50 overflow-hidden ${SLIDER_MIN_HEIGHT}`}>
+    <div className={`w-full py-4 sm:py-6 bg-gray-50/50 overflow-hidden ${SLIDER_MIN_HEIGHT} relative`}>
       <div className="text-center mb-4">
         <Title text1="BEST SELLING" text2="Shoes" />
       </div>
+
+      {/* Desktop Navigation Buttons */}
+      <button
+        onClick={scrollLeft}
+        className="hidden md:flex absolute left-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 items-center justify-center bg-white/90 backdrop-blur-sm rounded-full shadow-lg hover:bg-white transition-colors min-w-[44px] min-h-[44px]"
+        aria-label="Scroll left"
+      >
+        <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+      <button
+        onClick={scrollRight}
+        className="hidden md:flex absolute right-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 items-center justify-center bg-white/90 backdrop-blur-sm rounded-full shadow-lg hover:bg-white transition-colors min-w-[44px] min-h-[44px]"
+        aria-label="Scroll right"
+      >
+        <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
 
       <div 
         ref={scrollRef}
@@ -176,12 +215,9 @@ const HeroSlider = () => {
       </div>
 
       <div className="flex justify-center mt-5">
-        <Link
-          to="/category/shoes"
-          className="px-6 py-2.5 bg-white text-black text-xs font-medium tracking-wide border border-black hover:bg-black hover:text-white transition-colors"
-        >
+        <Button as={Link} to="/category/shoes" variant="outline" size="sm">
           View All
-        </Link>
+        </Button>
       </div>
     </div>
   );

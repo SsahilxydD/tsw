@@ -4,14 +4,16 @@ import ProductItem from "../components/ProductItem";
 import SkeletonCard from "../components/SkeletonCard";
 import MobileFilters from "../components/MobileFilters";
 import SizeChips from "../components/SizeChips";
+import Loading from "../components/Loading";
 import { isFootwearProduct, isJeansProduct, normalizeJeansSizes, uniqueUKLabels } from "../utils/size";
 import { ShopContext } from "../context/ShopContext";
 import { assets } from "../assets/assets";
 import useDebouncedValue from "../hooks/useDebouncedValue";
 
-// NEW: session-seeded scramble (adds only “Featured” ordering)
+// NEW: session-seeded scramble (adds only "Featured" ordering)
 import { scrambleProducts } from "../utils/scramble";
 import { getSessionSeed } from "../utils/rand";
+import { sortProducts } from "../utils/sortProducts";
 
 const Collection = () => {
   const { products, loadingProducts } = useContext(ShopContext);
@@ -90,19 +92,14 @@ const Collection = () => {
       });
     }
 
-    // sorting / featured (scramble by session)
-    if (sortValue === "price-high-low") {
-      copy.sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
-    } else if (sortValue === "price-low-high") {
-      copy.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
-    } else {
-      const seed = getSessionSeed();
-      copy = scrambleProducts(copy, {
-        seed,
-        blockSize: 1,
-        salt: "collection",
-      });
-    }
+    // sorting using utility function
+    const normalizedSortValue = sortValue === "" ? "featured" : sortValue;
+    copy = sortProducts(copy, normalizedSortValue, {
+      scrambleFn: scrambleProducts,
+      seed: getSessionSeed(),
+      blockSize: 1,
+      salt: "collection",
+    });
 
     setList(copy);
     setVisibleCount(PAGE_SIZE);
@@ -236,13 +233,18 @@ const Collection = () => {
 
                 <select
                   aria-label="Sort products"
-                  value={sortValue}
-                  onChange={(e) => setSortValue(e.target.value)}
-                  className="h-9 px-3 border-2 border-gray-300 rounded text-sm"
+                  value={sortValue === "" ? "featured" : sortValue}
+                  onChange={(e) => setSortValue(e.target.value === "featured" ? "" : e.target.value)}
+                  className="h-12 px-3 border-2 border-gray-300 rounded text-sm min-h-[44px] md:min-h-0
+                             focus:outline-none focus:ring-2 focus:ring-black/20 focus:border-black
+                             hover:border-gray-400 transition-colors"
                 >
-                  <option value="">Featured</option>
-                  <option value="price-high-low">Price: High → Low</option>
-                  <option value="price-low-high">Price: Low → High</option>
+                  <option value="featured">Featured</option>
+                  <option value="price-low-high">Price: Low to High</option>
+                  <option value="price-high-low">Price: High to Low</option>
+                  <option value="newest">Newest</option>
+                  <option value="popularity">Popularity</option>
+                  <option value="rating">Rating</option>
                 </select>
               </div>
             )}
@@ -278,13 +280,18 @@ const Collection = () => {
                 </div>
                 <select
                   aria-label="Sort products"
-                  value={sortValue}
-                  onChange={(e) => setSortValue(e.target.value)}
-                  className="h-9 px-3 border-2 border-gray-300 rounded text-sm"
+                  value={sortValue === "" ? "featured" : sortValue}
+                  onChange={(e) => setSortValue(e.target.value === "featured" ? "" : e.target.value)}
+                  className="h-12 px-3 border-2 border-gray-300 rounded text-sm min-h-[44px] md:min-h-0
+                             focus:outline-none focus:ring-2 focus:ring-black/20 focus:border-black
+                             hover:border-gray-400 transition-colors"
                 >
-                  <option value="">Featured</option>
-                  <option value="price-high-low">Price: High → Low</option>
-                  <option value="price-low-high">Price: Low → High</option>
+                  <option value="featured">Featured</option>
+                  <option value="price-low-high">Price: Low to High</option>
+                  <option value="price-high-low">Price: High to Low</option>
+                  <option value="newest">Newest</option>
+                  <option value="popularity">Popularity</option>
+                  <option value="rating">Rating</option>
                 </select>
               </div>
             </div>
@@ -322,7 +329,7 @@ const Collection = () => {
               {visibleCount < list.length ? (
                 <div ref={sentinelRef} className="h-10 w-full max-w-xs grid place-content-center">
                   {loadingMore && (
-                    <div className="w-6 h-6 border-2 border-gray-300 border-t-black rounded-full animate-spin" aria-label="Loading" />
+                    <Loading size="sm" />
                   )}
                 </div>
               ) : (

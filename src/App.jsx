@@ -9,10 +9,14 @@ import ScrollEffects from "./components/ScrollEffects";
 import Footer from "./components/Footer";
 import WhatsAppCTA from "./components/WhatsAppCTA";
 import Notice from "./components/Notice";
+import ErrorBoundary from "./components/ErrorBoundary";
+import Loading from "./components/Loading";
 import { ToastContainer, Slide } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import ScrollToTop from "./components/ScrollToTop";
 import CachedRoutes from "./components/CachedRoutes";
+import SkipLink from "./components/SkipLink";
+import LenisSmoothScroll from "./components/LenisSmoothScroll";
 
 // Lazy load CartDrawer (uses framer-motion) - only loads when cart opens
 const CartDrawer = lazy(() => import("./components/CartDrawer"));
@@ -33,6 +37,7 @@ const About = lazy(() => import("./pages/About"));
 const Contact = lazy(() => import("./pages/Contact"));
 const Orders = lazy(() => import("./pages/Orders"));
 const Login = lazy(() => import("./pages/Login"));
+const Wishlist = lazy(() => import("./pages/Wishlist"));
 
 // Route configuration for caching
 const routes = [
@@ -43,6 +48,7 @@ const routes = [
   { path: "/about", element: <About /> },
   { path: "/contact", element: <Contact /> },
   { path: "/cart", element: <Cart /> },
+  { path: "/wishlist", element: <Wishlist /> },
   { path: "/address", element: <Address /> },
   { path: "/payment", element: <Payment /> },
   { path: "/place-order", element: <PlaceOrder /> },
@@ -57,7 +63,9 @@ export default function App() {
   const isCheckout = location.pathname === "/address";
 
   return (
-    <>
+    <ErrorBoundary>
+      <LenisSmoothScroll />
+      <SkipLink />
       <ScrollToTop />
 
       <Navbar />
@@ -75,7 +83,7 @@ export default function App() {
         <div className="animate-page">
           <Suspense fallback={
             <div className="flex items-center justify-center min-h-[60vh]">
-              <div className="animate-pulse text-gray-400">Loading...</div>
+              <Loading size="lg" message="Loading page..." />
             </div>
           }>
             <CachedRoutes routes={routes} />
@@ -115,6 +123,6 @@ export default function App() {
         bodyClassName={() => "toast-min-body"}
         containerStyle={{ paddingBottom: '72px' }}
       />
-    </>
+    </ErrorBoundary>
   );
 }

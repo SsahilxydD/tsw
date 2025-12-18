@@ -1,6 +1,12 @@
 import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ShopContext } from "../context/ShopContext";
 import SafeImg from "../components/SafeImg";
+import Button from "../components/Button";
+import Input from "../components/Input";
+import Loading from "../components/Loading";
+import { safeFetch, handleError } from "../utils/errorHandler";
+import ErrorMessage from "../components/ErrorMessage";
+import { validateName, validateNameRequired, validatePhone, validateEmail, validateAddress, validateCity, validateState, validateZip } from "../utils/validation";
 
 const EMPTY = {
   firstName: "",
@@ -78,14 +84,17 @@ export default function Address() {
     }
   };
 
-  // ZIP lookup
+  const [zipError, setZipError] = useState(null);
+
+  // ZIP lookup with error handling
   const lookupZip = async (zip, countryName) => {
     const code = /india/i.test(countryName) ? 'IN' : 'US';
     const out = { district: '', state: '', country: countryName };
+    setZipError(null);
 
     if (code === 'IN') {
       try {
-        const res = await fetch(`https://api.postalpincode.in/pincode/${zip}`);
+        const res = await safeFetch(`https://api.postalpincode.in/pincode/${zip}`, { timeout: 5000 }, 1);
         if (res.ok) {
           const arr = await res.json();
           if (arr[0]?.Status === 'Success' && arr[0]?.PostOffice?.[0]) {
@@ -95,11 +104,14 @@ export default function Address() {
             return out;
           }
         }
-      } catch {}
+      } catch (error) {
+        const errorInfo = handleError(error, { operation: 'ZIP lookup (India)', zip });
+        setZipError(errorInfo);
+      }
     }
 
     try {
-      const res = await fetch(`https://api.zippopotam.us/${code}/${zip}`);
+      const res = await safeFetch(`https://api.zippopotam.us/${code}/${zip}`, { timeout: 5000 }, 1);
       if (res.ok) {
         const data = await res.json();
         if (data.places?.[0]) {
@@ -108,7 +120,10 @@ export default function Address() {
           return out;
         }
       }
-    } catch {}
+    } catch (error) {
+      const errorInfo = handleError(error, { operation: 'ZIP lookup (International)', zip });
+      setZipError(errorInfo);
+    }
 
     return out;
   };
@@ -147,13 +162,54 @@ export default function Address() {
 
   const validate = () => {
     const errs = {};
-    if (!form.firstName?.trim() && !form.lastName?.trim()) errs.firstName = "Name is required";
-    if (!form.phone?.trim() || form.phone.replace(/\D/g, '').length < 10) errs.phone = "Valid phone is required";
-    if (!form.address1?.trim()) errs.address1 = "Address is required";
-    if (!form.locality?.trim()) errs.locality = "Locality is required";
-    if (!form.zip?.trim()) errs.zip = "PIN code is required";
-    if (!zipValid) errs.zip = "Enter valid PIN code";
-    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = "Invalid email";
+    
+    // Name validation - at least one name required
+    const nameError = validateNameRequired(form.firstName, form.lastName);
+    if (nameError) {
+      errs.firstName = nameError;
+    } else {
+      // Validate individual names if provided
+      if (form.firstName?.trim()) {
+        const firstNameError = validateName(form.firstName, 'First name');
+        if (firstNameError) errs.firstName = firstNameError;
+      }
+      if (form.lastName?.trim()) {
+        const lastNameError = validateName(form.lastName, 'Last name');
+        if (lastNameError) errs.lastName = lastNameError;
+      }
+    }
+    
+    // Phone validation
+    const phoneError = validatePhone(form.phone);
+    if (phoneError) errs.phone = phoneError;
+    
+    // Email validation (optional)
+    if (form.email?.trim()) {
+      const emailError = validateEmail(form.email);
+      if (emailError) errs.email = emailError;
+    }
+    
+    // Address validation
+    const addressError = validateAddress(form.address1, 'Address');
+    if (addressError) errs.address1 = addressError;
+    
+    // Locality validation
+    const localityError = validateCity(form.locality, 'Locality');
+    if (localityError) errs.locality = localityError;
+    
+    // State validation
+    const stateError = validateState(form.state);
+    if (stateError) errs.state = stateError;
+    
+    // ZIP validation
+    const zipError = validateZip(form.zip);
+    if (zipError) {
+      errs.zip = zipError;
+    } else if (!zipValid && form.zip?.trim()) {
+      // Additional check: ZIP must be validated via API
+      errs.zip = "Please wait for PIN code validation";
+    }
+    
     return errs;
   };
 
@@ -207,14 +263,14 @@ export default function Address() {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center px-4">
         <p className="text-gray-500 mb-4">Your cart is empty</p>
-        <button onClick={() => navigate('/collection')} className="px-6 py-3 bg-black text-white text-sm">
+        <Button onClick={() => navigate('/collection')}>
           Continue Shopping
-        </button>
+        </Button>
       </div>
     );
   }
 
-  const inputClass = (field) => `w-full h-12 px-4 border rounded-lg text-sm outline-none transition-colors focus:border-black ${errors[field] ? 'border-red-400 bg-red-50' : 'border-gray-200'}`;
+  // Input class helper is no longer needed - using Input component
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -243,145 +299,163 @@ export default function Address() {
                 {/* Name */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <input
+                    <Input
                       ref={el => refs.current.firstName = el}
                       name="firstName"
                       value={form.firstName}
                       onChange={onChange}
                       placeholder="First name *"
-                      className={inputClass('firstName')}
+                      error={!!errors.firstName}
+                      errorMessage={errors.firstName}
+                      required
                     />
                   </div>
                   <div>
-                    <input
+                    <Input
                       name="lastName"
                       value={form.lastName}
                       onChange={onChange}
                       placeholder="Last name"
-                      className={inputClass('lastName')}
+                      error={!!errors.lastName}
+                      errorMessage={errors.lastName}
                     />
                   </div>
                 </div>
-                {errors.firstName && <p className="text-xs text-red-500 -mt-2">{errors.firstName}</p>}
 
-                {/* Contact */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <input
-                      ref={el => refs.current.phone = el}
-                      name="phone"
-                      value={form.phone}
-                      onChange={onChange}
-                      placeholder="Phone number *"
-                      inputMode="tel"
-                      className={inputClass('phone')}
-                    />
-                    {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
-                  </div>
-                  <div>
-                    <input
-                      ref={el => refs.current.email = el}
-                      name="email"
-                      type="email"
-                      value={form.email}
-                      onChange={onChange}
-                      placeholder="Email (optional)"
-                      className={inputClass('email')}
-                    />
-                    {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
-                  </div>
-                </div>
-
-                {/* Address */}
+                {/* Phone */}
                 <div>
-                  <input
+                  <Input
+                    ref={el => refs.current.phone = el}
+                    name="phone"
+                    type="tel"
+                    inputMode="tel"
+                    value={form.phone}
+                    onChange={onChange}
+                    placeholder="Phone number *"
+                    error={!!errors.phone}
+                    errorMessage={errors.phone}
+                    required
+                  />
+                </div>
+
+                {/* Email */}
+                <div>
+                  <Input
+                    name="email"
+                    type="email"
+                    inputMode="email"
+                    value={form.email}
+                    onChange={onChange}
+                    placeholder="Email (optional)"
+                    error={!!errors.email}
+                    errorMessage={errors.email}
+                  />
+                </div>
+
+                {/* Address Line 1 */}
+                <div>
+                  <Input
                     ref={el => refs.current.address1 = el}
                     name="address1"
                     value={form.address1}
                     onChange={onChange}
-                    placeholder="House / Flat / Building *"
-                    className={inputClass('address1')}
+                    placeholder="Address line 1 *"
+                    error={!!errors.address1}
+                    errorMessage={errors.address1}
+                    required
                   />
-                  {errors.address1 && <p className="text-xs text-red-500 mt-1">{errors.address1}</p>}
                 </div>
 
-                <input
-                  name="address2"
-                  value={form.address2}
-                  onChange={onChange}
-                  placeholder="Street / Road (optional)"
-                  className={inputClass('address2')}
-                />
-
+                {/* Address Line 2 */}
                 <div>
-                  <input
-                    ref={el => refs.current.locality = el}
-                    name="locality"
-                    value={form.locality}
+                  <Input
+                    name="address2"
+                    value={form.address2}
                     onChange={onChange}
-                    placeholder="Locality / Area / Landmark *"
-                    className={inputClass('locality')}
+                    placeholder="Address line 2 (optional)"
                   />
-                  {errors.locality && <p className="text-xs text-red-500 mt-1">{errors.locality}</p>}
                 </div>
 
-                {/* PIN & Location */}
+                {/* Locality and ZIP */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <input
-                      ref={el => refs.current.zip = el}
-                      name="zip"
-                      value={form.zip}
+                    <Input
+                      ref={el => refs.current.locality = el}
+                      name="locality"
+                      value={form.locality}
                       onChange={onChange}
-                      placeholder="PIN Code *"
-                      inputMode="numeric"
-                      maxLength={6}
-                      className={inputClass('zip')}
+                      placeholder="Locality/City *"
+                      error={!!errors.locality}
+                      errorMessage={errors.locality}
+                      required
                     />
-                    {zipLookupMsg && !errors.zip && (
-                      <p className={`text-xs mt-1 ${zipValid ? 'text-green-600' : 'text-gray-500'}`}>
-                        {zipLoading ? '⏳ ' : zipValid ? '✓ ' : ''}{zipLookupMsg}
-                      </p>
-                    )}
-                    {errors.zip && <p className="text-xs text-red-500 mt-1">{errors.zip}</p>}
                   </div>
                   <div>
-                    <input
-                      name="country"
-                      value={form.country}
+                    <Input
+                      ref={el => refs.current.zip = el}
+                      name="zip"
+                      type="text"
+                      inputMode="numeric"
+                      value={form.zip}
                       onChange={onChange}
-                      placeholder="Country"
-                      className={inputClass('country')}
+                      placeholder="PIN code *"
+                      error={!!errors.zip}
+                      errorMessage={errors.zip}
+                      required
+                      maxLength={6}
                     />
+                    {zipLookupMsg && !errors.zip && (
+                      <p className="text-xs text-green-600 mt-1">{zipLookupMsg}</p>
+                    )}
                   </div>
                 </div>
 
-                {/* Auto-filled location */}
+                {/* District and State */}
                 {zipValid && (form.district || form.state) && (
-                  <div className="grid grid-cols-2 gap-3">
-                    <input
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Input
                       value={form.district}
                       readOnly
                       placeholder="District"
-                      className="w-full h-12 px-4 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-600"
+                      className="bg-gray-50"
                     />
-                    <input
+                    <Input
                       value={form.state}
                       readOnly
                       placeholder="State"
-                      className="w-full h-12 px-4 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-600"
+                      className="bg-gray-50"
+                      error={!!errors.state}
+                      errorMessage={errors.state}
                     />
                   </div>
                 )}
 
+                {/* Country */}
+                <div>
+                  <Input
+                    name="country"
+                    value={form.country}
+                    onChange={onChange}
+                    placeholder="Country"
+                  />
+                </div>
+
                 {/* Submit - Desktop */}
-                <button
+                <Button
                   type="submit"
                   disabled={zipLoading}
-                  className="hidden lg:block w-full h-14 bg-black text-white font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed mt-6"
+                  size="lg"
+                  className="hidden lg:flex w-full h-14 mt-6"
                 >
-                  Place Order on WhatsApp
-                </button>
+                  {zipLoading ? (
+                    <span className="flex items-center gap-2">
+                      <Loading size="sm" variant="white" />
+                      Verifying...
+                    </span>
+                  ) : (
+                    'Place Order on WhatsApp'
+                  )}
+                </Button>
               </form>
             </div>
           </div>
@@ -443,15 +517,25 @@ export default function Address() {
 
       {/* Mobile Fixed Bottom Button */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t p-4" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 16px)' }}>
-        <button
+        <Button
           onClick={onSubmit}
           disabled={zipLoading}
-          className="w-full h-14 bg-black text-white font-medium rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          size="lg"
+          className="w-full h-14 flex items-center justify-center gap-2"
         >
-          <span>Place Order</span>
-          <span className="text-gray-300">•</span>
-          <span>{currency}{total.toLocaleString('en-IN')}</span>
-        </button>
+          {zipLoading ? (
+            <>
+              <Loading size="sm" variant="white" />
+              <span>Verifying...</span>
+            </>
+          ) : (
+            <>
+              <span>Place Order</span>
+              <span className="text-gray-300">•</span>
+              <span>{currency}{total.toLocaleString('en-IN')}</span>
+            </>
+          )}
+        </Button>
       </div>
 
       {/* Bottom padding for mobile fixed button */}

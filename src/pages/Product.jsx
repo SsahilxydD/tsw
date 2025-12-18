@@ -10,6 +10,12 @@ import SEO from "../components/SEO";
 import CircularText from "../components/CircularText";
 import { motion, AnimatePresence } from "framer-motion";
 import SafeImg from "../components/SafeImg";
+import ProductDetailSkeleton from "../components/ProductDetailSkeleton";
+import ReviewList from "../components/ReviewList";
+import ReviewForm from "../components/ReviewForm";
+import Accordion from "../components/Accordion";
+import RecentlyViewed from "../components/RecentlyViewed";
+import SizeGuide from "../components/SizeGuide";
 
 // --- Animation Variants ---
 const pageVariants = {
@@ -151,8 +157,10 @@ function inferMasterSizes(p) {
 
 export default function Product() {
   const { id } = useParams();
-  const { products, currency, addToCart, navigate, loadingProducts } = React.useContext(ShopContext);
+  const { products, currency, addToCart, navigate, loadingProducts, toggleWishlist, isInWishlist, submitReview, getReviewsForProduct, getRatingForProduct, markHelpful, trackProductView } = React.useContext(ShopContext);
   const [added, setAdded] = React.useState(false);
+  const [showReviewForm, setShowReviewForm] = React.useState(false);
+  const [isSizeGuideOpen, setIsSizeGuideOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (isRestoring()) return;
@@ -178,6 +186,32 @@ export default function Product() {
       null
     );
   }, [products, id]);
+
+  // Track product view when product is loaded
+  React.useEffect(() => {
+    if (product && trackProductView) {
+      const productId = product._id || product.slug || id;
+      if (productId) {
+        trackProductView(productId);
+      }
+    }
+  }, [product, id, trackProductView]);
+
+  // Get reviews and rating for this product
+  const productId = React.useMemo(() => {
+    if (!product) return String(id);
+    return String(product._id ?? product.slug ?? id);
+  }, [product, id]);
+  
+  const reviews = React.useMemo(() => {
+    if (!productId) return [];
+    return getReviewsForProduct(productId);
+  }, [productId, getReviewsForProduct]);
+  
+  const rating = React.useMemo(() => {
+    if (!productId) return { average: 0, count: 0 };
+    return getRatingForProduct(productId);
+  }, [productId, getRatingForProduct]);
 
   const gallery = React.useMemo(() => {
     if (!product) return [];
@@ -282,16 +316,7 @@ export default function Product() {
   }, [product, products]);
 
   if (loadingProducts || !Array.isArray(products)) {
-    return (
-      <div className="px-4 py-24 flex justify-center items-center min-h-[60vh]">
-        <CircularText
-          text="LOADING*"
-          onHover="speedUp"
-          spinDuration={18}
-          className="text-gray-800"
-        />
-      </div>
-    );
+    return <ProductDetailSkeleton />;
   }
 
   if (!product) {
@@ -422,11 +447,13 @@ export default function Product() {
                   onClick={() => setActiveIdx(i)}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className={`aspect-square rounded-md overflow-hidden bg-gray-50 transition-all duration-200
+                  className={`aspect-square rounded-md overflow-hidden bg-gray-50 transition-all duration-200 min-h-[44px] sm:min-h-0
                     ${i === activeIdx 
                       ? "ring-2 ring-black ring-offset-2" 
                       : "ring-1 ring-gray-200 hover:ring-gray-400"
                     }`}
+                  aria-label={`View product image ${i + 1} of ${gallery.length}`}
+                  aria-pressed={i === activeIdx}
                 >
                   <SafeImg
                     src={src}
@@ -490,6 +517,37 @@ export default function Product() {
             )}
           </motion.div>
 
+          {/* Rating Display */}
+          {rating.count > 0 && (
+            <motion.div variants={fadeInUp} className="mt-4 flex items-center gap-3">
+              <div className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <svg
+                    key={star}
+                    className="w-5 h-5 text-yellow-400"
+                    fill={star <= Math.round(rating.average) ? 'currentColor' : 'none'}
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
+                    />
+                  </svg>
+                ))}
+              </div>
+              <span className="text-sm font-medium text-gray-700">
+                {rating.average.toFixed(1)}
+              </span>
+              <span className="text-sm text-gray-500">
+                ({rating.count} {rating.count === 1 ? 'review' : 'reviews'})
+              </span>
+            </motion.div>
+          )}
+
           {/* Sizes */}
           {masterSizes.length > 0 && (
             <motion.div variants={fadeInUp} className="mt-6">
@@ -518,18 +576,46 @@ export default function Product() {
                       disabled={!available}
                       whileHover={available ? { scale: 1.05 } : {}}
                       whileTap={available ? { scale: 0.95 } : {}}
-                      className={`min-w-[2.75rem] h-10 px-3 text-sm font-medium transition-all duration-200 rounded-md
+                      className={`min-w-[2.75rem] h-10 px-3 text-sm font-medium transition-all duration-200 rounded-md min-h-[44px] sm:min-h-0
                         ${active
                           ? "bg-black text-white shadow-lg"
                           : available 
                             ? "bg-white text-gray-700 border border-gray-200 hover:border-black cursor-pointer"
                             : "bg-gray-100 text-gray-300 border border-gray-100 cursor-not-allowed"}`}
+                      aria-pressed={active}
+                      aria-label={`Size ${label}${active ? ', selected' : ''}${!available ? ', out of stock' : ''}`}
                     >
                       {label}
                     </motion.button>
                   );
                 })}
               </motion.div>
+              
+              {/* Size Guide Link */}
+              <div className="mt-3">
+                <button
+                  onClick={() => setIsSizeGuideOpen(true)}
+                  className="text-sm text-gray-600 hover:text-black underline transition-colors flex items-center gap-1"
+                  aria-label="Open size guide"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  Size Guide
+                </button>
+              </div>
+
               <AnimatePresence>
                 {requiresSize && !selectedSize && (
                   <motion.p 
@@ -537,6 +623,8 @@ export default function Product() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     className="text-xs text-amber-600 mt-3 font-medium"
+                    role="alert"
+                    aria-live="polite"
                   >
                     ↑ Please select a size
                   </motion.p>
@@ -552,9 +640,10 @@ export default function Product() {
               whileTap={{ scale: 0.98 }}
               onClick={handleAdd}
               disabled={!canSubmit}
-              className={`flex-1 sm:flex-none px-8 py-3.5 bg-black text-white text-sm font-medium tracking-wide transition-all
+              className={`flex-1 sm:flex-none px-8 py-3.5 bg-black text-white text-sm font-medium tracking-wide transition-all min-h-[44px] sm:min-h-0
                 ${!canSubmit ? "opacity-40 cursor-not-allowed" : ""}
                 ${added ? "bg-green-600" : ""}`}
+              aria-label={added ? "Product added to cart" : `Add ${product.name || product.title}${hasSizes && selectedSize ? `, size ${selectedSize}` : ''} to cart`}
             >
               {added ? "✓ Added" : "Add to Cart"}
             </motion.button>
@@ -570,10 +659,25 @@ export default function Product() {
                 addToCart(pid, sizeToSend);
                 navigate('/address');
               }}
-              className={`px-6 py-3.5 border border-black text-sm font-medium tracking-wide transition-all hover:bg-black hover:text-white
+              className={`px-6 py-3.5 border border-black text-sm font-medium tracking-wide transition-all hover:bg-black hover:text-white min-h-[44px] sm:min-h-0
                 ${!canSubmit ? "opacity-40 cursor-not-allowed" : ""}`}
+              aria-label={`Buy ${product.name || product.title}${hasSizes && selectedSize ? `, size ${selectedSize}` : ''} now`}
             >
               Buy Now
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              type="button"
+              onClick={() => toggleWishlist(product._id ?? product.slug)}
+              className={`px-4 py-3.5 border border-gray-300 text-sm font-medium tracking-wide transition-all hover:border-red-500 hover:text-red-500 min-h-[44px] sm:min-h-0 flex items-center justify-center ${
+                isInWishlist(product._id ?? product.slug) ? 'border-red-500 text-red-500' : ''
+              }`}
+              aria-label={isInWishlist(product._id ?? product.slug) ? `Remove ${product.name || product.title} from wishlist` : `Add ${product.name || product.title} to wishlist`}
+            >
+              <svg className="w-5 h-5" fill={isInWishlist(product._id ?? product.slug) ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
             </motion.button>
           </motion.div>
 
@@ -625,6 +729,79 @@ export default function Product() {
         </motion.div>
       </div>
 
+      {/* Reviews Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.6 }}
+        className="mt-16 sm:mt-20 max-w-6xl mx-auto px-4"
+      >
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <Title text1="CUSTOMER" text2="REVIEWS" />
+            {rating.count > 0 && (
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <svg
+                      key={star}
+                      className="w-5 h-5 text-yellow-400"
+                      fill={star <= Math.round(rating.average) ? 'currentColor' : 'none'}
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
+                      />
+                    </svg>
+                  ))}
+                </div>
+                <span className="text-lg font-semibold text-gray-900">
+                  {rating.average.toFixed(1)}
+                </span>
+                <span className="text-sm text-gray-500">
+                  ({rating.count} {rating.count === 1 ? 'review' : 'reviews'})
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Review Form Accordion */}
+          <div className="mb-8">
+            <Accordion 
+              title="Write a Review"
+              defaultOpen={showReviewForm}
+              onToggle={setShowReviewForm}
+            >
+              <ReviewForm
+                productId={productId}
+                onSubmit={async (reviewData) => {
+                  const result = submitReview(reviewData);
+                  if (result.success) {
+                    setShowReviewForm(false);
+                  }
+                  return result;
+                }}
+                onCancel={() => setShowReviewForm(false)}
+              />
+            </Accordion>
+          </div>
+
+          {/* Reviews List */}
+          <ReviewList
+            reviews={reviews}
+            onHelpful={(reviewId) => {
+              markHelpful(reviewId);
+            }}
+          />
+        </div>
+      </motion.div>
+
       {/* Related Products */}
       {related.length > 0 && (
         <motion.div
@@ -673,6 +850,24 @@ export default function Product() {
           </motion.div>
         </motion.div>
       )}
+
+      {/* Recently Viewed Products */}
+      <motion.div
+        initial={{ opacity: 0, y: 40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+        className="mt-16 sm:mt-20"
+      >
+        <RecentlyViewed excludeProductId={productId} maxItems={10} />
+      </motion.div>
+
+      {/* Size Guide Modal */}
+      <SizeGuide
+        isOpen={isSizeGuideOpen}
+        onClose={() => setIsSizeGuideOpen(false)}
+        product={product}
+      />
     </motion.div>
   );
 }

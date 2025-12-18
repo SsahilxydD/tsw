@@ -4,9 +4,10 @@ import { ShopContext } from "../context/ShopContext";
 import CartTotal from "../components/CartTotal";
 import CartStickyBar from "../components/CartStickyBar";
 import SafeImg from "../components/SafeImg";
+import Button from "../components/Button";
 
 export default function Payment() {
-  const { products, currency, cartItems, address, navigate, getCartCount } = useContext(ShopContext);
+  const { products, currency, cartItems, address, navigate, getCartCount, getCartTotal, getCartSubtotal, getDiscountAmount, appliedCoupon } = useContext(ShopContext);
 
   const cartList = useMemo(() => {
     const out = [];
@@ -39,12 +40,15 @@ export default function Payment() {
       lines.push( `- ${p.name || p.title}${sizeText}${qtyText}`); 
       lines.push(`  ${url}`);
     }
-    const total = cartList.reduce((sum, it) => {
-      const p = products.find((pr) => String(pr._id) === String(it._id) || String(pr.slug) === String(it._id));
-      return sum + (p ? (Number(p.price) || 0) * (Number(it.quantity) || 0) : 0);
-    }, 0);
+    const subtotal = getCartSubtotal();
+    const discount = getDiscountAmount();
+    const total = getCartTotal();
     lines.push("");
-    lines.push(`*Total:* ${currency}${total.toLocaleString()}`);
+    lines.push(`*Subtotal:* ${currency}${subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+    if (appliedCoupon && discount > 0) {
+      lines.push(`*Discount (${appliedCoupon.code}):* -${currency}${discount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+    }
+    lines.push(`*Total:* ${currency}${total.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
     lines.push("");
     lines.push("*Shipping address:*");
     if (address) {
@@ -118,7 +122,7 @@ export default function Payment() {
                 : (Array.isArray(p?.images) ? (p.images[0] || '') : (p?.image || ''));
               return (
                 <div key={idx} className="rounded-md border bg-white p-4 flex items-center gap-4">
-                  <SafeImg className="w-16 h-16 rounded-md object-cover border" src={cover} alt="" width={64} height={64} quality={85} />
+                  <SafeImg className="w-16 h-16 rounded-md object-cover border" src={cover} alt={p?.name || "Product image"} width={64} height={64} quality={85} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{p?.name}</p>
                     <p className="text-xs text-gray-500 mt-1">
@@ -134,7 +138,7 @@ export default function Payment() {
             <div className="rounded-md border bg-white p-4 mb-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold">Shipping Address</h3>
-                <button className="text-xs underline" onClick={() => navigate('/address')}>Edit</button>
+                <Button variant="link" size="sm" onClick={() => navigate('/address')} className="text-xs">Edit</Button>
               </div>
               <div className="mt-2 text-sm text-gray-700 space-y-1">
                 {address && (

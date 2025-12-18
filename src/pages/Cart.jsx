@@ -11,10 +11,16 @@ import CartRecommendations from '../components/CartRecommendations';
 // import CartStickyBar from '../components/CartStickyBar';
 import { isFootwearProduct, toUKLabel } from '../utils/size';
 import SafeImg from '../components/SafeImg';
+import Button from '../components/Button';
+import Input from '../components/Input';
+import CartItemSkeleton from '../components/CartItemSkeleton';
+import Loading from '../components/Loading';
 
 const Cart = () => {
 
-  const { products, currency, navigate, cartItems, updateQuantity } = useContext(ShopContext);
+  const { products, currency, navigate, cartItems, updateQuantity, loadingProducts, moveToCart, applyCoupon, removeCoupon, appliedCoupon } = useContext(ShopContext);
+  const [couponCode, setCouponCode] = useState('');
+  const [couponError, setCouponError] = useState('');
 
   const [cartData, setCartData] = useState([]);
   // Track items that are animating out (delay actual removal)
@@ -32,6 +38,12 @@ const Cart = () => {
   }, []);
 
   useEffect(() => {
+    // Don't filter out items if products are still loading
+    // This prevents removing valid items before products finish loading
+    if (loadingProducts) {
+      return;
+    }
+
     const tempData = []
     for (const items in cartItems) {
       for (const item in cartItems[items]) {
@@ -45,7 +57,7 @@ const Cart = () => {
               quantity: cartItems[items][item]
             })
           } else {
-            // Remove invalid cart item
+            // Remove invalid cart item only after products have loaded
             console.warn(`Removing invalid cart item: ${items}`);
             updateQuantity(items, item, 0);
           }
@@ -53,7 +65,7 @@ const Cart = () => {
       }
     }
     setCartData(tempData)
-  }, [cartItems, products, updateQuantity])
+  }, [cartItems, products, updateQuantity, loadingProducts])
 
 
   // Remove stale leaving flags when items are gone or re-added
@@ -78,6 +90,21 @@ const Cart = () => {
     leaveTimersRef.current.set(k, t);
   };
 
+  const handleApplyCoupon = () => {
+    const code = couponCode.trim().toUpperCase();
+    if (!code) {
+      setCouponError('Please enter a coupon code');
+      return;
+    }
+    const result = applyCoupon(code);
+    if (result.success) {
+      setCouponCode('');
+      setCouponError('');
+    } else {
+      setCouponError(result.error || 'Invalid coupon code');
+    }
+  };
+
   // No checkout on My Bag; proceed to Address.
 
   return (
@@ -93,101 +120,173 @@ const Cart = () => {
             <Title text1={'YOUR'} text2={'CART'} />
           </div>
           <div className='text-sm text-gray-600'>
-            {cartData.filter(i => i && i.quantity > 0).length} item{cartData.filter(i => i && i.quantity > 0).length !== 1 ? 's' : ''} selected
+            {loadingProducts ? (
+              <Loading size="sm" />
+            ) : (
+              `${cartData.filter(i => i && i.quantity > 0).length} item${cartData.filter(i => i && i.quantity > 0).length !== 1 ? 's' : ''} selected`
+            )}
           </div>
         </div>
-        {cartData.filter(item => item && item._id && item.quantity > 0).map((item, index) => {
-          const productData = products.find((product) => product._id === item._id);
+        {loadingProducts && cartData.length === 0 ? (
+          <>
+            <CartItemSkeleton />
+            <CartItemSkeleton />
+            <CartItemSkeleton />
+          </>
+        ) : (
+          cartData.filter(item => item && item._id && item.quantity > 0).map((item, index) => {
+            const productData = products.find((product) => product._id === item._id);
 
-          // Skip rendering if product not found
-          if (!productData) {
-            console.warn(`Product not found for cart item: ${item._id}`);
-            return null;
-          }
+            // Skip rendering if product not found
+            if (!productData) {
+              console.warn(`Product not found for cart item: ${item._id}`);
+              return null;
+            }
 
-          const cover = Array.isArray(productData?.image)
-            ? (productData.image[0] || '')
-            : (Array.isArray(productData?.images) ? (productData.images[0] || '') : (productData?.image || ''));
+            const cover = Array.isArray(productData?.image)
+              ? (productData.image[0] || '')
+              : (Array.isArray(productData?.images) ? (productData.images[0] || '') : (productData?.image || ''));
 
-          const k = keyFor(item);
-          const isLeaving = leaving.has(k);
-          return (
-            <div
-              key={k}
-              className={`rounded-md border bg-white p-4 sm:p-5 text-gray-700 flex items-center gap-4 sm:gap-6 hover:shadow-md transition-all duration-200 ${isLeaving ? 'animate-cart-leave pointer-events-none' : 'animate-soft-reveal'}`}
-            >
-              <Link to={`/product/${item._id}`} className="shrink-0">
-                <SafeImg
-                  className='w-20 h-20 rounded-md object-cover border hover:opacity-80 transition-opacity'
-                  src={cover || '/placeholder-image.png'}
-                  alt={productData?.name || 'Product'}
-                  width={80}
-                  height={80}
-                  quality={85}
-                />
-              </Link>
-              <div className='flex-1 min-w-0'>
-                <Link to={`/product/${item._id}`} className="hover:text-gray-600 transition-colors">
-                  <p className='text-sm sm:text-base font-medium truncate'>{productData?.name || 'Unknown Product'}</p>
+            const k = keyFor(item);
+            const isLeaving = leaving.has(k);
+            return (
+              <div
+                key={k}
+                className={`rounded-md border bg-white p-4 sm:p-5 text-gray-700 flex items-center gap-4 sm:gap-6 hover:shadow-md transition-all duration-200 ${isLeaving ? 'animate-cart-leave pointer-events-none' : 'animate-soft-reveal'}`}
+              >
+                <Link to={`/product/${item._id}`} className="shrink-0">
+                  <SafeImg
+                    className='w-20 h-20 rounded-md object-cover border hover:opacity-80 transition-opacity'
+                    src={cover || '/placeholder-image.png'}
+                    alt={productData?.name || 'Product'}
+                    width={80}
+                    height={80}
+                    quality={85}
+                  />
                 </Link>
-                <div className='mt-2 flex items-start gap-3 flex-wrap'>
-                  <div className='flex flex-col gap-1 w-fit'>
-                    {item.size && (
-                      <div className='px-2 py-1 text-xs border rounded-md bg-slate-50 w-fit'>
-                        {isFootwearProduct(productData)
-                          ? String(toUKLabel(item.size) || item.size).replace(/^UK-/, '')
-                          : item.size}
+                <div className='flex-1 min-w-0'>
+                  <Link to={`/product/${item._id}`} className="hover:text-gray-600 transition-colors">
+                    <p className='text-sm sm:text-base font-medium truncate'>{productData?.name || 'Unknown Product'}</p>
+                  </Link>
+                  <div className='mt-2 flex items-start gap-3 flex-wrap'>
+                    <div className='flex flex-col gap-1 w-fit'>
+                      {item.size && (
+                        <div className='px-2 py-1 text-xs border rounded-md bg-slate-50 w-fit'>
+                          {isFootwearProduct(productData)
+                            ? String(toUKLabel(item.size) || item.size).replace(/^UK-/, '')
+                            : item.size}
+                        </div>
+                      )}
+                      <div className='px-2 py-1 text-sm font-semibold border rounded-md bg-white w-fit'>
+                        {currency}{productData?.price || 0}
                       </div>
-                    )}
-                    <div className='px-2 py-1 text-sm font-semibold border rounded-md bg-white w-fit'>
-                      {currency}{productData?.price || 0}
                     </div>
                   </div>
+                  <div className='mt-3 hidden sm:flex items-center gap-6 text-xs text-gray-500'>
+                    <Button variant="link" size="sm" onClick={() => requestRemove(item._id, item.size)} className="text-xs">Remove</Button>
+                    <Button 
+                      variant="link" 
+                      size="sm" 
+                      onClick={() => {
+                        updateQuantity(item._id, item.size, 0);
+                        moveToCart(item._id, item.size);
+                      }}
+                      className="text-xs"
+                    >
+                      Move to wishlist
+                    </Button>
+                  </div>
                 </div>
-                <div className='mt-3 hidden sm:flex items-center gap-6 text-xs text-gray-500'>
-                  <button className='underline pressable' onClick={() => requestRemove(item._id, item.size)}>Remove</button>
-                  <button className='underline opacity-50 cursor-not-allowed' title='Coming soon'>Move to wishlist</button>
+                <div className='flex items-center gap-3 shrink-0'>
+                  <QuantityStepper
+                    value={item.quantity}
+                    min={1}
+                    onChange={(q) => q <= 0 ? requestRemove(item._id, item.size) : updateQuantity(item._id, item.size, q)}
+                  />
+                  <button
+                    type='button'
+                    aria-label='Remove item'
+                    onClick={() => requestRemove(item._id, item.size)}
+                    className='p-2.5 rounded hover:bg-gray-100 active:scale-95 transition sm:hidden pressable min-w-[44px] min-h-[44px] flex items-center justify-center'
+                  >
+                    <SafeImg className='w-5 sm:w-5' src={assets.bin_icon} alt='' width={20} height={20} quality={90} aria-hidden="true" />
+                  </button>
                 </div>
               </div>
-              <div className='flex items-center gap-3 shrink-0'>
-                <QuantityStepper
-                  value={item.quantity}
-                  min={1}
-                  onChange={(q) => q <= 0 ? requestRemove(item._id, item.size) : updateQuantity(item._id, item.size, q)}
-                />
-                <button
-                  type='button'
-                  aria-label='Remove item'
-                  onClick={() => requestRemove(item._id, item.size)}
-                  className='p-2 rounded hover:bg-gray-100 active:scale-95 transition sm:hidden pressable'
-                >
-                  <SafeImg className='w-5 sm:w-5' src={assets.bin_icon} alt='' width={20} height={20} quality={90} />
-                </button>
-              </div>
-            </div>
-          )
-        })}
+            );
+          })
+        )}
       </div>
 
       <div className='mt-8 grid sm:grid-cols-2 gap-4'>
         <Accordion title="Apply Coupon">
-          <div className='flex gap-2'>
-            <input className='flex-1 border rounded px-3 h-10' placeholder='Enter coupon code' />
-            <button className='h-10 px-4 rounded bg-black text-white text-sm'>Apply</button>
-          </div>
+          {appliedCoupon ? (
+            <div className='space-y-3'>
+              <div className='flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-md'>
+                <div className='flex-1'>
+                  <p className='text-sm font-medium text-green-800'>
+                    Coupon Applied: <span className='font-bold'>{appliedCoupon.code}</span>
+                  </p>
+                  {appliedCoupon.description && (
+                    <p className='text-xs text-green-600 mt-1'>{appliedCoupon.description}</p>
+                  )}
+                </div>
+                <button
+                  onClick={() => {
+                    removeCoupon();
+                    setCouponCode('');
+                    setCouponError('');
+                  }}
+                  className='ml-3 text-green-700 hover:text-green-900 text-sm font-medium'
+                  aria-label="Remove coupon"
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className='space-y-2'>
+              <div className='flex gap-2'>
+                <Input
+                  placeholder='Enter coupon code'
+                  value={couponCode}
+                  onChange={(e) => {
+                    setCouponCode(e.target.value.toUpperCase());
+                    setCouponError('');
+                  }}
+                  error={!!couponError}
+                  errorMessage={couponError}
+                  className="flex-1 h-10"
+                  label="Coupon Code"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      handleApplyCoupon();
+                    }
+                  }}
+                />
+                <Button
+                  size="sm"
+                  className="h-10"
+                  onClick={handleApplyCoupon}
+                  disabled={!couponCode.trim()}
+                >
+                  Apply
+                </Button>
+              </div>
+            </div>
+          )}
         </Accordion>
       </div>
 
       {/* Primary action placed beneath coupon section */}
       <div className='mt-6 flex justify-center'>
-        <button
+        <Button
           type='button'
           disabled={cartData.length === 0}
           onClick={() => navigate('/address')}
-          className={`px-6 py-3 text-sm rounded text-white pressable ${cartData.length === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-black hover:opacity-90'}`}
         >
           Proceed to checkout
-        </button>
+        </Button>
       </div>
 
       {/* Totals removed from My Bag (shown on Payment step) */}

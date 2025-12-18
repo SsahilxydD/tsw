@@ -12,8 +12,9 @@
     <meta name="theme-color" content="#000000" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <!-- Preload LCP hero images - mobile local, desktop CDN -->
-    <link rel="preload" href="/hero.webp" as="image" type="image/webp" fetchpriority="high" media="(max-width: 639px)" />
-    <link rel="preload" href="https://imagedelivery.net/Ysm_SanI713eaOY5mRhkPQ/33b43c5b-c26c-4f5b-3adf-fec4eaada300/public" as="image" fetchpriority="high" media="(min-width: 640px)" />
+    <!-- Note: Preload warnings are expected if media queries don't match viewport -->
+    <link rel="preload" href="/hero.webp" as="image" type="image/webp" fetchpriority="high" media="(max-width: 639px)" crossorigin="anonymous" />
+    <link rel="preload" href="https://imagedelivery.net/Ysm_SanI713eaOY5mRhkPQ/33b43c5b-c26c-4f5b-3adf-fec4eaada300/public" as="image" fetchpriority="high" media="(min-width: 640px)" crossorigin="anonymous" />
     <link rel="preconnect" href="https://imagedelivery.net" />
     
     <!-- Preload critical resources to break the network chain -->

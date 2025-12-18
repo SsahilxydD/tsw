@@ -1,9 +1,10 @@
 import React from "react";
+import Loading from "./Loading";
 
-export default function PageLoader() {
+export default function PageLoader({ message = null }) {
   return (
     <div className="min-h-[40vh] flex items-center justify-center">
-      <div className="w-8 h-8 border-2 border-gray-300 border-t-black rounded-full animate-spin" aria-label="Loading" />
+      <Loading size="lg" message={message} />
     </div>
   );
 }

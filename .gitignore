@@ -27,3 +27,15 @@ dist-ssr
 # Cursor IDE and MCP configuration (may contain sensitive tokens)
 .cursor/
 cursor-mcp-config.json
+
+dev-debug.log
+# Dependency directories
+node_modules/
+# Environment variables
+.env
+.vscode
+# OS specific
+
+# Task files
+# tasks.json
+# tasks/ 

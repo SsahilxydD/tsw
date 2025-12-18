@@ -1,6 +1,12 @@
-import { createContext, useEffect, useRef, useState } from "react";
+import { createContext, useEffect, useRef, useState, useCallback } from "react";
 import { isJeansProduct, isFootwearProduct, normalizeJeansSizes, uniqueUKLabels, toUKLabel } from "../utils/size";
 import { useNavigate } from "react-router-dom";
+import { safeFetch, safeLocalStorage, handleError } from "../utils/errorHandler";
+import { loadCart, saveCart, setupCartSync, clearCart } from "../utils/cartPersistence";
+import { loadWishlist, saveWishlist, setupWishlistSync, clearWishlist } from "../utils/wishlistPersistence";
+import { loadRecentlyViewed, saveRecentlyViewed, setupRecentlyViewedSync, addToRecentlyViewed, getRecentlyViewedProductIds } from "../utils/recentlyViewedPersistence";
+import { validateCoupon, calculateDiscount } from "../utils/coupons";
+import { loadReviews, addReview, getProductReviews, getProductRating, markReviewHelpful, generateReviewId } from "../utils/reviewPersistence";
 
 export const ShopContext = createContext();
 
@@ -20,9 +26,11 @@ const ShopContextProvider = (props) => {
   // Cart persisted locally so refresh doesn't clear it
   const [cartItems, setCartItems] = useState(() => {
     try {
-      const raw = localStorage.getItem('cart.v1');
-      return raw ? JSON.parse(raw) : {};
-    } catch { return {}; }
+      return loadCart();
+    } catch (error) {
+      handleError(error, { operation: 'cart initialization' });
+      return {};
+    }
   });
   const [products, setProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
@@ -36,15 +44,56 @@ const ShopContextProvider = (props) => {
     noticeTimerRef.current = setTimeout(() => setNotice(null), 2000);
   };
 
+  // Wishlist persisted locally
+  const [wishlist, setWishlist] = useState(() => {
+    try {
+      return loadWishlist();
+    } catch (error) {
+      handleError(error, { operation: 'wishlist initialization' });
+      return [];
+    }
+  });
+
+  // Coupon state
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+
+  // Reviews state
+  const [reviews, setReviews] = useState(() => {
+    try {
+      return loadReviews();
+    } catch (error) {
+      handleError(error, { operation: 'reviews initialization' });
+      return [];
+    }
+  });
+
+  // Recently viewed state
+  const [recentlyViewed, setRecentlyViewed] = useState(() => {
+    try {
+      return loadRecentlyViewed();
+    } catch (error) {
+      handleError(error, { operation: 'recently viewed initialization' });
+      return [];
+    }
+  });
+
   // Address persisted locally
   const [address, setAddress] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('addr.v1') || 'null'); }
-    catch { return null; }
+    try {
+      const raw = safeLocalStorage.getItem('addr.v1');
+      return raw ? JSON.parse(raw) : null;
+    } catch (error) {
+      handleError(error, { operation: 'address initialization' });
+      return null;
+    }
   });
   useEffect(() => {
-    try {
-      if (address) localStorage.setItem('addr.v1', JSON.stringify(address));
-    } catch { }
+    if (address) {
+      const saved = safeLocalStorage.setItem('addr.v1', JSON.stringify(address));
+      if (!saved) {
+        notify('Unable to save address. Please check browser settings.');
+      }
+    }
   }, [address]);
 
   useEffect(() => {
@@ -73,13 +122,9 @@ const ShopContextProvider = (props) => {
         let lastErr = null;
         for (const src of sources) {
           try {
-            // Use default cache to leverage browser's preload cache
-            const r = await fetch(src.url);
-            if (!r.ok) {
-              lastErr = new Error(`Failed to load ${src.url}: ${r.status} ${r.statusText}`);
-              continue;
-            }
-
+            // Use safeFetch with retry mechanism
+            const r = await safeFetch(src.url, { timeout: 15000 }, 2);
+            
             // Check if response is JSON
             const contentType = r.headers.get('content-type');
             if (!contentType || !contentType.includes('application/json')) {
@@ -92,11 +137,14 @@ const ShopContextProvider = (props) => {
             break;
           } catch (e) {
             lastErr = e;
-            console.warn(`Failed to load ${src.url}:`, e.message);
+            const errorInfo = handleError(e, { url: src.url, operation: 'loadProducts' });
+            console.warn(`Failed to load ${src.url}:`, errorInfo.message);
           }
         }
         if (!raw) {
+          const errorInfo = handleError(lastErr || new Error('No products source available'), { operation: 'loadProducts' });
           console.warn("No products source available, using empty array");
+          notify(errorInfo.message);
           setProducts([]);
           return;
         }
@@ -496,7 +544,9 @@ const ShopContextProvider = (props) => {
 
         setProducts(mapped.filter(Boolean));
       } catch (err) {
-        console.error(err);
+        const errorInfo = handleError(err, { operation: 'processProducts' });
+        console.error('Error processing products:', err);
+        notify(errorInfo.message);
         setProducts([]);
       } finally {
         setLoadingProducts(false);
@@ -506,10 +556,81 @@ const ShopContextProvider = (props) => {
     loadProducts();
   }, []);
 
-  // persist cart whenever it changes
+  // Persist cart whenever it changes
   useEffect(() => {
-    try { localStorage.setItem('cart.v1', JSON.stringify(cartItems)); } catch { }
+    const saved = saveCart(cartItems);
+    if (!saved && Object.keys(cartItems).length > 0) {
+      console.warn('Unable to save cart to localStorage');
+      notify('Unable to save cart. Please check browser settings.');
+    }
   }, [cartItems]);
+
+  // Persist wishlist whenever it changes
+  useEffect(() => {
+    const saved = saveWishlist(wishlist);
+    if (!saved && wishlist.length > 0) {
+      console.warn('Unable to save wishlist to localStorage');
+      notify('Unable to save wishlist. Please check browser settings.');
+    }
+  }, [wishlist]);
+
+  // Setup cross-tab cart synchronization
+  useEffect(() => {
+    const cleanup = setupCartSync((newCartData) => {
+      // Only update if cart data actually changed (avoid infinite loops)
+      // Use a ref to track the last synced cart to prevent loops
+      setCartItems((prevCartItems) => {
+        const prevStr = JSON.stringify(prevCartItems);
+        const newStr = JSON.stringify(newCartData);
+        if (prevStr !== newStr) {
+          return newCartData;
+        }
+        return prevCartItems;
+      });
+    });
+
+    return cleanup;
+  }, []); // Empty deps - only setup once
+
+  // Setup cross-tab wishlist synchronization
+  useEffect(() => {
+    const cleanup = setupWishlistSync((newWishlistData) => {
+      setWishlist((prevWishlist) => {
+        const prevStr = JSON.stringify(prevWishlist);
+        const newStr = JSON.stringify(newWishlistData);
+        if (prevStr !== newStr) {
+          return newWishlistData;
+        }
+        return prevWishlist;
+      });
+    });
+
+    return cleanup;
+  }, []); // Empty deps - only setup once
+
+  // Persist recently viewed whenever it changes
+  useEffect(() => {
+    const saved = saveRecentlyViewed(recentlyViewed);
+    if (!saved && recentlyViewed.length > 0) {
+      console.warn('Unable to save recently viewed to localStorage');
+    }
+  }, [recentlyViewed]);
+
+  // Setup cross-tab recently viewed synchronization
+  useEffect(() => {
+    const cleanup = setupRecentlyViewedSync((newRecentlyViewedData) => {
+      setRecentlyViewed((prevRecentlyViewed) => {
+        const prevStr = JSON.stringify(prevRecentlyViewed);
+        const newStr = JSON.stringify(newRecentlyViewedData);
+        if (prevStr !== newStr) {
+          return newRecentlyViewedData;
+        }
+        return prevRecentlyViewed;
+      });
+    });
+
+    return cleanup;
+  }, []); // Empty deps - only setup once
 
   const addToCart = async (itemId, size) => {
     if (!size) { notify('Select product size'); return; }
@@ -539,6 +660,61 @@ const ShopContextProvider = (props) => {
     if (quantity === 0) notify('Removed from bag');
   }
 
+  // Clear cart function (for logout, order completion, etc.)
+  const clearCartItems = () => {
+    clearCart();
+    setCartItems({});
+    notify('Cart cleared');
+  }
+
+  // Wishlist functions
+  const addToWishlist = (productId) => {
+    const pid = String(productId);
+    if (!wishlist.includes(pid)) {
+      const newWishlist = [...wishlist, pid];
+      setWishlist(newWishlist);
+      notify('Added to wishlist');
+    } else {
+      notify('Already in wishlist');
+    }
+  }
+
+  const removeFromWishlist = (productId) => {
+    const pid = String(productId);
+    const newWishlist = wishlist.filter(id => id !== pid);
+    setWishlist(newWishlist);
+    notify('Removed from wishlist');
+  }
+
+  const toggleWishlist = (productId) => {
+    const pid = String(productId);
+    if (wishlist.includes(pid)) {
+      removeFromWishlist(pid);
+    } else {
+      addToWishlist(pid);
+    }
+  }
+
+  const isInWishlist = (productId) => {
+    return wishlist.includes(String(productId));
+  }
+
+  const getWishlistCount = () => {
+    return wishlist.length;
+  }
+
+  const moveToCart = (productId, size = 'std') => {
+    removeFromWishlist(productId);
+    addToCart(productId, size);
+    notify('Moved to cart');
+  }
+
+  const clearWishlistItems = () => {
+    clearWishlist();
+    setWishlist([]);
+    notify('Wishlist cleared');
+  }
+
   const getCartCount = () => {
     let totalCount = 0;
     for (const items in cartItems) {
@@ -566,6 +742,132 @@ const ShopContextProvider = (props) => {
     return totalAmount;
   }
 
+  const getCartSubtotal = () => {
+    return getCartAmount();
+  }
+
+  const getDiscountAmount = () => {
+    if (!appliedCoupon) return 0;
+    const subtotal = getCartSubtotal();
+    return calculateDiscount(appliedCoupon, subtotal);
+  }
+
+  const getCartTotal = () => {
+    const subtotal = getCartSubtotal();
+    const discount = getDiscountAmount();
+    return Math.max(0, subtotal - discount);
+  }
+
+  const applyCoupon = (code) => {
+    const subtotal = getCartSubtotal();
+    // Build cart items array for category checking
+    const cartItemsArray = [];
+    for (const items in cartItems) {
+      const itemInfo = products.find((product) => product._id === items || product.slug === items);
+      if (itemInfo) {
+        for (const item in cartItems[items]) {
+          if (cartItems[items][item] > 0) {
+            cartItemsArray.push({
+              _id: items,
+              size: item,
+              quantity: cartItems[items][item],
+              category: itemInfo.category,
+              categoryRaw: itemInfo.categoryRaw
+            });
+          }
+        }
+      }
+    }
+
+    const validation = validateCoupon(code, subtotal, cartItemsArray);
+    if (validation.valid && validation.coupon) {
+      setAppliedCoupon(validation.coupon);
+      notify(`Coupon "${validation.coupon.code}" applied successfully!`);
+      return { success: true, coupon: validation.coupon };
+    } else {
+      notify(validation.error || 'Invalid coupon code');
+      return { success: false, error: validation.error };
+    }
+  }
+
+  const removeCoupon = () => {
+    if (appliedCoupon) {
+      setAppliedCoupon(null);
+      notify('Coupon removed');
+    }
+  }
+
+  // Review functions
+  const submitReview = (reviewData) => {
+    const review = {
+      id: generateReviewId(),
+      productId: String(reviewData.productId),
+      rating: reviewData.rating,
+      title: reviewData.title,
+      comment: reviewData.comment,
+      authorName: reviewData.authorName,
+      authorEmail: reviewData.authorEmail,
+      date: new Date().toISOString(),
+      helpfulCount: 0,
+      verified: false, // Could be set to true if user has purchased the product
+      status: 'approved'
+    };
+
+    const result = addReview(review);
+    if (result.success) {
+      const updatedReviews = loadReviews();
+      setReviews(updatedReviews);
+      notify('Review submitted successfully!');
+      return { success: true, review: result.review };
+    } else {
+      notify(result.error || 'Failed to submit review');
+      return { success: false, error: result.error };
+    }
+  }
+
+  const getReviewsForProduct = (productId) => {
+    return getProductReviews(String(productId));
+  }
+
+  const getRatingForProduct = (productId) => {
+    return getProductRating(String(productId));
+  }
+
+  const markHelpful = (reviewId) => {
+    const result = markReviewHelpful(reviewId);
+    if (result.success) {
+      const updatedReviews = loadReviews();
+      setReviews(updatedReviews);
+      return { success: true };
+    }
+    return { success: false, error: result.error };
+  }
+
+  // Recently viewed functions
+  const trackProductView = useCallback((productId) => {
+    if (!productId) return;
+    const pid = String(productId);
+    const success = addToRecentlyViewed(pid);
+    if (success) {
+      // Reload recently viewed to get updated list
+      const updated = loadRecentlyViewed();
+      setRecentlyViewed(updated);
+    }
+  }, []);
+
+  const getRecentlyViewedProducts = useCallback(() => {
+    // Use recentlyViewed state instead of reading from localStorage directly
+    const productIds = recentlyViewed.map(item => item.productId);
+    if (!Array.isArray(products) || productIds.length === 0) return [];
+    
+    // Get products in order of most recently viewed
+    const viewedProducts = productIds
+      .map(id => products.find(p => String(p._id) === id || String(p.slug) === id))
+      .filter(Boolean); // Remove undefined products
+    
+    return viewedProducts;
+  }, [products, recentlyViewed]);
+
   const value = {
     currency, delivery_fee,
     products, loadingProducts,
@@ -574,10 +876,18 @@ const ShopContextProvider = (props) => {
     address, setAddress,
     search, setSearch,
     showSearch, setShowSearch,
-    addToCart, updateQuantity,
+    addToCart, updateQuantity, clearCartItems,
     cartItems,
-    getCartCount, getCartAmount,
-    isCartOpen, setIsCartOpen
+    getCartCount, getCartAmount, getCartSubtotal, getCartTotal,
+    getDiscountAmount, applyCoupon, removeCoupon, appliedCoupon,
+    isCartOpen, setIsCartOpen,
+    wishlist,
+    addToWishlist, removeFromWishlist, toggleWishlist,
+    isInWishlist, getWishlistCount, moveToCart, clearWishlistItems,
+    reviews,
+    submitReview, getReviewsForProduct, getRatingForProduct, markHelpful,
+    recentlyViewed,
+    trackProductView, getRecentlyViewedProducts
   }
 
   return (

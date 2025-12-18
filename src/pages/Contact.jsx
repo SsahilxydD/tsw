@@ -1,13 +1,49 @@
 import React, { useState } from 'react'
 import Title from '../components/Title'
+import Button from '../components/Button'
+import Input from '../components/Input'
+import { validateName, validateEmail, validateMessage } from '../utils/validation'
 
 const Contact = () => {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [message, setMessage] = useState('')
+  const [errors, setErrors] = useState({})
+
+  const validate = () => {
+    const errs = {};
+    const nameError = validateName(name, 'Name');
+    if (nameError) errs.name = nameError;
+    
+    const emailError = validateEmail(email);
+    if (emailError) errs.email = emailError;
+    
+    const messageError = validateMessage(message, 'Message', 10);
+    if (messageError) errs.message = messageError;
+    
+    return errs;
+  };
+
+  const onChange = (field, value) => {
+    if (field === 'name') setName(value);
+    else if (field === 'email') setEmail(value);
+    else if (field === 'message') setMessage(value);
+    
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: null }));
+    }
+  };
 
   const onSubmit = (e) => {
     e.preventDefault()
+    const errs = validate();
+    
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs);
+      return;
+    }
+    
     const text = `Hello Solo Wardrobe,%0A%0AName: ${encodeURIComponent(name)}%0AEmail: ${encodeURIComponent(email)}%0A%0A${encodeURIComponent(message)}`
     const href = `https://wa.me/919933778870?text=${text}`
     window.open(href, '_blank', 'noopener')
@@ -47,12 +83,50 @@ const Contact = () => {
 
           <form onSubmit={onSubmit} className='border rounded-md p-5 bg-white animate-soft-reveal' style={{animationDelay:'160ms'}}>
             <div className='grid sm:grid-cols-2 gap-3'>
-              <input className='border rounded px-3 h-11' placeholder='Your name' value={name} onChange={(e)=>setName(e.target.value)} required />
-              <input className='border rounded px-3 h-11' placeholder='Your email (optional)' type='email' value={email} onChange={(e)=>setEmail(e.target.value)} />
+              <Input 
+                placeholder='Your name' 
+                name="name"
+                value={name} 
+                onChange={(e) => onChange('name', e.target.value)} 
+                error={!!errors.name}
+                errorMessage={errors.name}
+                required 
+                className="h-11" 
+              />
+              <Input 
+                placeholder='Your email (optional)' 
+                type='email' 
+                name="email"
+                value={email} 
+                onChange={(e) => onChange('email', e.target.value)} 
+                error={!!errors.email}
+                errorMessage={errors.email}
+                className="h-11" 
+              />
             </div>
-            <textarea className='border rounded px-3 py-2 h-28 w-full mt-3' placeholder='How can we help?' value={message} onChange={(e)=>setMessage(e.target.value)} required />
+            <div className="mt-3">
+              <textarea 
+                className={`border rounded-lg px-4 py-3 h-28 w-full text-sm outline-none transition-colors focus:ring-2 ${
+                  errors.message 
+                    ? 'border-red-400 bg-red-50 focus:border-red-500 focus:ring-red-200' 
+                    : 'border-gray-200 focus:border-primary focus:ring-primary/20'
+                }`}
+                placeholder='How can we help?' 
+                name="message"
+                value={message} 
+                onChange={(e) => onChange('message', e.target.value)} 
+                required 
+                aria-invalid={errors.message ? 'true' : 'false'}
+                aria-describedby={errors.message ? 'message-error' : undefined}
+              />
+              {errors.message && (
+                <p id="message-error" className="mt-1 text-xs text-red-600" role="alert">
+                  {errors.message}
+                </p>
+              )}
+            </div>
             <div className='mt-3 text-right'>
-              <button type='submit' className='px-6 py-3 rounded bg-black text-white text-sm hover:opacity-90'>Send on WhatsApp</button>
+              <Button type='submit'>Send on WhatsApp</Button>
             </div>
           </form>
         </div>
