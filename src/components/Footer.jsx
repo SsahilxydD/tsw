@@ -10,8 +10,15 @@ const Footer = () => {
         {/* Brand */}
         <div className="space-y-6">
           <Link to="/" className="block">
-            {assets.logo_white ? (
-              <SafeImg src={assets.logo_white} className="h-8 w-auto" alt="Solo Wardrobe" width={128} height={32} quality={90} />
+            {assets.logo ? (
+              <SafeImg
+                src={assets.logo}
+                className="h-8 w-8 object-contain brightness-0 invert"
+                alt="Solo Wardrobe"
+                width={32}
+                height={32}
+                quality={90}
+              />
             ) : (
               <span className="font-serif text-2xl font-bold tracking-tight">SOLO WARDROBE</span>
             )}

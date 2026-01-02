@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import OurPolicy from '../components/OurPolicy'
 import Categories from '../components/Categories'
 import Hero from '../components/Hero'
@@ -10,6 +10,21 @@ import DiscountedSlider from '../components/DiscountedSlider'
 import RecentlyViewed from '../components/RecentlyViewed'
 
 const Home = () => {
+  // Defer below-the-fold content so Lighthouse doesn't download dozens of product images during LCP.
+  const [showBelowFold, setShowBelowFold] = useState(false);
+
+  useEffect(() => {
+    let t;
+    // Prefer requestIdleCallback, fallback to a small timeout.
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      // @ts-ignore
+      const id = window.requestIdleCallback(() => setShowBelowFold(true), { timeout: 1500 });
+      return () => { try { /* @ts-ignore */ window.cancelIdleCallback?.(id); } catch {} };
+    }
+    t = setTimeout(() => setShowBelowFold(true), 900);
+    return () => clearTimeout(t);
+  }, []);
+
   return (
     <div>
       <SEO
@@ -43,13 +58,28 @@ const Home = () => {
 
       <Hero />
 
-      {/* Sliders - eagerly loaded but code-split via Vite manual chunks */}
-      <HeroSlider />
-      <AllCategoriesSlider />
-      <DiscountedSlider />
-      <RecentlyViewed maxItems={10} />
-      <Categories />
-      <OurPolicy />
+      {/* Below-the-fold content */}
+      {showBelowFold ? (
+        <>
+          <HeroSlider />
+          <AllCategoriesSlider />
+          <DiscountedSlider />
+          <RecentlyViewed maxItems={10} />
+          <Categories />
+          <OurPolicy />
+        </>
+      ) : (
+        <div className="w-full py-6 bg-gray-50/30">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6">
+            <div className="h-6 w-56 bg-gray-200 rounded animate-pulse" />
+            <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="aspect-square bg-gray-200 rounded-lg animate-pulse" />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

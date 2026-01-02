@@ -133,8 +133,8 @@ const Navbar = () => {
                 src={assets.logo}
                 alt="Solo Wardrobe"
                 className="h-12 sm:h-[42px] w-auto object-contain transition-all duration-300 group-hover:scale-105"
-                width={168}
-                height={42}
+                width={48}
+                height={48}
                 quality={90}
               />
             ) : (
