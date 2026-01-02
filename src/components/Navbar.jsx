@@ -212,13 +212,16 @@ const Navbar = () => {
           id="mobile-menu"
           className={`md:hidden absolute top-full left-0 w-full bg-white border-b border-gray-100 shadow-lg transition-all duration-300 overflow-hidden z-50 ${isMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}
           aria-hidden={!isMenuOpen}
+          inert={!isMenuOpen ? "" : undefined}
         >
-          <nav className="flex flex-col p-4 gap-2" role="navigation" aria-label="Main navigation">
-            <Link to="/" className="text-sm font-medium tracking-wide text-secondary hover:text-primary py-3 px-4 min-h-[44px] flex items-center justify-center rounded-md hover:bg-gray-50 transition-colors" onClick={() => setIsMenuOpen(false)}>HOME</Link>
-            <Link to="/about" className="text-sm font-medium tracking-wide text-secondary hover:text-primary py-3 px-4 min-h-[44px] flex items-center justify-center rounded-md hover:bg-gray-50 transition-colors" onClick={() => setIsMenuOpen(false)}>ABOUT</Link>
-            <Link to="/contact" className="text-sm font-medium tracking-wide text-secondary hover:text-primary py-3 px-4 min-h-[44px] flex items-center justify-center rounded-md hover:bg-gray-50 transition-colors" onClick={() => setIsMenuOpen(false)}>CONTACT</Link>
-            <a href="https://wa.me/919933778870" target="_blank" rel="noopener noreferrer" className="text-sm font-medium tracking-wide text-secondary hover:text-primary py-3 px-4 min-h-[44px] flex items-center justify-center rounded-md hover:bg-gray-50 transition-colors">WHATSAPP CHAT</a>
-          </nav>
+          {isMenuOpen && (
+            <nav className="flex flex-col p-4 gap-2" role="navigation" aria-label="Main navigation">
+              <Link to="/" className="text-sm font-medium tracking-wide text-secondary hover:text-primary py-3 px-4 min-h-[44px] flex items-center justify-center rounded-md hover:bg-gray-50 transition-colors" onClick={() => setIsMenuOpen(false)}>HOME</Link>
+              <Link to="/about" className="text-sm font-medium tracking-wide text-secondary hover:text-primary py-3 px-4 min-h-[44px] flex items-center justify-center rounded-md hover:bg-gray-50 transition-colors" onClick={() => setIsMenuOpen(false)}>ABOUT</Link>
+              <Link to="/contact" className="text-sm font-medium tracking-wide text-secondary hover:text-primary py-3 px-4 min-h-[44px] flex items-center justify-center rounded-md hover:bg-gray-50 transition-colors" onClick={() => setIsMenuOpen(false)}>CONTACT</Link>
+              <a href="https://wa.me/919933778870" target="_blank" rel="noopener noreferrer" className="text-sm font-medium tracking-wide text-secondary hover:text-primary py-3 px-4 min-h-[44px] flex items-center justify-center rounded-md hover:bg-gray-50 transition-colors">WHATSAPP CHAT</a>
+            </nav>
+          )}
         </div>
       </header>
     </>

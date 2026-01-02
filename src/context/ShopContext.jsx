@@ -149,6 +149,100 @@ const ShopContextProvider = (props) => {
           return;
         }
 
+        // Fast-path mappings: products.json already has normalized categories (e.g. "belts", "shoes").
+        // Avoid expensive keyword inference on every item (this was a major Lighthouse main-thread cost).
+        const normalizeKey = (s) => String(s || "")
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]+/g, "");
+
+        const CATEGORY_ALIASES = {
+          discounted: "Discounted",
+          sale: "Discounted",
+          ladieswatch: "ladieswatches",
+          ladieswatches: "ladieswatches",
+          womenswatch: "ladieswatches",
+          womenswatches: "ladieswatches",
+          womensperfume: "womensperfume",
+          womenperfume: "womensperfume",
+          perfumeforwomen: "womensperfume",
+          menperfume: "menperfume",
+          mensperfume: "menperfume",
+          tshirt: "t-shirts",
+          tshirts: "t-shirts",
+          tshirtsclothstopwear: "t-shirts",
+          tshirtsclothstopwearmen: "t-shirts",
+          shirts: "shirts",
+          shirt: "shirts",
+          sunglasses: "sunglasses",
+          shades: "sunglasses",
+          watches: "watches",
+          watch: "watches",
+          flipflop: "flipflops",
+          flipflops: "flipflops",
+          handbags: "handbags",
+          handbag: "handbags",
+          caps: "caps",
+          cap: "caps",
+          hats: "caps",
+          hat: "caps",
+          belts: "belts",
+          belt: "belts",
+          wallets: "wallets",
+          wallet: "wallets",
+          cardholder: "wallets",
+          cardholders: "wallets",
+          jeans: "jeans",
+          jean: "jeans",
+          denim: "jeans",
+          jackets: "jackets",
+          jacket: "jackets",
+          windcheaters: "jackets",
+          blazers: "jackets",
+          sweatshirt: "sweatshirts",
+          sweatshirts: "sweatshirts",
+          tracksuit: "tracksuits",
+          tracksuits: "tracksuits",
+          hoodie: "hoodies",
+          hoodies: "hoodies",
+          trackpant: "trackpants",
+          trackpants: "trackpants",
+          jogger: "trackpants",
+          joggers: "trackpants",
+          womenshoes: "womenshoes",
+          womenshoe: "womenshoes",
+          ladieshoes: "womenshoes",
+          shoes: "shoes",
+          shoe: "shoes",
+          sneaker: "shoes",
+          sneakers: "shoes",
+          footwear: "shoes",
+        };
+
+        const PRICE_ADJ = {
+          belts: 200,
+          caps: 200,
+          flipflops: 150,
+          hoodies: 150,
+          handbags: 100,
+          jackets: 150,
+          jeans: 100,
+          ladieswatches: 150,
+          menperfume: 150,
+          shirts: 200,
+          sunglasses: 250,
+          sweatshirts: 200,
+          "t-shirts": 150,
+          trackpants: 200,
+          tracksuits: 150,
+          wallets: 150,
+          watches: 150,
+          womensperfume: 150,
+          womenshoes: 550,
+          shoes: 550,
+        };
+
         const mapped = Array.isArray(raw) ? raw.map((item) => {
           const images = Array.isArray(item.images)
             ? item.images.map((src) => {
@@ -174,21 +268,104 @@ const ShopContextProvider = (props) => {
             })
             : [];
 
-          const originalCategory = item.category ?? "";
+          // --- FAST PATH ---
+          // Trust products.json "category" and apply a small normalization map.
+          const originalCategory = String(item.category ?? "");
+          const key = normalizeKey(originalCategory);
+          const finalCategoryRaw = CATEGORY_ALIASES[key] || originalCategory;
+
           let category = originalCategory;
           const lc = String(category).toLowerCase();
           if (lc.includes("men")) category = "Men";
           else if (lc.includes("women") || lc.includes("lady")) category = "Women";
           else if (lc.includes("kid")) category = "Kids";
 
-          // Price adjustments per category/type
           const basePrice = Number(item.price ?? 0) || 0;
-          // Use the original category strings for robust detection
-          const lcRaw = String(originalCategory ?? "").toLowerCase();
-          const lcSub = String(item?.subCategory ?? "").toLowerCase();
-          const title = String(item?.title ?? item?.slug_name ?? "");
-          const lcTitle = title.toLowerCase();
+          const isDiscounted = String(finalCategoryRaw).toLowerCase() === "discounted";
 
+          // Discounted subCategory (simple + fast)
+          let derivedSub = item.subCategory ?? "";
+          if (isDiscounted) {
+            const looksFootwear = isFootwearProduct({
+              category: originalCategory,
+              categoryRaw: originalCategory,
+              sizes: item?.sizes,
+            });
+            derivedSub = looksFootwear ? "Footwear" : "Topwear";
+          }
+
+          let price = Math.max(0, basePrice + (isDiscounted ? 0 : (PRICE_ADJ[String(finalCategoryRaw)] || 0)));
+
+          // Flat pricing for Discounted Footwear page (keep the existing behavior, but do it cheaply)
+          if (isDiscounted && String(derivedSub || "").toLowerCase() === "footwear") {
+            const titleForCheck = String(item?.title ?? item?.slug_name ?? "").toLowerCase();
+            const keywords1399 = [
+              "brikenstock",
+              "birkenstock",
+              "croccs",
+              "crocs",
+              "nike offcourt adjust slide",
+              "nikee air uptempo slider",
+            ];
+            const hasKeyword = keywords1399.some((k) => titleForCheck.includes(k));
+            price = hasKeyword ? 1399 : 1999;
+          }
+
+          const mappedItem = {
+            _id: (item._id ?? item.slug ?? item.slug_name ?? item.title)?.toString(),
+            name: formatName(item.title ?? item.slug_name ?? ""),
+            price,
+            mrp: Number(item.mrp ?? 0),
+            image: images[0] ?? "",
+            images,
+            category,
+            categoryRaw: finalCategoryRaw,
+            subCategory: derivedSub,
+            sizes: Array.isArray(item.sizes) ? item.sizes : [],
+            bestseller: Boolean(item.bestseller ?? false),
+            slug: item.slug ?? "",
+            detail_url_src: item.detail_url_src ?? ""
+          };
+
+          // Drop jeans products with no explicit sizes in data
+          if (isJeansProduct(mappedItem) && normalizeJeansSizes(mappedItem.sizes).length === 0) {
+            return null;
+          }
+
+          // Drop products with no size options for categories that require sizes
+          const categoriesRequiringSizes = [
+            'flipflops',
+            'hoodies',
+            'jackets',
+            'jeans',
+            'shirts',
+            'shoes',
+            't-shirts',
+            'trackpants',
+            'tracksuits',
+            'womenshoes'
+          ];
+
+          if (categoriesRequiringSizes.includes(String(finalCategoryRaw))) {
+            if (!Array.isArray(mappedItem.sizes) || mappedItem.sizes.length === 0) {
+              return null;
+            }
+
+            // For shoes only: filter to UK sizes 5-12 (minimum size requirement)
+            // womenshoes uses raw sizes from products.json
+            if (String(finalCategoryRaw) === 'shoes') {
+              const ukSizes = uniqueUKLabels(mappedItem.sizes);
+              if (ukSizes.length === 0) {
+                return null;
+              }
+              // Update sizes to only include valid UK sizes 5-12
+              mappedItem.sizes = ukSizes;
+            }
+          }
+
+          return mappedItem;
+
+          if (false) {
           // Combined hint for keyword detection (raw category + sub + title)
           // Normalize to improve matching across variants (diacritics, underscores, dashes, extra spaces)
           const normalize = (s) => String(s || "")
@@ -540,6 +717,7 @@ const ShopContextProvider = (props) => {
           }
 
           return mappedItem;
+          }
         }) : [];
 
         setProducts(mapped.filter(Boolean));

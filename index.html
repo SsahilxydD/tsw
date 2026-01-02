@@ -11,14 +11,11 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="theme-color" content="#000000" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <!-- Preload LCP hero images - mobile local, desktop CDN -->
-    <!-- Note: Preload warnings are expected if media queries don't match viewport -->
-    <link rel="preload" href="/hero.webp" as="image" type="image/webp" fetchpriority="high" media="(max-width: 639px)" crossorigin="anonymous" />
-    <link rel="preload" href="https://imagedelivery.net/Ysm_SanI713eaOY5mRhkPQ/33b43c5b-c26c-4f5b-3adf-fec4eaada300/public" as="image" fetchpriority="high" media="(min-width: 640px)" crossorigin="anonymous" />
+    <!-- Preload LCP hero image (Cloudflare Images, resized) -->
+    <!-- NOTE: Preloading must match the final <img src> to avoid double-downloads -->
     <link rel="preconnect" href="https://imagedelivery.net" />
-    
-    <!-- Preload critical resources to break the network chain -->
-    <link rel="preload" href="/data/products.json" as="fetch" crossorigin="anonymous" />
+    <link rel="preload" href="https://imagedelivery.net/Ysm_SanI713eaOY5mRhkPQ/33b43c5b-c26c-4f5b-3adf-fec4eaada300/w=750,h=1000,q=80,f=auto" as="image" fetchpriority="high" media="(max-width: 639px)" />
+    <link rel="preload" href="https://imagedelivery.net/Ysm_SanI713eaOY5mRhkPQ/33b43c5b-c26c-4f5b-3adf-fec4eaada300/w=1600,h=900,q=80,f=auto" as="image" fetchpriority="high" media="(min-width: 640px)" />
     
     <!-- DNS prefetch for faster subsequent requests -->
     <link rel="dns-prefetch" href="https://thesolowardrobe.com" />

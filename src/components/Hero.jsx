@@ -1,8 +1,7 @@
 import SafeImg from "./SafeImg";
 
-// Hero images - CDN for desktop, local fallback for mobile
-const HERO_DESKTOP = "https://imagedelivery.net/Ysm_SanI713eaOY5mRhkPQ/33b43c5b-c26c-4f5b-3adf-fec4eaada300/public";
-const HERO_MOBILE = "/hero.webp";
+// Hero image - Cloudflare Images (resized via URL params by SafeImg)
+const HERO_CLOUDFLARE = "https://imagedelivery.net/Ysm_SanI713eaOY5mRhkPQ/33b43c5b-c26c-4f5b-3adf-fec4eaada300/public";
 
 const Hero = () => {
   return (
@@ -10,24 +9,24 @@ const Hero = () => {
       {/* Mobile hero image */}
       <SafeImg
         className="w-full h-full object-cover sm:hidden"
-        src={HERO_MOBILE}
+        src={HERO_CLOUDFLARE}
         alt="Hero banner"
         width={750}
         height={1000}
         loading="eager"
         fetchPriority="high"
-        quality={90}
+        quality={80}
       />
-      {/* Desktop hero image from Cloudflare CDN */}
+      {/* Desktop hero image from Cloudflare Images */}
       <SafeImg
         className="w-full h-full object-cover hidden sm:block"
-        src={HERO_DESKTOP}
+        src={HERO_CLOUDFLARE}
         alt="Hero banner"
-        width={1920}
-        height={1080}
+        width={1600}
+        height={900}
         loading="eager"
         fetchPriority="high"
-        quality={90}
+        quality={80}
       />
     </div>
   );

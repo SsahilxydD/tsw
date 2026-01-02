@@ -12,8 +12,6 @@ import Notice from "./components/Notice";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Loading from "./components/Loading";
 import DelayedFallback from "./components/DelayedFallback";
-import { ToastContainer, Slide } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import ScrollToTop from "./components/ScrollToTop";
 import CachedRoutes from "./components/CachedRoutes";
 import SkipLink from "./components/SkipLink";
@@ -110,24 +108,6 @@ export default function App() {
       />
       {/* Lightweight in-app notices (add/remove, validation, etc.) */}
       <Notice />
-      <ToastContainer
-        position="bottom-center"
-        autoClose={1100}
-        hideProgressBar
-        closeOnClick
-        pauseOnHover={false}
-        pauseOnFocusLoss={false}
-        draggable={false}
-        newestOnTop={false}
-        closeButton={false}
-        icon={false}
-        limit={1}
-        theme="dark"
-        transition={Slide}
-        toastClassName={() => "toast-min"}
-        bodyClassName={() => "toast-min-body"}
-        containerStyle={{ paddingBottom: '72px' }}
-      />
     </ErrorBoundary>
   );
 }
