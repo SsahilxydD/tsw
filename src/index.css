@@ -20,7 +20,6 @@
   /* Reduce animations on mobile for better performance (unless user prefers reduced motion) */
   @media (prefers-reduced-motion: no-preference) {
     * {
-      animation-duration: 0.2s !important;
       transition-duration: 0.2s !important;
     }
   }
