@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getSizeGuideData, getSizeRecommendation } from '../utils/sizeGuideData';
-import { isFootwearProduct, isJeansProduct } from '../utils/size';
+import { isFootwearProduct, isJeansProduct, normalizeJeansSizes, uniqueUKLabels } from '../utils/size';
 import Button from './Button';
 import Input from './Input';
 
@@ -39,7 +39,93 @@ const SizeGuide = ({ isOpen, onClose, product = null }) => {
     const isJeans = isJeansProduct(product);
     
     const recommendation = getSizeRecommendation(categoryRaw, isFootwear, isJeans, measurements);
-    setRecommendedSize(recommendation);
+
+    // Snap recommendation to the closest AVAILABLE size for this product (avoids "recommended size not sold" confusion).
+    const cat = String(categoryRaw || product.category || '').toLowerCase();
+    const rawSizes = Array.isArray(product.sizes) ? product.sizes : [];
+
+    const apparelOrder = ['XS','S','M','L','XL','XXL','XXXL'];
+
+    const getAvailable = () => {
+      if (!rawSizes.length) return [];
+      if (sizeGuideData.type === 'jeans') return normalizeJeansSizes(rawSizes);
+      if (sizeGuideData.type === 'footwear') {
+        if (cat === 'womenshoes') {
+          const nums = rawSizes
+            .map((x) => parseInt(String(x).replace(/[^\d]/g, ''), 10))
+            .filter((n) => Number.isFinite(n) && n >= 35 && n <= 48);
+          return Array.from(new Set(nums)).sort((a,b)=>a-b).map((n)=>`EU ${n}`);
+        }
+        const uk = uniqueUKLabels(rawSizes);
+        return uk.map((x) => `UK ${String(x).replace(/^UK-/, '')}`);
+      }
+      // apparel fallback
+      const cleaned = rawSizes
+        .map((s) => String(s || '').trim().toUpperCase())
+        .filter(Boolean)
+        .filter((s) => !/^(ONE\s?SIZE|ONESIZE|OS|STD)$/i.test(s));
+      const uniq = Array.from(new Set(cleaned));
+      // sort by apparel order when possible
+      uniq.sort((a,b)=>{
+        const ia = apparelOrder.indexOf(a);
+        const ib = apparelOrder.indexOf(b);
+        if (ia === -1 && ib === -1) return a.localeCompare(b);
+        if (ia === -1) return 1;
+        if (ib === -1) return -1;
+        return ia - ib;
+      });
+      return uniq;
+    };
+
+    const available = getAvailable();
+
+    const snap = (rec) => {
+      if (!rec || !available.length) return rec;
+
+      // Footwear: "UK 7" / "EU 38" → snap by numeric distance (prefer exact, else nearest)
+      if (sizeGuideData.type === 'footwear') {
+        const recNum = parseFloat(String(rec).replace(/[^\d.]/g, ''));
+        if (!Number.isFinite(recNum)) return rec;
+        let best = available[0];
+        let bestDist = Infinity;
+        for (const a of available) {
+          const n = parseFloat(String(a).replace(/[^\d.]/g, ''));
+          const dist = Math.abs(n - recNum);
+          if (dist < bestDist) { bestDist = dist; best = a; }
+        }
+        return best;
+      }
+
+      // Jeans: "32" → nearest waist number, prefer exact else nearest
+      if (sizeGuideData.type === 'jeans') {
+        const recNum = parseInt(String(rec).replace(/[^\d]/g, ''), 10);
+        if (!Number.isFinite(recNum)) return rec;
+        let best = available[0];
+        let bestDist = Infinity;
+        for (const a of available) {
+          const n = parseInt(String(a).replace(/[^\d]/g, ''), 10);
+          const dist = Math.abs(n - recNum);
+          if (dist < bestDist) { bestDist = dist; best = a; }
+        }
+        return best;
+      }
+
+      // Apparel: choose the same size if available, else nearest by order (prefer sizing up)
+      const r = String(rec).toUpperCase();
+      if (available.includes(r)) return r;
+      const ri = apparelOrder.indexOf(r);
+      if (ri === -1) return rec;
+      const availIdx = available
+        .map((s) => ({ s, i: apparelOrder.indexOf(String(s).toUpperCase()) }))
+        .filter((x) => x.i !== -1)
+        .sort((a,b)=>a.i-b.i);
+      if (!availIdx.length) return rec;
+      // prefer >= recommendation, else largest smaller
+      const up = availIdx.find((x) => x.i >= ri);
+      return (up ? up.s : availIdx[availIdx.length - 1].s).toUpperCase();
+    };
+
+    setRecommendedSize(snap(recommendation));
     setShowRecommendation(true);
   };
 
@@ -342,7 +428,7 @@ const SizeGuide = ({ isOpen, onClose, product = null }) => {
                       disabled={
                         (sizeGuideData.type === 'footwear' && !measurements.footLength) ||
                         (sizeGuideData.type === 'jeans' && !measurements.waist) ||
-                        (sizeGuideData.type === 'apparel' && !measurements.chest)
+                        (sizeGuideData.type === 'apparel' && (!measurements.chest || !measurements.waist))
                       }
                     >
                       Get Recommendation
