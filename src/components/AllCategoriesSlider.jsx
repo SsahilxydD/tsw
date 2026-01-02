@@ -16,11 +16,6 @@ const AllCategoriesSlider = () => {
   const isResetting = useRef(false);
   const cachedSetWidth = useRef(0);
 
-  // Debug: Log when component renders
-  useEffect(() => {
-    console.log('[AllCategoriesSlider] Component mounted, loadingProducts:', loadingProducts, 'products count:', products?.length || 0);
-  }, []);
-
   useEffect(() => {
     try {
       if (!loadingProducts && Array.isArray(products) && products.length > 0) {
@@ -69,7 +64,6 @@ const AllCategoriesSlider = () => {
 
         // Filter out products without IDs, but allow products without titles
         const validProducts = allCategoryProducts.filter(p => p._id);
-        console.log('[AllCategoriesSlider] Setting products:', validProducts.length, 'from', categories.length, 'categories');
         setSliderProducts(validProducts);
       } else if (!loadingProducts && products.length === 0) {
         // Products loaded but empty - set empty array
@@ -131,15 +125,16 @@ const AllCategoriesSlider = () => {
       }
     };
 
-    requestAnimationFrame(() => {
+    const recalc = () => { calculateSetWidth(); };
+    const rafId = requestAnimationFrame(() => {
       initScroll();
-      const recalc = () => { calculateSetWidth(); };
       window.addEventListener('resize', recalc, { passive: true });
       container.addEventListener('scroll', handleScroll, { passive: true });
     });
     
     return () => {
-      window.removeEventListener('resize', () => {});
+      cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', recalc);
       container.removeEventListener('scroll', handleScroll);
     };
   }, [sliderProducts]);

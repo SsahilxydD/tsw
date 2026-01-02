@@ -94,16 +94,16 @@ const HeroSlider = () => {
     };
 
     // Calculate initial width after layout is stable
-    requestAnimationFrame(() => {
+    const recalc = () => { calculateSetWidth(); };
+    const rafId = requestAnimationFrame(() => {
       initScroll();
-      // Recalculate on resize
-      const recalc = () => { calculateSetWidth(); };
       window.addEventListener('resize', recalc, { passive: true });
       container.addEventListener('scroll', handleScroll, { passive: true });
     });
     
     return () => {
-      window.removeEventListener('resize', () => {});
+      cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', recalc);
       container.removeEventListener('scroll', handleScroll);
     };
   }, [sliderProducts]);

@@ -6,7 +6,7 @@ const HERO_MOBILE = "/hero.webp";
 
 const Hero = () => {
   return (
-    <div className="w-full h-[85vh] sm:h-[95vh] overflow-hidden bg-black">
+    <div data-hero className="w-full hero-viewport overflow-hidden bg-black">
       {/* Mobile hero image */}
       <SafeImg
         className="w-full h-full object-cover sm:hidden"

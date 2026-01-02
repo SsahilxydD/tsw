@@ -103,15 +103,16 @@ const DiscountedSlider = () => {
       }
     };
 
-    requestAnimationFrame(() => {
+    const recalc = () => { calculateSetWidth(); };
+    const rafId = requestAnimationFrame(() => {
       initScroll();
-      const recalc = () => { calculateSetWidth(); };
       window.addEventListener('resize', recalc, { passive: true });
       container.addEventListener('scroll', handleScroll, { passive: true });
     });
     
     return () => {
-      window.removeEventListener('resize', () => {});
+      cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', recalc);
       container.removeEventListener('scroll', handleScroll);
     };
   }, [sliderProducts]);

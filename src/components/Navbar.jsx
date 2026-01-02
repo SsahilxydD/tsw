@@ -10,15 +10,47 @@ const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const heroHeightRef = useRef(0);
 
   const isHome = location.pathname === "/";
 
-  // Scroll detection - use hero height on home page
+  // Cache hero height (avoid using window.innerHeight on every scroll; mobile toolbars can change it)
   useEffect(() => {
+    if (!isHome) {
+      heroHeightRef.current = 0;
+      setScrolled(true);
+      return;
+    }
+
+    const heroEl = document.querySelector("[data-hero]");
+    const updateHeroHeight = () => {
+      heroHeightRef.current = heroEl?.offsetHeight || Math.round(window.innerHeight * 0.85);
+    };
+
+    updateHeroHeight();
+
+    let ro;
+    if (heroEl && typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(updateHeroHeight);
+      ro.observe(heroEl);
+    }
+
+    window.addEventListener("resize", updateHeroHeight, { passive: true });
+    return () => {
+      window.removeEventListener("resize", updateHeroHeight);
+      ro?.disconnect?.();
+    };
+  }, [isHome]);
+
+  // Scroll detection - use cached hero height on home page
+  useEffect(() => {
+    if (!isHome) return;
+
     const onScroll = () => {
-      const heroHeight = isHome ? window.innerHeight * 0.85 : 20;
+      const heroHeight = heroHeightRef.current || Math.round(window.innerHeight * 0.85);
       setScrolled(window.scrollY > heroHeight - 80);
     };
+
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -52,12 +84,11 @@ const Navbar = () => {
     <>
       {showAnnouncement && <AnnouncementBar isTransparent={isTransparent} />}
       <header
-        className={`fixed left-0 right-0 z-40 transition-all duration-300 ${
+        className={`fixed left-0 right-0 z-40 transition-all duration-300 ${showAnnouncement ? "top-9" : "top-0"} ${
           isTransparent
             ? "bg-transparent border-b border-transparent"
             : "bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm"
         }`}
-        style={{ top: showAnnouncement ? '36px' : '0' }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-14 flex items-center justify-between overflow-hidden">
 

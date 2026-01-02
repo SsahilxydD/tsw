@@ -11,6 +11,7 @@ import WhatsAppCTA from "./components/WhatsAppCTA";
 import Notice from "./components/Notice";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Loading from "./components/Loading";
+import DelayedFallback from "./components/DelayedFallback";
 import { ToastContainer, Slide } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import ScrollToTop from "./components/ScrollToTop";
@@ -81,11 +82,15 @@ export default function App() {
 
       <main id="main-content" className="min-h-[60vh]">
         <div className="animate-page">
-          <Suspense fallback={
-            <div className="flex items-center justify-center min-h-[60vh]">
-              <Loading size="lg" message="Loading page..." />
-            </div>
-          }>
+          <Suspense
+            fallback={
+              <DelayedFallback delayMs={150}>
+                <div className="flex items-center justify-center min-h-[60vh]">
+                  <Loading size="lg" message="Loading page..." />
+                </div>
+              </DelayedFallback>
+            }
+          >
             <CachedRoutes routes={routes} />
           </Suspense>
         </div>

@@ -195,9 +195,10 @@
 
 .annc-track {
   display: flex;
-  gap: 2rem;
   width: max-content;
   animation: marquee 30s linear infinite;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
 }
 
 .annc-track:hover {
@@ -209,15 +210,49 @@
   align-items: center;
   gap: 2rem;
   flex-shrink: 0;
+  /* Important for seamless looping: keep spacing inside the sequence, not between sequences */
+  padding-right: 2rem;
 }
 
 @keyframes marquee {
   0% {
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
   }
 
   100% {
-    transform: translateX(-50%);
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .annc-track {
+    animation: none;
+    transform: none;
+  }
+}
+
+/* Mobile-friendly hero viewport height (avoid "vh" jumps on mobile browser UI changes) */
+.hero-viewport {
+  height: 85vh;
+}
+
+@media (min-width: 640px) {
+  .hero-viewport {
+    height: 95vh;
+  }
+}
+
+@supports (height: 100svh) {
+  .hero-viewport {
+    height: 85svh;
+  }
+}
+
+@supports (height: 100svh) {
+  @media (min-width: 640px) {
+    .hero-viewport {
+      height: 95svh;
+    }
   }
 }
 
