@@ -1,6 +1,5 @@
 // src/components/LenisSmoothScroll.jsx
 import { useEffect, useRef } from 'react';
-import Lenis from 'lenis';
 import { useLocation } from 'react-router-dom';
 
 /**
@@ -11,37 +10,68 @@ import { useLocation } from 'react-router-dom';
 const LenisSmoothScroll = () => {
   const location = useLocation();
   const lenisRef = useRef(null);
+  const rafRef = useRef(0);
 
   useEffect(() => {
-    // Initialize Lenis with 0.8 scroll speed (lerp: 0.8)
-    // lerp controls the smoothness: 0.8 = 80% of the way to target each frame
-    const lenis = new Lenis({
-      duration: 1.2,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // easeOutExpo
-      orientation: 'vertical',
-      gestureOrientation: 'vertical',
-      smoothWheel: true,
-      wheelMultiplier: 1,
-      smoothTouch: false, // Disable on touch devices for better performance and native feel
-      touchMultiplier: 2,
-      infinite: false,
-      lerp: 0.8, // 0.8 scroll speed as specified in PRD
-    });
+    // Defer + disable on mobile/touch/reduced-motion to avoid early main-thread work (helps PSI forced reflow).
+    if (typeof window === 'undefined') return;
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    const isTouch = window.matchMedia?.('(pointer: coarse)')?.matches;
+    const isSmall = window.matchMedia?.('(max-width: 767px)')?.matches;
+    if (reduceMotion || isTouch || isSmall) return;
 
-    lenisRef.current = lenis;
+    let cancelled = false;
+    let idleId = null;
+    let timerId = null;
 
-    // Animation frame loop
-    function raf(time) {
-      lenis.raf(time);
-      requestAnimationFrame(raf);
+    const start = async () => {
+      try {
+        // Dynamic import so Lenis doesn't land in the critical homepage bundle.
+        const mod = await import('lenis');
+        const Lenis = mod?.default || mod;
+        if (cancelled) return;
+
+        // Initialize Lenis with 0.8 scroll speed (lerp: 0.8)
+        const lenis = new Lenis({
+          duration: 1.2,
+          easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // easeOutExpo
+          orientation: 'vertical',
+          gestureOrientation: 'vertical',
+          smoothWheel: true,
+          wheelMultiplier: 1,
+          smoothTouch: false,
+          touchMultiplier: 2,
+          infinite: false,
+          lerp: 0.8,
+        });
+
+        lenisRef.current = lenis;
+
+        const raf = (time) => {
+          if (cancelled) return;
+          try { lenis.raf(time); } catch { }
+          rafRef.current = requestAnimationFrame(raf);
+        };
+        rafRef.current = requestAnimationFrame(raf);
+      } catch {
+        // If Lenis fails, fall back to native scrolling silently.
+      }
+    };
+
+    if ('requestIdleCallback' in window) {
+      idleId = window.requestIdleCallback(start, { timeout: 2000 });
+    } else {
+      timerId = window.setTimeout(start, 900);
     }
 
-    requestAnimationFrame(raf);
-
-    // Cleanup
     return () => {
-      lenis.destroy();
+      cancelled = true;
+      try { if (idleId) window.cancelIdleCallback?.(idleId); } catch { }
+      try { if (timerId) window.clearTimeout(timerId); } catch { }
+      try { if (rafRef.current) cancelAnimationFrame(rafRef.current); } catch { }
+      try { lenisRef.current?.destroy?.(); } catch { }
       lenisRef.current = null;
+      rafRef.current = 0;
     };
   }, []);
 

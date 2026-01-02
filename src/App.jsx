@@ -1,6 +1,6 @@
 // src/App.jsx
-import React, { lazy, Suspense } from "react";
-import { Routes, Route, useLocation } from "react-router-dom";
+import React, { lazy, Suspense, useContext } from "react";
+import { useLocation } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
 import SearchBar from "./components/SearchBar";
@@ -16,22 +16,21 @@ import ScrollToTop from "./components/ScrollToTop";
 import CachedRoutes from "./components/CachedRoutes";
 import SkipLink from "./components/SkipLink";
 import LenisSmoothScroll from "./components/LenisSmoothScroll";
+import { ShopContext } from "./context/ShopContext";
 
 // Lazy load CartDrawer (uses framer-motion) - only loads when cart opens
 const CartDrawer = lazy(() => import("./components/CartDrawer"));
 
-// Critical pages - eagerly loaded for fast initial navigation
+// Home is eagerly loaded (LCP). Everything else is lazy to reduce unused JS on the homepage.
 import Home from "./pages/Home";
-import Category from "./pages/Category";
-import Collection from "./pages/Collection";
-import Product from "./pages/Product";
-import Cart from "./pages/Cart";
-import Address from "./pages/Address";
-import Payment from "./pages/Payment";
-import PlaceOrder from "./pages/PlaceOrder";
-import NotFound from "./pages/NotFound";
-
-// Non-critical pages - lazy loaded to reduce initial bundle size
+const Category = lazy(() => import("./pages/Category"));
+const Collection = lazy(() => import("./pages/Collection"));
+const Product = lazy(() => import("./pages/Product"));
+const Cart = lazy(() => import("./pages/Cart"));
+const Address = lazy(() => import("./pages/Address"));
+const Payment = lazy(() => import("./pages/Payment"));
+const PlaceOrder = lazy(() => import("./pages/PlaceOrder"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 const About = lazy(() => import("./pages/About"));
 const Contact = lazy(() => import("./pages/Contact"));
 const Orders = lazy(() => import("./pages/Orders"));
@@ -58,6 +57,7 @@ const routes = [
 
 export default function App() {
   const location = useLocation();
+  const { isCartOpen } = useContext(ShopContext);
   const isHome = location.pathname === "/";
   const isCheckout = location.pathname === "/address";
 
@@ -68,9 +68,12 @@ export default function App() {
       <ScrollToTop />
 
       <Navbar />
-      <Suspense fallback={null}>
-        <CartDrawer />
-      </Suspense>
+      {/* Only mount CartDrawer when needed so framer-motion doesn't download on the homepage */}
+      {isCartOpen && (
+        <Suspense fallback={null}>
+          <CartDrawer />
+        </Suspense>
+      )}
       <SearchBar />
       <ScrollProgress />
       <ScrollEffects />

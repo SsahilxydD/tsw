@@ -90,6 +90,10 @@ export default defineConfig({
             if (id.includes('react-router')) {
               return 'vendor-router';
             }
+            // Lenis smooth scroll (load on-demand; keep it out of vendor-other)
+            if (id.includes('lenis')) {
+              return 'vendor-lenis';
+            }
             // Framer Motion - heavy library, split out
             if (id.includes('framer-motion') || id.includes('@use-gesture')) {
               return 'vendor-motion';
