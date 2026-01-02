@@ -1,13 +1,14 @@
-import React, { useEffect, useState } from 'react'
-import OurPolicy from '../components/OurPolicy'
-import Categories from '../components/Categories'
+import React, { lazy, Suspense, useEffect, useState } from 'react'
 import Hero from '../components/Hero'
 import SEO from '../components/SEO'
-// Eagerly import sliders - Vite will still code-split them via manual chunks
-import HeroSlider from '../components/HeroSlider'
-import AllCategoriesSlider from '../components/AllCategoriesSlider'
-import DiscountedSlider from '../components/DiscountedSlider'
-import RecentlyViewed from '../components/RecentlyViewed'
+
+// Below-the-fold: use dynamic imports so Vite does NOT modulepreload these on initial navigation.
+const HeroSlider = lazy(() => import('../components/HeroSlider'))
+const AllCategoriesSlider = lazy(() => import('../components/AllCategoriesSlider'))
+const DiscountedSlider = lazy(() => import('../components/DiscountedSlider'))
+const RecentlyViewed = lazy(() => import('../components/RecentlyViewed'))
+const Categories = lazy(() => import('../components/Categories'))
+const OurPolicy = lazy(() => import('../components/OurPolicy'))
 
 const Home = () => {
   // Defer below-the-fold content so Lighthouse doesn't download dozens of product images during LCP.
@@ -60,14 +61,14 @@ const Home = () => {
 
       {/* Below-the-fold content */}
       {showBelowFold ? (
-        <>
+        <Suspense fallback={null}>
           <HeroSlider />
           <AllCategoriesSlider />
           <DiscountedSlider />
           <RecentlyViewed maxItems={10} />
           <Categories />
           <OurPolicy />
-        </>
+        </Suspense>
       ) : (
         <div className="w-full py-6 bg-gray-50/30">
           <div className="max-w-7xl mx-auto px-4 sm:px-6">

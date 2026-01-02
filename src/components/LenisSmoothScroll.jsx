@@ -16,13 +16,14 @@ const LenisSmoothScroll = () => {
     // Defer + disable on mobile/touch/reduced-motion to avoid early main-thread work (helps PSI forced reflow).
     if (typeof window === 'undefined') return;
     const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
-    const isTouch = window.matchMedia?.('(pointer: coarse)')?.matches;
+    const maxTouch = Number(navigator?.maxTouchPoints || 0);
+    const isTouch = maxTouch > 0 || window.matchMedia?.('(pointer: coarse)')?.matches;
     const isSmall = window.matchMedia?.('(max-width: 767px)')?.matches;
     if (reduceMotion || isTouch || isSmall) return;
 
     let cancelled = false;
-    let idleId = null;
     let timerId = null;
+    let started = false;
 
     const start = async () => {
       try {
@@ -58,16 +59,34 @@ const LenisSmoothScroll = () => {
       }
     };
 
-    if ('requestIdleCallback' in window) {
-      idleId = window.requestIdleCallback(start, { timeout: 2000 });
-    } else {
-      timerId = window.setTimeout(start, 900);
-    }
+    // IMPORTANT: Avoid PSI "chained critical requests" by not fetching Lenis during initial navigation.
+    // Only load after a real user interaction (wheel/keyboard scroll) or a long timeout.
+    const triggerStart = () => {
+      if (started || cancelled) return;
+      started = true;
+      cleanupListeners();
+      start();
+    };
+
+    const onWheel = () => triggerStart();
+    const onKey = (e) => {
+      const k = e?.key || '';
+      if (k === 'PageDown' || k === 'PageUp' || k === ' ' || k.startsWith('Arrow')) triggerStart();
+    };
+
+    const cleanupListeners = () => {
+      try { window.removeEventListener('wheel', onWheel); } catch {}
+      try { window.removeEventListener('keydown', onKey); } catch {}
+    };
+
+    window.addEventListener('wheel', onWheel, { passive: true });
+    window.addEventListener('keydown', onKey);
+    timerId = window.setTimeout(triggerStart, 8000);
 
     return () => {
       cancelled = true;
-      try { if (idleId) window.cancelIdleCallback?.(idleId); } catch { }
       try { if (timerId) window.clearTimeout(timerId); } catch { }
+      cleanupListeners();
       try { if (rafRef.current) cancelAnimationFrame(rafRef.current); } catch { }
       try { lenisRef.current?.destroy?.(); } catch { }
       lenisRef.current = null;
