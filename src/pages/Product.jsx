@@ -16,6 +16,7 @@ import ReviewForm from "../components/ReviewForm";
 import Accordion from "../components/Accordion";
 import RecentlyViewed from "../components/RecentlyViewed";
 import SizeGuide from "../components/SizeGuide";
+import { selectRelatedProducts } from "../utils/related";
 
 // --- Animation Variants ---
 const pageVariants = {
@@ -72,57 +73,6 @@ const scaleIn = {
     transition: { type: "spring", stiffness: 400, damping: 25 }
   }
 };
-
-// --- small helpers (no external deps) ---
-const STOPWORDS = new Set([
-  "the", "a", "an", "and", "or", "for", "of", "to", "with", "by", "in", "on", "at", "edp", "edt", "ml",
-  "men", "mens", "women", "womens", "unisex", "perfume", "watch", "watches", "shirt", "tshirt",
-  "t-shirt", "tee", "size", "sizes", "new", "premium", "royal", "essence", "eau", "de", "la", "le",
-]);
-
-function tokenize(str = "") {
-  return String(str)
-    .toLowerCase()
-    .replace(/[_\-./]+/g, " ")
-    .replace(/[^\p{L}\p{N}\s]/gu, "")
-    .split(/\s+/)
-    .filter(Boolean)
-    .filter((w) => !STOPWORDS.has(w));
-}
-
-function relevanceScore(base, candidate) {
-  const baseWords = new Set([
-    ...tokenize(base.name || base.title),
-    ...tokenize(base.brand),
-  ]);
-  let score = 0;
-  for (const w of tokenize(candidate.name || candidate.title)) {
-    if (baseWords.has(w)) score += 1;
-  }
-  if (candidate.brand) {
-    for (const w of tokenize(candidate.brand)) {
-      if (baseWords.has(w)) score += 0.5;
-    }
-  }
-  if (
-    base.category &&
-    candidate.category &&
-    String(base.category).toLowerCase() ===
-    String(candidate.category).toLowerCase()
-  ) {
-    score += 2;
-  }
-  return score;
-}
-
-function shuffle(arr, rng = Math.random) {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(rng() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
 
 // --- size helpers ---
 const APPAREL_SIZES = ["S", "M", "L", "XL", "XXL"];
@@ -298,21 +248,8 @@ export default function Product() {
 
   const related = React.useMemo(() => {
     if (!product || !Array.isArray(products)) return [];
-    const meId = String(product._id ?? product.slug);
-    const meCat = String(product.category ?? product.categoryRaw ?? "").toLowerCase();
-    const candidates = products.filter((p) => String(p._id ?? p.slug) !== meId);
-    const scored = candidates
-      .map((p) => ({ p, s: relevanceScore(product, p) }))
-      .sort((a, b) => b.s - a.s);
-    const topFour = scored.slice(0, 4).map((x) => x.p);
-    const picked = new Set(topFour.map((x) => String(x._id ?? x.slug)));
-    const sameCatPool = candidates.filter((p) => {
-      const pid = String(p._id ?? p.slug);
-      const cat = String(p.category ?? p.categoryRaw ?? "").toLowerCase();
-      return !picked.has(pid) && cat && cat === meCat;
-    });
-    const randomTwo = shuffle(sameCatPool).slice(0, 2);
-    return [...topFour, ...randomTwo].slice(0, 6);
+    // Use shared related algorithm: prefers categoryRaw/subCategory match + keyword overlap.
+    return selectRelatedProducts(product, products).slice(0, 6);
   }, [product, products]);
 
   if (loadingProducts || !Array.isArray(products)) {

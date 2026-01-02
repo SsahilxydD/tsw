@@ -47,6 +47,7 @@ export function selectRelatedProducts(current, allProducts, opts = {}) {
 
   const meId = idOf(current);
   const meCat = (current?.categoryRaw ?? current?.category ?? "").toLowerCase();
+  const meSub = (current?.subCategory ?? "").toLowerCase();
   const meBrand = (brandOf(current) || "").toLowerCase();
   const meTokens = new Set([
     ...tokens(current?.name),
@@ -58,12 +59,19 @@ export function selectRelatedProducts(current, allProducts, opts = {}) {
     (p) => idOf(p) && idOf(p) !== meId
   );
 
+  // Prefer same taxonomy category (categoryRaw) whenever possible.
+  // If there aren't enough items in the same category, fall back to all candidates.
+  const sameCat = candidates.filter((p) => (p?.categoryRaw ?? p?.category ?? "").toLowerCase() === meCat);
+  const pool = sameCat.length >= 6 ? sameCat : candidates;
+
   // Score candidates
-  const scored = candidates.map((p) => {
+  const scored = pool.map((p) => {
     let score = 0;
     const pCat = (p?.categoryRaw ?? p?.category ?? "").toLowerCase();
+    const pSub = (p?.subCategory ?? "").toLowerCase();
     const pBrand = (brandOf(p) || "").toLowerCase();
     if (meCat && pCat && meCat === pCat) score += 3;
+    if (meSub && pSub && meSub === pSub) score += 1.25;
     if (meBrand && pBrand && meBrand === pBrand) score += 2;
 
     // keyword overlap
@@ -98,7 +106,7 @@ export function selectRelatedProducts(current, allProducts, opts = {}) {
 
   // Build pool for the last 2 (exclude what we already picked)
   const pickedIds = new Set(first4.map(idOf));
-  const remainder = candidates.filter((p) => !pickedIds.has(idOf(p)));
+  const remainder = pool.filter((p) => !pickedIds.has(idOf(p)));
 
   // Shuffle remainder and take 2
   const shuffled = seededShuffle(remainder, rng);
