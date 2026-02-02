@@ -296,19 +296,30 @@ const ShopContextProvider = (props) => {
 
           let price = Math.max(0, basePrice + (isDiscounted ? 0 : (PRICE_ADJ[String(finalCategoryRaw)] || 0)));
 
-          // Flat pricing for Discounted Footwear page (keep the existing behavior, but do it cheaply)
-          if (isDiscounted && String(derivedSub || "").toLowerCase() === "footwear") {
+          // Flat pricing for Discounted products (apply to all footwear-like products, not just those with detected sizes)
+          if (isDiscounted) {
             const titleForCheck = String(item?.title ?? item?.slug_name ?? "").toLowerCase();
+            // Keywords for ₹1399 pricing (slides, clogs, sandals)
             const keywords1399 = [
               "brikenstock",
               "birkenstock",
               "croccs",
               "crocs",
+              "slide",
+              "slider",
+              "clog",
+              "slipper",
+              "sandal",
               "nike offcourt adjust slide",
               "nikee air uptempo slider",
             ];
-            const hasKeyword = keywords1399.some((k) => titleForCheck.includes(k));
-            price = hasKeyword ? 1399 : 1999;
+            const hasKeyword1399 = keywords1399.some((k) => titleForCheck.includes(k));
+            
+            // If base price is 0 or derivedSub is footwear, apply flat pricing
+            // This catches products with missing price data
+            if (basePrice === 0 || String(derivedSub || "").toLowerCase() === "footwear") {
+              price = hasKeyword1399 ? 1399 : 1999;
+            }
           }
 
           const mappedItem = {
