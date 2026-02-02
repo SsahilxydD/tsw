@@ -7,12 +7,17 @@
  * Filter products by price range
  */
 export const filterByPrice = (products, minPrice, maxPrice) => {
+  if (!Array.isArray(products)) return [];
   if (!minPrice && !maxPrice) return products;
   
+  const min = Number(minPrice) || 0;
+  const max = Number(maxPrice) || Infinity;
+  
   return products.filter(product => {
+    if (!product || typeof product !== 'object') return false;
     const price = Number(product.price) || 0;
-    if (minPrice && price < minPrice) return false;
-    if (maxPrice && price > maxPrice) return false;
+    if (min && price < min) return false;
+    if (max !== Infinity && price > max) return false;
     return true;
   });
 };
@@ -21,12 +26,18 @@ export const filterByPrice = (products, minPrice, maxPrice) => {
  * Filter products by sizes
  */
 export const filterBySizes = (products, selectedSizes, normalizeSizesFn) => {
-  if (!selectedSizes || selectedSizes.length === 0) return products;
-  if (!normalizeSizesFn) return products;
+  if (!Array.isArray(products)) return [];
+  if (!Array.isArray(selectedSizes) || selectedSizes.length === 0) return products;
+  if (typeof normalizeSizesFn !== 'function') return products;
 
   return products.filter(product => {
-    const productSizes = new Set(normalizeSizesFn(product).map(String));
-    return selectedSizes.some(size => productSizes.has(String(size)));
+    if (!product || typeof product !== 'object') return false;
+    try {
+      const productSizes = new Set(normalizeSizesFn(product).map(String));
+      return selectedSizes.some(size => productSizes.has(String(size)));
+    } catch {
+      return false;
+    }
   });
 };
 
@@ -34,9 +45,11 @@ export const filterBySizes = (products, selectedSizes, normalizeSizesFn) => {
  * Filter products by brands
  */
 export const filterByBrands = (products, selectedBrands) => {
-  if (!selectedBrands || selectedBrands.length === 0) return products;
+  if (!Array.isArray(products)) return [];
+  if (!Array.isArray(selectedBrands) || selectedBrands.length === 0) return products;
 
   return products.filter(product => {
+    if (!product || typeof product !== 'object') return false;
     const brand = String(product.brand || '').trim().toLowerCase();
     return selectedBrands.some(selected => 
       brand === String(selected).trim().toLowerCase()
@@ -48,9 +61,11 @@ export const filterByBrands = (products, selectedBrands) => {
  * Filter products by categories
  */
 export const filterByCategories = (products, selectedCategories) => {
-  if (!selectedCategories || selectedCategories.length === 0) return products;
+  if (!Array.isArray(products)) return [];
+  if (!Array.isArray(selectedCategories) || selectedCategories.length === 0) return products;
 
   return products.filter(product => {
+    if (!product || typeof product !== 'object') return false;
     const category = String(product.category || product.categoryRaw || '').trim().toLowerCase();
     return selectedCategories.some(selected => 
       category === String(selected).trim().toLowerCase()
@@ -62,9 +77,11 @@ export const filterByCategories = (products, selectedCategories) => {
  * Filter products by colors
  */
 export const filterByColors = (products, selectedColors) => {
-  if (!selectedColors || selectedColors.length === 0) return products;
+  if (!Array.isArray(products)) return [];
+  if (!Array.isArray(selectedColors) || selectedColors.length === 0) return products;
 
   return products.filter(product => {
+    if (!product || typeof product !== 'object') return false;
     // Handle both array and single color values
     const productColors = Array.isArray(product.color) 
       ? product.color.map(c => String(c).trim().toLowerCase())
@@ -84,8 +101,10 @@ export const filterByColors = (products, selectedColors) => {
  * Get unique brands from products
  */
 export const getUniqueBrands = (products) => {
+  if (!Array.isArray(products)) return [];
   const brands = new Set();
   products.forEach(product => {
+    if (!product || typeof product !== 'object') return;
     const brand = String(product.brand || '').trim();
     if (brand) brands.add(brand);
   });
@@ -96,8 +115,10 @@ export const getUniqueBrands = (products) => {
  * Get unique categories from products
  */
 export const getUniqueCategories = (products) => {
+  if (!Array.isArray(products)) return [];
   const categories = new Set();
   products.forEach(product => {
+    if (!product || typeof product !== 'object') return;
     const cat = product.categoryRaw || product.category;
     if (cat) {
       const normalized = String(cat).trim().toLowerCase();

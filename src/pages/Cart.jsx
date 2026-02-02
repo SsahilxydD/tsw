@@ -18,7 +18,7 @@ import Loading from '../components/Loading';
 
 const Cart = () => {
 
-  const { products, currency, navigate, cartItems, updateQuantity, loadingProducts, moveToCart, applyCoupon, removeCoupon, appliedCoupon } = useContext(ShopContext);
+  const { products, currency, navigate, cartItems, updateQuantity, loadingProducts, addToWishlist, applyCoupon, removeCoupon, appliedCoupon } = useContext(ShopContext);
   const [couponCode, setCouponCode] = useState('');
   const [couponError, setCouponError] = useState('');
 
@@ -58,7 +58,6 @@ const Cart = () => {
             })
           } else {
             // Remove invalid cart item only after products have loaded
-            console.warn(`Removing invalid cart item: ${items}`);
             updateQuantity(items, item, 0);
           }
         }
@@ -139,7 +138,6 @@ const Cart = () => {
 
             // Skip rendering if product not found
             if (!productData) {
-              console.warn(`Product not found for cart item: ${item._id}`);
               return null;
             }
 
@@ -188,8 +186,8 @@ const Cart = () => {
                       variant="link" 
                       size="sm" 
                       onClick={() => {
+                        addToWishlist(item._id);
                         updateQuantity(item._id, item.size, 0);
-                        moveToCart(item._id, item.size);
                       }}
                       className="text-xs"
                     >

@@ -28,8 +28,8 @@ const AllCategoriesSlider = () => {
               categoryMap.set(category, []);
             }
             categoryMap.get(category).push(p);
-          } catch (e) {
-            console.warn('Error processing product for category slider:', e);
+          } catch {
+            // Skip invalid products silently
           }
         });
 
@@ -57,8 +57,8 @@ const AllCategoriesSlider = () => {
                 });
               }
             }
-          } catch (e) {
-            console.warn('Error processing category:', category, e);
+          } catch {
+            // Skip invalid category silently
           }
         }
 
@@ -69,8 +69,7 @@ const AllCategoriesSlider = () => {
         // Products loaded but empty - set empty array
         setSliderProducts([]);
       }
-    } catch (error) {
-      console.error('Error in AllCategoriesSlider:', error);
+    } catch {
       setSliderProducts([]);
     }
   }, [products, loadingProducts]);

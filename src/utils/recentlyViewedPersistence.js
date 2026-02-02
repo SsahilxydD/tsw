@@ -111,7 +111,6 @@ export const loadRecentlyViewed = () => {
   try {
     // Check if recently viewed has expired
     if (isRecentlyViewedExpired()) {
-      console.log('Recently viewed has expired, clearing...');
       clearRecentlyViewed();
       return [];
     }
@@ -126,7 +125,6 @@ export const loadRecentlyViewed = () => {
     // Validate recently viewed data
     const validation = validateRecentlyViewedData(recentlyViewedData);
     if (!validation.valid) {
-      console.warn('Invalid recently viewed data detected, cleaning...', validation.error);
       const cleaned = cleanRecentlyViewedData(recentlyViewedData);
       saveRecentlyViewed(cleaned);
       return cleaned;
@@ -141,8 +139,7 @@ export const loadRecentlyViewed = () => {
     }
 
     return cleaned;
-  } catch (error) {
-    console.error('Error loading recently viewed:', error);
+  } catch {
     // If there's an error, try to recover by clearing corrupted data
     try {
       safeLocalStorage.removeItem(RECENTLY_VIEWED_STORAGE_KEY);
@@ -160,7 +157,6 @@ export const saveRecentlyViewed = (recentlyViewedData) => {
     // Validate before saving
     const validation = validateRecentlyViewedData(recentlyViewedData);
     if (!validation.valid) {
-      console.warn('Cannot save invalid recently viewed data:', validation.error);
       return false;
     }
 
@@ -177,8 +173,7 @@ export const saveRecentlyViewed = (recentlyViewedData) => {
     }
 
     return false;
-  } catch (error) {
-    console.error('Error saving recently viewed:', error);
+  } catch {
     return false;
   }
 };
@@ -188,7 +183,6 @@ export const saveRecentlyViewed = (recentlyViewedData) => {
  */
 export const addToRecentlyViewed = (productId) => {
   if (!productId || typeof productId !== 'string') {
-    console.warn('Invalid product ID for recently viewed:', productId);
     return false;
   }
 
@@ -208,8 +202,7 @@ export const addToRecentlyViewed = (productId) => {
     const limited = updated.slice(0, MAX_RECENTLY_VIEWED);
 
     return saveRecentlyViewed(limited);
-  } catch (error) {
-    console.error('Error adding to recently viewed:', error);
+  } catch {
     return false;
   }
 };
@@ -246,8 +239,8 @@ export const setupRecentlyViewedSync = (onRecentlyViewedChange) => {
       try {
         const newRecentlyViewedData = e.newValue ? JSON.parse(e.newValue) : [];
         onRecentlyViewedChange(newRecentlyViewedData);
-      } catch (error) {
-        console.error('Error syncing recently viewed from storage event:', error);
+      } catch {
+        // Silently handle sync errors
       }
     }
   };

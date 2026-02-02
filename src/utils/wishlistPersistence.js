@@ -96,7 +96,6 @@ export const loadWishlist = () => {
   try {
     // Check if wishlist has expired
     if (isWishlistExpired()) {
-      console.log('Wishlist has expired, clearing...');
       clearWishlist();
       return [];
     }
@@ -111,7 +110,6 @@ export const loadWishlist = () => {
     // Validate wishlist data
     const validation = validateWishlistData(wishlistData);
     if (!validation.valid) {
-      console.warn('Invalid wishlist data detected, cleaning...', validation.error);
       const cleaned = cleanWishlistData(wishlistData);
       saveWishlist(cleaned);
       return cleaned;
@@ -126,8 +124,7 @@ export const loadWishlist = () => {
     }
 
     return cleaned;
-  } catch (error) {
-    console.error('Error loading wishlist:', error);
+  } catch {
     // If there's an error, try to recover by clearing corrupted data
     try {
       safeLocalStorage.removeItem(WISHLIST_STORAGE_KEY);
@@ -145,7 +142,6 @@ export const saveWishlist = (wishlistData) => {
     // Validate before saving
     const validation = validateWishlistData(wishlistData);
     if (!validation.valid) {
-      console.warn('Cannot save invalid wishlist data:', validation.error);
       return false;
     }
 
@@ -165,8 +161,7 @@ export const saveWishlist = (wishlistData) => {
     }
 
     return false;
-  } catch (error) {
-    console.error('Error saving wishlist:', error);
+  } catch {
     return false;
   }
 };
@@ -195,8 +190,8 @@ export const setupWishlistSync = (onWishlistChange) => {
       try {
         const newWishlistData = e.newValue ? JSON.parse(e.newValue) : [];
         onWishlistChange(newWishlistData);
-      } catch (error) {
-        console.error('Error syncing wishlist from storage event:', error);
+      } catch {
+        // Silently handle sync errors
       }
     }
   };

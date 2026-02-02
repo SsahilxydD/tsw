@@ -117,7 +117,6 @@ export const loadReviews = () => {
 
     const reviews = JSON.parse(raw);
     if (!Array.isArray(reviews)) {
-      console.warn('Invalid reviews data structure, returning empty array');
       safeLocalStorage.removeItem(REVIEWS_STORAGE_KEY);
       return [];
     }
@@ -133,8 +132,7 @@ export const loadReviews = () => {
     }
 
     return cleaned;
-  } catch (error) {
-    console.error('Error loading reviews:', error);
+  } catch {
     try {
       safeLocalStorage.removeItem(REVIEWS_STORAGE_KEY);
     } catch {}
@@ -148,7 +146,6 @@ export const loadReviews = () => {
 export const saveReviews = (reviews) => {
   try {
     if (!Array.isArray(reviews)) {
-      console.warn('Cannot save reviews: not an array');
       return false;
     }
 
@@ -159,8 +156,7 @@ export const saveReviews = (reviews) => {
 
     const saved = safeLocalStorage.setItem(REVIEWS_STORAGE_KEY, JSON.stringify(cleaned));
     return saved;
-  } catch (error) {
-    console.error('Error saving reviews:', error);
+  } catch {
     return false;
   }
 };

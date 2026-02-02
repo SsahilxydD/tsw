@@ -49,7 +49,6 @@ const Login = () => {
         
         // Form is valid - handle submission
         // TODO: Implement actual login/signup logic
-        console.log('Form submitted:', formData);
     }
 
     const switchMode = (mode) => {

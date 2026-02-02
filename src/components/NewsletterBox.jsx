@@ -19,7 +19,6 @@ const NewsletterBox = () => {
     
     // Form is valid - handle subscription
     // TODO: Implement actual newsletter subscription
-    console.log('Newsletter subscription:', email)
     setSubmitted(true)
     setEmail('')
     setError(null)

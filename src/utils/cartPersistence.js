@@ -125,7 +125,6 @@ export const loadCart = () => {
   try {
     // Check if cart has expired
     if (isCartExpired()) {
-      console.log('Cart has expired, clearing...');
       clearCart();
       return {};
     }
@@ -140,7 +139,6 @@ export const loadCart = () => {
     // Validate cart data
     const validation = validateCartData(cartData);
     if (!validation.valid) {
-      console.warn('Invalid cart data detected, cleaning...', validation.error);
       const cleaned = cleanCartData(cartData);
       saveCart(cleaned);
       return cleaned;
@@ -155,8 +153,7 @@ export const loadCart = () => {
     }
 
     return cleaned;
-  } catch (error) {
-    console.error('Error loading cart:', error);
+  } catch {
     // If there's an error, try to recover by clearing corrupted data
     try {
       safeLocalStorage.removeItem(CART_STORAGE_KEY);
@@ -174,7 +171,6 @@ export const saveCart = (cartData) => {
     // Validate before saving
     const validation = validateCartData(cartData);
     if (!validation.valid) {
-      console.warn('Cannot save invalid cart data:', validation.error);
       return false;
     }
 
@@ -191,8 +187,7 @@ export const saveCart = (cartData) => {
     }
 
     return false;
-  } catch (error) {
-    console.error('Error saving cart:', error);
+  } catch {
     return false;
   }
 };
@@ -245,8 +240,8 @@ export const setupCartSync = (onCartChange) => {
       try {
         const newCartData = e.newValue ? JSON.parse(e.newValue) : {};
         onCartChange(newCartData);
-      } catch (error) {
-        console.error('Error syncing cart from storage event:', error);
+      } catch {
+        // Silently handle sync errors
       }
     }
   };
