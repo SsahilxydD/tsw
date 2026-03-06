@@ -7,7 +7,19 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(node -e \":*)",
+      "Bash(node -e \"const fs = require\\(''fs''\\); const data = JSON.parse\\(fs.readFileSync\\(''c:/Sites/tsw/public/data/products.json'', ''utf8''\\)\\); const filtered = data.filter\\(p => p.price > 0\\); console.log\\(''Removed:'', data.length - filtered.length, ''| Remaining:'', filtered.length\\); fs.writeFileSync\\(''c:/Sites/tsw/public/data/products.json'', JSON.stringify\\(filtered, null, 2\\)\\);\")",
+      "Bash(node -e \"const fs = require\\(''fs''\\); const data = JSON.parse\\(fs.readFileSync\\(''c:/Sites/tsw/public/data/products.json'', ''utf8''\\)\\); const filtered = data.filter\\(p => p.price >= 100\\); console.log\\(''Removed:'', data.length - filtered.length, ''| Remaining:'', filtered.length\\); fs.writeFileSync\\(''c:/Sites/tsw/public/data/products.json'', JSON.stringify\\(filtered, null, 2\\)\\);\")",
+      "Bash(node -e \"const fs = require\\(''fs''\\); const data = JSON.parse\\(fs.readFileSync\\(''c:/Sites/tsw/public/data/products.json'', ''utf8''\\)\\); const triple = data.filter\\(p => p.price >= 100 && p.price <= 999\\); console.log\\(''Triple digit count:'', triple.length\\); const sorted = triple.map\\(p => p.price\\).sort\\(\\(a,b\\) => a-b\\); console.log\\(''Min:'', sorted[0], ''| Max:'', sorted[sorted.length-1]\\); console.log\\(''Lowest 10:'', sorted.slice\\(0,10\\)\\);\")",
+      "Bash(node -e \"const fs = require\\(''fs''\\); const data = JSON.parse\\(fs.readFileSync\\(''c:/Sites/tsw/public/data/products.json'', ''utf8''\\)\\); const p = data.find\\(p => p.price === 270\\); console.log\\(JSON.stringify\\(p, null, 2\\)\\);\")",
+      "Bash(node -e \"const fs = require\\(''fs''\\); const data = JSON.parse\\(fs.readFileSync\\(''c:/Sites/tsw/public/data/products.json'', ''utf8''\\)\\); const triple = data.filter\\(p => p.price >= 100 && p.price <= 999\\); console.log\\(''Count:'', triple.length\\); const sorted = triple.map\\(p => p.price\\).sort\\(\\(a,b\\) => a-b\\); console.log\\(''Min:'', sorted[0], ''| Max:'', sorted[sorted.length-1]\\); console.log\\(''All unique prices:'', [...new Set\\(sorted\\)]\\);\")",
+      "Bash(node -e \"const fs = require\\(''fs''\\); const data = JSON.parse\\(fs.readFileSync\\(''c:/Sites/tsw/public/data/products.json'', ''utf8''\\)\\); const below500 = data.filter\\(p => p.price >= 100 && p.price < 500\\); console.log\\(''Count:'', below500.length\\); below500.forEach\\(p => console.log\\(''Price:'', p.price, ''|'', p.title\\)\\);\")",
+      "Bash(node -e \"const fs = require\\(''fs''\\); const data = JSON.parse\\(fs.readFileSync\\(''c:/Sites/tsw/public/data/products.json'', ''utf8''\\)\\); const filtered = data.filter\\(p => p.price >= 500\\); console.log\\(''Removed:'', data.length - filtered.length, ''| Remaining:'', filtered.length\\); fs.writeFileSync\\(''c:/Sites/tsw/public/data/products.json'', JSON.stringify\\(filtered, null, 2\\)\\);\")",
+      "Bash(node -e \"const fs = require\\(''fs''\\); const data = JSON.parse\\(fs.readFileSync\\(''c:/Sites/tsw/public/data/products.json'', ''utf8''\\)\\); const filtered = data.filter\\(p => p.price >= 1000\\); console.log\\(''Removed:'', data.length - filtered.length, ''| Remaining:'', filtered.length\\); fs.writeFileSync\\(''c:/Sites/tsw/public/data/products.json'', JSON.stringify\\(filtered, null, 2\\)\\);\")",
+      "Bash(node -e \"const fs = require\\(''fs''\\); const data = JSON.parse\\(fs.readFileSync\\(''c:/Sites/tsw/public/data/products.json'', ''utf8''\\)\\); const domains = [...new Set\\(data.map\\(p => { try { return new URL\\(p.detail_url_src\\).hostname; } catch\\(e\\) { return ''invalid''; } }\\)\\)]; console.log\\(''Unique domains:'', domains\\); console.log\\(''Total products:'', data.length\\);\")",
+      "Bash(python3 -c \"import sys; content = sys.stdin.read\\(\\); print\\(len\\(content\\), ''chars''\\); print\\(content[:2000]\\)\")",
+      "Read(//tmp/**)"
     ],
     "deny": [],
     "ask": []
