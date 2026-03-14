@@ -4,6 +4,7 @@ import { ShopContext } from '../context/ShopContext';
 import Title from './Title';
 import SafeImg from './SafeImg';
 import Button from './Button';
+import useMouseDrag from '../hooks/useMouseDrag';
 import './HeroSlider.css';
 
 const NO_IMAGE_PLACEHOLDER = '/assets/no-image.svg';
@@ -14,7 +15,9 @@ const HeroSlider = () => {
   const navigate = useNavigate();
   const scrollRef = useRef(null);
   const isResetting = useRef(false);
+  const isDragging = useRef(false);
   const cachedSetWidth = useRef(0);
+  const attachDrag = useMouseDrag(scrollRef, isDragging);
 
   // Removed blocking API call - use only ShopContext data to prevent LCP delay
   useEffect(() => {
@@ -67,7 +70,7 @@ const HeroSlider = () => {
     // Handle seamless loop - use cached width to avoid reflow
     let resetTimer = null;
     const handleScroll = () => {
-      if (isResetting.current) return;
+      if (isResetting.current || isDragging.current) return;
 
       const setWidth = cachedSetWidth.current;
       if (setWidth === 0) return;
@@ -96,6 +99,7 @@ const HeroSlider = () => {
     const recalc = () => { calculateSetWidth(); };
     const rafId = requestAnimationFrame(() => {
       initScroll();
+      attachDrag();
       window.addEventListener('resize', recalc, { passive: true });
       container.addEventListener('scroll', handleScroll, { passive: true });
     });
@@ -192,7 +196,7 @@ const HeroSlider = () => {
 
       <div
         ref={scrollRef}
-        className="flex gap-4 overflow-x-auto scrollbar-hide px-4 sm:px-6"
+        className="flex gap-4 overflow-x-auto scrollbar-hide px-4 sm:px-6 cursor-grab active:cursor-grabbing"
       >
         {loopedProducts.map((product, index) => (
           <div

@@ -1,33 +1,27 @@
 import { Link } from "react-router-dom";
-import SafeImg from "./SafeImg";
-
-// Hero image - Cloudflare Images (resized via URL params by SafeImg)
-const HERO_CLOUDFLARE = "https://imagedelivery.net/Ysm_SanI713eaOY5mRhkPQ/33b43c5b-c26c-4f5b-3adf-fec4eaada300/public";
 
 const Hero = () => {
   return (
     <div data-hero className="relative w-full hero-viewport overflow-hidden bg-black">
       {/* Mobile hero image */}
-      <SafeImg
+      <img
         className="w-full h-full object-cover sm:hidden"
-        src={HERO_CLOUDFLARE}
-        alt=""
+        src="/mobile.png"
+        alt="Solo Wardrobe"
         width={750}
         height={1000}
         loading="eager"
         fetchPriority="high"
-        quality={80}
       />
-      {/* Desktop hero image from Cloudflare Images */}
-      <SafeImg
+      {/* Desktop hero image */}
+      <img
         className="w-full h-full object-cover hidden sm:block"
-        src={HERO_CLOUDFLARE}
-        alt=""
+        src="/pc.png"
+        alt="Solo Wardrobe"
         width={1600}
         height={900}
         loading="eager"
         fetchPriority="high"
-        quality={80}
       />
 
       {/* Dark gradient overlay for text readability */}

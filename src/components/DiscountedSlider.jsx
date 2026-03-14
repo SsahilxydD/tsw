@@ -4,6 +4,7 @@ import { ShopContext } from '../context/ShopContext';
 import Title from './Title';
 import SafeImg from './SafeImg';
 import Button from './Button';
+import useMouseDrag from '../hooks/useMouseDrag';
 import './HeroSlider.css';
 
 const NO_IMAGE_PLACEHOLDER = '/assets/no-image.svg';
@@ -14,7 +15,9 @@ const DiscountedSlider = () => {
   const navigate = useNavigate();
   const scrollRef = useRef(null);
   const isResetting = useRef(false);
+  const isDragging = useRef(false);
   const cachedSetWidth = useRef(0);
+  const attachDrag = useMouseDrag(scrollRef, isDragging);
 
   useEffect(() => {
     if (!loadingProducts && Array.isArray(products) && products.length > 0) {
@@ -80,7 +83,7 @@ const DiscountedSlider = () => {
     // Use cached width to avoid reflow during scroll
     let resetTimer = null;
     const handleScroll = () => {
-      if (isResetting.current) return;
+      if (isResetting.current || isDragging.current) return;
 
       const setWidth = cachedSetWidth.current;
       if (setWidth === 0) return;
@@ -105,6 +108,7 @@ const DiscountedSlider = () => {
     const recalc = () => { calculateSetWidth(); };
     const rafId = requestAnimationFrame(() => {
       initScroll();
+      attachDrag();
       window.addEventListener('resize', recalc, { passive: true });
       container.addEventListener('scroll', handleScroll, { passive: true });
     });
@@ -128,7 +132,7 @@ const DiscountedSlider = () => {
   // Show skeleton placeholders while loading
   if (loadingProducts || sliderProducts.length === 0) {
     return (
-      <div className={`w-full py-8 sm:py-12 bg-gray-900 ${SLIDER_MIN_HEIGHT}`}>
+      <div className={`w-full py-8 sm:py-12 bg-black ${SLIDER_MIN_HEIGHT}`}>
         <div className="text-center mb-6">
           <Title text1="SPECIAL" text2="Offers" text2ClassName="text-red-400" />
         </div>
@@ -172,7 +176,7 @@ const DiscountedSlider = () => {
   };
 
   return (
-    <div className={`w-full py-8 sm:py-12 bg-gray-900 overflow-hidden ${SLIDER_MIN_HEIGHT} relative`}>
+    <div className={`w-full py-8 sm:py-12 bg-black overflow-hidden ${SLIDER_MIN_HEIGHT} relative`}>
       <div className="text-center mb-6">
         <p className="uppercase tracking-[0.18em] text-[11px] sm:text-xs text-gray-300 font-medium inline-flex gap-3 items-center mb-1 select-none">
           SPECIAL <span className="normal-case tracking-normal font-semibold text-red-400">Offers</span>
@@ -202,7 +206,7 @@ const DiscountedSlider = () => {
 
       <div
         ref={scrollRef}
-        className="flex gap-4 overflow-x-auto scrollbar-hide px-4 sm:px-6"
+        className="flex gap-4 overflow-x-auto scrollbar-hide px-4 sm:px-6 cursor-grab active:cursor-grabbing"
       >
         {loopedProducts.map((product, index) => {
           const discountPercent = product.mrp > product.price
