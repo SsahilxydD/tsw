@@ -562,28 +562,22 @@ const ShopContextProvider = (props) => {
 
   const getCartCount = () => {
     let totalCount = 0;
-    for (const items in cartItems) {
-      for (const item in cartItems[items]) {
-        try {
-          if (cartItems[items][item] > 0) totalCount += cartItems[items][item];
-        } catch { }
-      }
-    }
+    Object.values(cartItems).forEach(sizes => {
+      Object.values(sizes).forEach(qty => { if (qty > 0) totalCount += qty; });
+    });
     return totalCount;
   }
 
   const getCartAmount = () => {
     let totalAmount = 0;
-    for (const items in cartItems) {
-      const itemInfo = products.find((product) => product._id === items || product.slug === items);
-      for (const item in cartItems[items]) {
-        try {
-          if (cartItems[items][item] > 0 && itemInfo) {
-            totalAmount += (Number(itemInfo.price) || 0) * cartItems[items][item];
-          }
-        } catch { }
-      }
-    }
+    Object.entries(cartItems).forEach(([itemId, sizes]) => {
+      const itemInfo = products.find((product) => product._id === itemId || product.slug === itemId);
+      Object.entries(sizes).forEach(([, qty]) => {
+        if (qty > 0 && itemInfo) {
+          totalAmount += (Number(itemInfo.price) || 0) * qty;
+        }
+      });
+    });
     return totalAmount;
   }
 

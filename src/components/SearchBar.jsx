@@ -3,6 +3,30 @@ import { ShopContext } from '../context/ShopContext'
 import { useNavigate } from 'react-router-dom';
 import SafeImg from './SafeImg';
 import useDebouncedValue from '../hooks/useDebouncedValue';
+import { lockScroll, unlockScroll } from '../utils/scrollLock';
+
+const SEARCH_BAR_STYLES = `
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes slide-down {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .animate-fade-in {
+    animation: fade-in 0.2s ease-out forwards;
+  }
+  .animate-slide-down {
+    animation: slide-down 0.3s ease-out forwards;
+  }
+`;
 
 const SearchBar = () => {
   const { products, search, setSearch, showSearch, setShowSearch, currency } = useContext(ShopContext);
@@ -28,16 +52,15 @@ const SearchBar = () => {
 
   // Close on escape
   useEffect(() => {
+    if (!showSearch) return;
     const handleEsc = (e) => {
       if (e.key === 'Escape') setShowSearch(false);
     };
-    if (showSearch) {
-      document.addEventListener('keydown', handleEsc);
-      document.body.style.overflow = 'hidden';
-    }
+    document.addEventListener('keydown', handleEsc);
+    lockScroll();
     return () => {
       document.removeEventListener('keydown', handleEsc);
-      document.body.style.overflow = '';
+      unlockScroll();
     };
   }, [showSearch, setShowSearch]);
 
@@ -329,28 +352,7 @@ const SearchBar = () => {
         </div>
       </div>
 
-      <style>{`
-        @keyframes fade-in {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes slide-down {
-          from { 
-            opacity: 0;
-            transform: translateY(-20px);
-          }
-          to { 
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.2s ease-out forwards;
-        }
-        .animate-slide-down {
-          animation: slide-down 0.3s ease-out forwards;
-        }
-      `}</style>
+      <style>{SEARCH_BAR_STYLES}</style>
     </div>
   );
 }

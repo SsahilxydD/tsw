@@ -23,6 +23,7 @@
  * Predefined coupons database
  * In a real application, this would come from a backend API
  */
+// WARNING: These codes are visible in the client bundle. Move to server-side validation for production use.
 const COUPONS_DB = [
   {
     code: 'WELCOME10',
@@ -31,7 +32,7 @@ const COUPONS_DB = [
     minOrder: 500,
     maxDiscount: 500,
     startDate: '2024-01-01',
-    endDate: '2025-12-31',
+    endDate: '2027-12-31',
     usageLimit: 1000,
     usageCount: 0,
     applicableCategories: [],
@@ -45,7 +46,7 @@ const COUPONS_DB = [
     minOrder: 1000,
     maxDiscount: 1000,
     startDate: '2024-01-01',
-    endDate: '2025-12-31',
+    endDate: '2027-12-31',
     usageLimit: 500,
     usageCount: 0,
     applicableCategories: [],
@@ -58,7 +59,7 @@ const COUPONS_DB = [
     value: 500,
     minOrder: 2000,
     startDate: '2024-01-01',
-    endDate: '2025-12-31',
+    endDate: '2027-12-31',
     usageLimit: 200,
     usageCount: 0,
     applicableCategories: [],
@@ -71,7 +72,7 @@ const COUPONS_DB = [
     value: 50,
     minOrder: 0,
     startDate: '2024-01-01',
-    endDate: '2025-12-31',
+    endDate: '2027-12-31',
     usageLimit: 10000,
     usageCount: 0,
     applicableCategories: [],

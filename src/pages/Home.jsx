@@ -7,7 +7,7 @@ const HeroSlider = lazy(() => import('../components/HeroSlider'))
 const AllCategoriesSlider = lazy(() => import('../components/AllCategoriesSlider'))
 const DiscountedSlider = lazy(() => import('../components/DiscountedSlider'))
 const RecentlyViewed = lazy(() => import('../components/RecentlyViewed'))
-const Categories = lazy(() => import('../components/Categories'))
+
 const OurPolicy = lazy(() => import('../components/OurPolicy'))
 
 const Home = () => {
@@ -31,8 +31,8 @@ const Home = () => {
       <SEO
         title="Solo Wardrobe – Honest prices, curated drops"
         description="Discover everyday pieces that last. Shop curated apparel, accessories, and more at honest prices."
-        url={typeof window !== 'undefined' ? window.location.href : ''}
-        canonical={typeof window !== 'undefined' ? window.location.href : ''}
+        url={typeof window !== 'undefined' ? window.location.origin + window.location.pathname : ''}
+        canonical={typeof window !== 'undefined' ? window.location.origin + window.location.pathname : ''}
         image="/favicon.png"
         type="website"
         jsonLd={[
@@ -66,7 +66,6 @@ const Home = () => {
           <AllCategoriesSlider />
           <DiscountedSlider />
           <RecentlyViewed maxItems={10} />
-          <Categories />
           <OurPolicy />
         </Suspense>
       ) : (

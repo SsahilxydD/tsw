@@ -92,7 +92,8 @@ export default function Payment() {
 
   const onWhatsApp = () => {
     const msg = composeMessage();
-    const href = `https://wa.me/919933778870?text=${encodeURIComponent(msg)}`;
+    const phoneNumber = import.meta.env.VITE_WHATSAPP_PHONE?.replace(/\D/g, '') || "919933778870";
+    const href = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(msg)}`;
     window.open(href, '_blank', 'noopener');
   };
 
@@ -161,7 +162,7 @@ export default function Payment() {
       </div>
 
       <CartStickyBar
-        totalText={`Total: ${currency}${cartList.reduce((s,it)=>{const p=products.find(pr=>String(pr._id)===String(it._id)||String(pr.slug)===String(it._id));return s+(p? (Number(p.price)||0)*(Number(it.quantity)||0):0)},0).toLocaleString()}`}
+        totalText={`Total: ${currency}${getCartTotal().toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
         buttonText="PLACE ORDER ON WHATSAPP"
         onClick={onWhatsApp}
       />

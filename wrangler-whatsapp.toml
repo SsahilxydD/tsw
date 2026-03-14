@@ -12,10 +12,7 @@ binding = "SENT_PRODUCTS"
 id = "7fad536eb99f47e09522651b18af732a"  # Will be created during setup
 
 # Environment variables (secrets - set via wrangler)
-# These will be set securely using: wrangler secret put VARIABLE_NAME
-# DO NOT put actual values here - they will be added securely later
-[vars]
-# TWILIO_ACCOUNT_SID = "ACe72221a213ccb5af138640a2c54f121a"
-# TWILIO_AUTH_TOKEN = "89bbe73e7b38d8dc18de7da04a5a2c9d"
-# TWILIO_WHATSAPP_FROM = "whatsapp:+14155238886"
-# WHATSAPP_BROADCAST_TO = "whatsapp:+919933778870"
+# Set secrets via: wrangler secret put TWILIO_ACCOUNT_SID
+# Set secrets via: wrangler secret put TWILIO_AUTH_TOKEN
+# Set secrets via: wrangler secret put TWILIO_WHATSAPP_FROM
+# Set secrets via: wrangler secret put WHATSAPP_BROADCAST_TO

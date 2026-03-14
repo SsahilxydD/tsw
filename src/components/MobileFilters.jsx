@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import SizeChips from "./SizeChips";
+import { lockScroll, unlockScroll } from "../utils/scrollLock";
 
 export default function MobileFilters({
   open,
@@ -33,18 +34,17 @@ export default function MobileFilters({
     if (!open) return;
     const scrollY = window.scrollY || window.pageYOffset || 0;
     const prev = {
-      overflow: document.body.style.overflow,
       position: document.body.style.position,
       top: document.body.style.top,
       width: document.body.style.width,
     };
-    document.body.style.overflow = "hidden";
+    lockScroll();
     document.body.style.position = "fixed";
     document.body.style.top = `-${scrollY}px`;
     document.body.style.width = "100%";
     setTimeout(() => closeBtnRef.current?.focus(), 0);
     return () => {
-      document.body.style.overflow = prev.overflow;
+      unlockScroll();
       document.body.style.position = prev.position;
       document.body.style.top = prev.top;
       document.body.style.width = prev.width;
@@ -78,6 +78,18 @@ export default function MobileFilters({
     }, 32);
     return () => { cancelAnimationFrame(id); clearTimeout(tid); };
   }, [open]);
+
+  const requestClose = (animate = true) => {
+    if (!open) return;
+    if (animate) {
+      sheetRef.current?.classList.remove("duration-0");
+      offsetRef.current = sheetH;
+      setOffsetY(sheetH);
+      setTimeout(() => onClose?.(), 250);
+    } else {
+      onClose?.();
+    }
+  };
 
   // ESC closes
   useEffect(() => {
@@ -161,18 +173,6 @@ export default function MobileFilters({
     window.removeEventListener("mouseup", endDrag);
   };
 
-  const requestClose = (animate = true) => {
-    if (!open) return;
-    if (animate) {
-      sheetRef.current?.classList.remove("duration-0");
-      offsetRef.current = sheetH;
-      setOffsetY(sheetH);
-      setTimeout(() => onClose?.(), 250);
-    } else {
-      onClose?.();
-    }
-  };
-
   if (!open) return null;
 
   const node = (
@@ -200,6 +200,7 @@ export default function MobileFilters({
               ref={closeBtnRef}
               className="px-3 py-1.5 rounded border text-sm"
               onClick={() => requestClose(true)}
+              aria-label="Close filters"
             >
               Close
             </button>
@@ -226,7 +227,7 @@ export default function MobileFilters({
           className="p-4 border-t flex items-center gap-3"
           style={{ paddingBottom: "max(env(safe-area-inset-bottom), 12px)" }}
         >
-          <button className="px-4 py-2 border rounded text-sm" onClick={onClear}>
+          <button className="px-4 py-2 border rounded text-sm" onClick={onClear} aria-label="Clear all filters">
             Clear
           </button>
           <button
@@ -235,6 +236,7 @@ export default function MobileFilters({
               onApply?.();
               requestClose(false); // already applied; close immediately
             }}
+            aria-label="Apply filters"
           >
             Apply
           </button>

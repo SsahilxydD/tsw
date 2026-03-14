@@ -44,7 +44,8 @@ const Cart = () => {
       return;
     }
 
-    const tempData = []
+    const tempData = [];
+    const orphans = []; // collect orphaned items for batch removal
     for (const items in cartItems) {
       for (const item in cartItems[items]) {
         if (cartItems[items][item] > 0) {
@@ -55,15 +56,18 @@ const Cart = () => {
               _id: items,
               size: item,
               quantity: cartItems[items][item]
-            })
+            });
           } else {
-            // Remove invalid cart item only after products have loaded
-            updateQuantity(items, item, 0);
+            orphans.push({ id: items, size: item });
           }
         }
       }
     }
-    setCartData(tempData)
+    // Batch-remove all orphaned items in a single pass after computing the full list
+    for (const { id, size } of orphans) {
+      updateQuantity(id, size, 0);
+    }
+    setCartData(tempData);
   }, [cartItems, products, updateQuantity, loadingProducts])
 
 

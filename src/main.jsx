@@ -1,6 +1,5 @@
 import React from 'react';
-import * as ReactDOMClient from 'react-dom/client';
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 import { HelmetProvider } from 'react-helmet-async';
 import './index.css';
@@ -18,13 +17,8 @@ const app = (
   </HelmetProvider>
 );
 
-if (ReactDOMClient && typeof ReactDOMClient.createRoot === 'function') {
-  const root = ReactDOMClient.createRoot(container);
-  root.render(app);
-} else {
-  // Fallback for environments with older ReactDOM
-  ReactDOM.render(app, container);
-}
+const root = createRoot(container);
+root.render(app);
 
 // Disable browser's native scroll restoration - we handle it manually
 if ('scrollRestoration' in window.history) {

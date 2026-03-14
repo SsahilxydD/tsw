@@ -18,7 +18,7 @@ export default function CartSteps({ active = "bag" }) {
               <span className={`h-6 w-6 grid place-content-center rounded-full border ${on ? 'bg-black text-white border-black' : 'bg-white text-gray-600 border-gray-300'}`}>{i+1}</span>
               <span className={`${on ? 'text-black' : 'text-gray-500'}`}>{s.label}</span>
               {i < steps.length - 1 && (
-                <span className="mx-2 h-px w-8 sm:w-12 bg-gray-300 inline-block" />
+                <span className="mx-2 h-px w-8 sm:w-12 bg-gray-300 inline-block" aria-hidden="true" />
               )}
             </li>
           );

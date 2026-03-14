@@ -17,7 +17,7 @@ const StarRating = ({ rating, onRatingChange, disabled = false }) => {
             disabled ? 'cursor-not-allowed' : 'cursor-pointer hover:scale-110'
           }`}
           aria-label={`Rate ${star} out of 5 stars`}
-          aria-pressed={rating === star}
+          aria-checked={rating === star}
           role="radio"
         >
           <svg
@@ -114,7 +114,8 @@ const ReviewForm = ({ productId, onSubmit, onCancel }) => {
       setAuthorEmail('');
       setErrors({});
     } catch (error) {
-      setErrors({ submit: error.message || 'Failed to submit review' });
+      console.error('Review submission failed:', error);
+      setErrors({ submit: 'Failed to submit review. Please try again.' });
     } finally {
       setIsSubmitting(false);
     }

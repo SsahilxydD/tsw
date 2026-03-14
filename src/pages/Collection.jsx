@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import Title from "../components/Title";
 import ProductItem from "../components/ProductItem";
 import SkeletonCard from "../components/SkeletonCard";
@@ -9,30 +9,40 @@ import { isFootwearProduct, isJeansProduct, normalizeJeansSizes, uniqueUKLabels 
 import { ShopContext } from "../context/ShopContext";
 import { assets } from "../assets/assets";
 import useDebouncedValue from "../hooks/useDebouncedValue";
+import { useLocation } from "react-router-dom";
 
 // NEW: session-seeded scramble (adds only "Featured" ordering)
 import { scrambleProducts } from "../utils/scramble";
 import { getSessionSeed } from "../utils/rand";
 import { sortProducts } from "../utils/sortProducts";
 
+// Module-scope: no component-level dependencies
+const normalizeSizesForProduct = (p) => {
+  let arr = Array.isArray(p?.sizes) ? p.sizes : [];
+  const catRaw = String(p?.categoryRaw || p?.category || '').toLowerCase();
+  // Apply UK conversion for footwear only (womenshoes uses raw sizes)
+  if (isFootwearProduct(p) && catRaw !== 'womenshoes') return uniqueUKLabels(arr);
+  if (isJeansProduct(p)) return normalizeJeansSizes(arr);
+  return arr.map((s) => String(s)).filter(Boolean);
+};
+
 const Collection = () => {
   const { products, loadingProducts } = useContext(ShopContext);
-  
+  const location = useLocation();
+
   // Local search state (collection-specific)
   const [localSearch, setLocalSearch] = useState("");
   const [showLocalSearch, setShowLocalSearch] = useState(false);
   const debouncedSearch = useDebouncedValue(localSearch, 250);
   const searchInputRef = React.useRef(null);
 
-  // sizes available across the whole catalog
-  const normalizeSizesForProduct = (p) => {
-    let arr = Array.isArray(p?.sizes) ? p.sizes : [];
-    const catRaw = String(p?.categoryRaw || p?.category || '').toLowerCase();
-    // Apply UK conversion for footwear only (womenshoes uses raw sizes)
-    if (isFootwearProduct(p) && catRaw !== 'womenshoes') return uniqueUKLabels(arr);
-    if (isJeansProduct(p)) return normalizeJeansSizes(arr);
-    return arr.map((s) => String(s)).filter(Boolean);
-  };
+  // Auto-open search when navigated with ?search=1 (from bottom dock)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("search") === "1") {
+      setShowLocalSearch(true);
+    }
+  }, [location.search]);
 
   const availableSizes = useMemo(() => {
     const set = new Set();
@@ -73,7 +83,7 @@ const Collection = () => {
   const toggleSize = (val) =>
     setSizeFilters((prev) => (prev.includes(val) ? prev.filter((s) => s !== val) : [...prev, val]));
 
-  const applyFilterAndOrder = () => {
+  const applyFilterAndOrder = useCallback(() => {
     let copy = Array.isArray(products) ? products.slice() : [];
     // Globally hide jeans with no sizes in data
     copy = copy.filter((p) => !(isJeansProduct(p) && normalizeJeansSizes(p.sizes).length === 0));
@@ -104,12 +114,11 @@ const Collection = () => {
     setList(copy);
     setVisibleCount(PAGE_SIZE);
     setLoadingMore(false);
-  };
+  }, [products, debouncedSearch, hasSizes, sizeFilters, sortValue]);
 
   useEffect(() => {
     applyFilterAndOrder();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [products, debouncedSearch, hasSizes, sizeFilters, sortValue]);
+  }, [applyFilterAndOrder]);
   
   // Focus search input when opened
   React.useEffect(() => {

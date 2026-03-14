@@ -4,6 +4,48 @@ import { Link } from 'react-router-dom';
 import SafeImg from './SafeImg';
 import './Carousel.css';
 
+function CarouselSlide({ item, index, x, trackItemOffset, baseWidth, round, effectiveTransition, currency, onProductClick }) {
+  const range = [-(index + 1) * trackItemOffset, -index * trackItemOffset, -(index - 1) * trackItemOffset];
+  const outputRange = [90, 0, -90];
+  const rotateY = useTransform(x, range, outputRange, { clamp: false });
+
+  return (
+    <motion.div
+      key={item._id || index}
+      className={`carousel-item ${round ? 'round' : ''}`}
+      style={{
+        width: baseWidth,
+        height: baseWidth,
+        minWidth: baseWidth,
+        rotateY: rotateY,
+        ...(round && { borderRadius: '50%' })
+      }}
+      transition={effectiveTransition}
+    >
+      <Link
+        to={item.url || '#'}
+        className="carousel-item-link"
+        onClick={() => onProductClick && onProductClick(item)}
+      >
+        <div className="carousel-item-image-container">
+          <SafeImg
+            src={item.image || '/assets/no-image.png'}
+            alt={item.title || ''}
+            className="carousel-item-image"
+            width={baseWidth}
+            height={baseWidth}
+            quality={85}
+          />
+        </div>
+        <div className="carousel-item-content">
+          <div className="carousel-item-title">{item.title || ''}</div>
+          <p className="carousel-item-description">{currency}{item.price || 0}</p>
+        </div>
+      </Link>
+    </motion.div>
+  );
+}
+
 const DRAG_BUFFER = 0;
 const VELOCITY_THRESHOLD = 500;
 const GAP = 16;
@@ -159,47 +201,20 @@ export default function Carousel({
         transition={effectiveTransition}
         onAnimationComplete={handleAnimationComplete}
       >
-        {carouselItems.map((item, index) => {
-          const range = [-(index + 1) * trackItemOffset, -index * trackItemOffset, -(index - 1) * trackItemOffset];
-          const outputRange = [90, 0, -90];
-          const rotateY = useTransform(x, range, outputRange, { clamp: false });
-
-          return (
-            <motion.div
-              key={item._id || index}
-              className={`carousel-item ${round ? 'round' : ''}`}
-              style={{
-                width: baseWidth,
-                height: baseWidth,
-                minWidth: baseWidth,
-                rotateY: rotateY,
-                ...(round && { borderRadius: '50%' })
-              }}
-              transition={effectiveTransition}
-            >
-              <Link
-                to={item.url || '#'}
-                className="carousel-item-link"
-                onClick={() => onProductClick && onProductClick(item)}
-              >
-                <div className="carousel-item-image-container">
-                  <SafeImg
-                    src={item.image || '/assets/no-image.png'}
-                    alt={item.title || ''}
-                    className="carousel-item-image"
-                    width={baseWidth}
-                    height={baseWidth}
-                    quality={85}
-                  />
-                </div>
-                <div className="carousel-item-content">
-                  <div className="carousel-item-title">{item.title || ''}</div>
-                  <p className="carousel-item-description">{currency}{item.price || 0}</p>
-                </div>
-              </Link>
-            </motion.div>
-          );
-        })}
+        {carouselItems.map((item, index) => (
+          <CarouselSlide
+            key={item._id || index}
+            item={item}
+            index={index}
+            x={x}
+            trackItemOffset={trackItemOffset}
+            baseWidth={baseWidth}
+            round={round}
+            effectiveTransition={effectiveTransition}
+            currency={currency}
+            onProductClick={onProductClick}
+          />
+        ))}
       </motion.div>
     </div>
   );

@@ -31,6 +31,9 @@ export function sfc32(a, b, c, d) {
 }
 
 // One seed per browser **session** so each visitor gets a different order
+/**
+ * @returns {string}
+ */
 export function getSessionSeed() {
   if (typeof window === "undefined") return 12345;
   const key = "feedSeed.v1";

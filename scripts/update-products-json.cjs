@@ -39,7 +39,11 @@ function loadMapping() {
   
   try {
     const content = fs.readFileSync(CONFIG.mappingFile, 'utf8');
-    return JSON.parse(content);
+    const mapping = JSON.parse(content);
+    if (typeof mapping !== 'object' || Array.isArray(mapping) || mapping === null) {
+      throw new Error('Mapping file must be a JSON object');
+    }
+    return mapping;
   } catch (err) {
     console.error(`❌ Error reading mapping file: ${err.message}`);
     process.exit(1);

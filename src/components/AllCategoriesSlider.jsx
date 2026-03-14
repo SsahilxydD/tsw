@@ -28,8 +28,8 @@ const AllCategoriesSlider = () => {
               categoryMap.set(category, []);
             }
             categoryMap.get(category).push(p);
-          } catch {
-            // Skip invalid products silently
+          } catch (err) {
+            if (import.meta.env.DEV) console.warn('Skipping product:', err);
           }
         });
 
@@ -57,8 +57,8 @@ const AllCategoriesSlider = () => {
                 });
               }
             }
-          } catch {
-            // Skip invalid category silently
+          } catch (err) {
+            if (import.meta.env.DEV) console.warn('Skipping product:', err);
           }
         }
 
@@ -69,7 +69,8 @@ const AllCategoriesSlider = () => {
         // Products loaded but empty - set empty array
         setSliderProducts([]);
       }
-    } catch {
+    } catch (err) {
+      if (import.meta.env.DEV) console.warn('Skipping product:', err);
       setSliderProducts([]);
     }
   }, [products, loadingProducts]);
@@ -85,7 +86,7 @@ const AllCategoriesSlider = () => {
       const itemsPerSet = sliderProducts.length;
       let width = 0;
       for (let i = 0; i < itemsPerSet && i < items.length; i++) {
-        width += items[i].offsetWidth + 12;
+        width += items[i].offsetWidth + 16; // 16px gap (gap-4)
       }
       cachedSetWidth.current = width;
       return width;
@@ -99,28 +100,27 @@ const AllCategoriesSlider = () => {
     };
 
     // Use cached width to avoid reflow during scroll
+    let resetTimer = null;
     const handleScroll = () => {
       if (isResetting.current) return;
-      
+
       const setWidth = cachedSetWidth.current;
       if (setWidth === 0) return;
-      
+
       const scrollLeft = container.scrollLeft;
       const maxScroll = container.scrollWidth - container.clientWidth;
-      
+
       if (scrollLeft < setWidth * 0.3) {
         isResetting.current = true;
-        container.style.scrollBehavior = 'auto';
         container.scrollLeft = scrollLeft + setWidth;
-        container.style.scrollBehavior = '';
-        requestAnimationFrame(() => { isResetting.current = false; });
+        clearTimeout(resetTimer);
+        resetTimer = setTimeout(() => { isResetting.current = false; }, 80);
       }
       else if (scrollLeft > maxScroll - setWidth * 0.3) {
         isResetting.current = true;
-        container.style.scrollBehavior = 'auto';
         container.scrollLeft = scrollLeft - setWidth;
-        container.style.scrollBehavior = '';
-        requestAnimationFrame(() => { isResetting.current = false; });
+        clearTimeout(resetTimer);
+        resetTimer = setTimeout(() => { isResetting.current = false; }, 80);
       }
     };
 
@@ -145,27 +145,28 @@ const AllCategoriesSlider = () => {
   };
 
   // Fixed height container to prevent CLS - always renders with same dimensions
-  const SLIDER_MIN_HEIGHT = 'min-h-[200px] sm:min-h-[220px]';
+  const SLIDER_MIN_HEIGHT = 'min-h-[300px] sm:min-h-[340px]';
 
   // Show skeleton placeholders while loading
   if (loadingProducts) {
     return (
-      <div className={`w-full py-4 sm:py-6 bg-gray-50/50 ${SLIDER_MIN_HEIGHT}`}>
-        <div className="text-center mb-4">
+      <div className={`w-full py-8 sm:py-12 bg-amber-50/30 ${SLIDER_MIN_HEIGHT}`}>
+        <div className="text-center mb-6">
           <Title text1="SHOP BY" text2="Category" />
         </div>
-        <div className="flex gap-3 overflow-hidden px-4 sm:px-6">
-          {[...Array(6)].map((_, i) => (
-            <div 
+        <div className="flex gap-4 overflow-hidden px-4 sm:px-6">
+          {[...Array(5)].map((_, i) => (
+            <div
               key={i}
-              className="flex-shrink-0 w-[40vw] sm:w-[28vw] md:w-[22vw] lg:w-[18vw] xl:w-[14vw] max-w-[200px] aspect-square"
+              className="flex-shrink-0 w-[38vw] sm:w-[28vw] md:w-[22vw] lg:w-[18vw] max-w-[200px]"
             >
-              <div className="w-full h-full bg-gray-200 rounded-lg animate-pulse" />
+              <div className="w-full aspect-[3/4] bg-amber-100/50 rounded-2xl animate-pulse" />
+              <div className="mt-2 h-4 w-2/3 mx-auto bg-amber-100/50 rounded animate-pulse" />
             </div>
           ))}
         </div>
-        <div className="flex justify-center mt-5">
-          <div className="w-20 h-10 bg-gray-200 rounded animate-pulse" />
+        <div className="flex justify-center mt-6">
+          <div className="w-20 h-10 bg-amber-100/50 rounded animate-pulse" />
         </div>
       </div>
     );
@@ -182,7 +183,7 @@ const AllCategoriesSlider = () => {
     const container = scrollRef.current;
     if (!container) return;
     const itemWidth = container.querySelector('.slide-item')?.offsetWidth || 0;
-    const gap = 12;
+    const gap = 16;
     const scrollAmount = itemWidth + gap;
     container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
   };
@@ -191,14 +192,14 @@ const AllCategoriesSlider = () => {
     const container = scrollRef.current;
     if (!container) return;
     const itemWidth = container.querySelector('.slide-item')?.offsetWidth || 0;
-    const gap = 12;
+    const gap = 16;
     const scrollAmount = itemWidth + gap;
     container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
   };
 
   return (
-    <div className={`w-full py-4 sm:py-6 bg-gray-50/50 overflow-hidden ${SLIDER_MIN_HEIGHT} relative`}>
-      <div className="text-center mb-4">
+    <div className={`w-full py-8 sm:py-12 bg-amber-50/30 overflow-hidden ${SLIDER_MIN_HEIGHT} relative`}>
+      <div className="text-center mb-6">
         <Title text1="SHOP BY" text2="Category" />
       </div>
 
@@ -222,32 +223,36 @@ const AllCategoriesSlider = () => {
         </svg>
       </button>
 
-      <div 
+      <div
         ref={scrollRef}
-        className="flex gap-3 overflow-x-auto scrollbar-hide px-4 sm:px-6 scroll-smooth"
+        className="flex gap-4 overflow-x-auto scrollbar-hide px-4 sm:px-6"
       >
         {loopedProducts.map((product, index) => (
-          <div 
+          <div
             key={`${product._id}-${index}`}
-            className="slide-item flex-shrink-0 w-[40vw] sm:w-[28vw] md:w-[22vw] lg:w-[18vw] xl:w-[14vw] max-w-[200px] aspect-square cursor-pointer"
+            className="slide-item flex-shrink-0 w-[38vw] sm:w-[28vw] md:w-[22vw] lg:w-[18vw] max-w-[200px] cursor-pointer group"
             onClick={() => handleProductClick(product)}
           >
-            <div className="w-full h-full bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+            <div className="w-full aspect-[3/4] bg-white rounded-2xl overflow-hidden shadow-sm group-hover:shadow-lg transition-shadow relative">
               <SafeImg
                 src={product.image || NO_IMAGE_PLACEHOLDER}
                 alt={product.title || 'Product'}
-                className="w-full h-full object-cover"
-                width={200}
-                height={200}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                width={240}
+                height={320}
                 loading="lazy"
                 quality={85}
               />
+              {/* Category label overlay */}
+              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent pt-8 pb-3 px-3">
+                <p className="text-white text-sm font-semibold tracking-wide truncate">{product.category || 'Shop'}</p>
+              </div>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="flex justify-center mt-5">
+      <div className="flex justify-center mt-6">
         <Button as={Link} to="/collection" variant="outline" size="sm">
           View All
         </Button>

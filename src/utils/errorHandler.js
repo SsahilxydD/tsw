@@ -257,3 +257,35 @@ export const safeFetch = async (url, options = {}, retries = 2) => {
   return retry(fetchWithTimeout, retries);
 };
 
+/**
+ * Safe fetch with timeout and retry — returns the raw Response without throwing on non-OK status.
+ * Use this when the caller needs to inspect the status code itself (e.g. ZIP lookup, feature checks).
+ * For most cases, prefer safeFetch which throws on non-OK responses.
+ */
+export const safeFetchRaw = async (url, options = {}, retries = 2) => {
+  const timeout = options.timeout || 10000; // 10 seconds default
+
+  const fetchWithTimeout = async () => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      // Return the response regardless of ok status — let the caller decide
+      return response;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('Request timeout');
+      }
+      throw error;
+    }
+  };
+
+  return retry(fetchWithTimeout, retries);
+};

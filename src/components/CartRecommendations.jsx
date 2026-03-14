@@ -122,8 +122,7 @@ export default function CartRecommendations() {
       .filter(p => !usedIdsRef.current.has(String(p._id ?? p.slug)) && notInBag(p))
       .map(p => String(p._id ?? p.slug));
     try { sessionStorage.setItem(cacheKey, JSON.stringify(out.map(p => String(p._id ?? p.slug)))); } catch {}
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [products]);
+  }, [products, cartItems]);
 
   // When all currently shown items are in the bag, append 6 more (3 related, 3 random)
   useEffect(() => {

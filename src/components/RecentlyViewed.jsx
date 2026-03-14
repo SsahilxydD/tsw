@@ -124,8 +124,7 @@ const RecentlyViewed = ({ maxItems = 10, excludeProductId = null }) => {
               id={product._id || product.slug}
               name={product.name || ''}
               image={product.image || (Array.isArray(product.images) ? product.images[0] : '') || NO_IMAGE_PLACEHOLDER}
-              old_price={product.mrp || 0}
-              new_price={product.price || 0}
+              price={product.price || 0}
             />
           </div>
         ))}

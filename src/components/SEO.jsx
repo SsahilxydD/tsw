@@ -1,6 +1,10 @@
 import React from "react";
 import { Helmet } from "react-helmet-async";
 
+function safeJsonLd(obj) {
+  return JSON.stringify(obj).replace(/<\/script>/gi, '<\\/script>');
+}
+
 /**
  * Convert relative image path to absolute HTTPS URL
  * @param {string} imagePath - Image path (relative or absolute)
@@ -82,10 +86,10 @@ export default function SEO({
       {/* JSON-LD */}
       {Array.isArray(jsonLd)
         ? jsonLd.filter(Boolean).map((obj, i) => (
-            <script key={i} type="application/ld+json">{JSON.stringify(obj)}</script>
+            <script key={i} type="application/ld+json">{safeJsonLd(obj)}</script>
           ))
         : (jsonLd ? (
-            <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
+            <script type="application/ld+json">{safeJsonLd(jsonLd)}</script>
           ) : null)
       }
     </Helmet>

@@ -228,11 +228,13 @@ export const markReviewHelpful = (reviewId) => {
     return { success: false, error: 'Review not found' };
   }
 
-  review.helpfulCount = (review.helpfulCount || 0) + 1;
-  const saved = saveReviews(reviews);
+  const updatedReviews = reviews.map(r =>
+    r.id === reviewId ? { ...r, helpfulCount: (r.helpfulCount || 0) + 1 } : r
+  );
+  const saved = saveReviews(updatedReviews);
 
   if (saved) {
-    return { success: true, review };
+    return { success: true, review: updatedReviews.find(r => r.id === reviewId) };
   } else {
     return { success: false, error: 'Failed to update review' };
   }
@@ -242,6 +244,6 @@ export const markReviewHelpful = (reviewId) => {
  * Generate a unique review ID
  */
 export const generateReviewId = () => {
-  return `review_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  return `review_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 };
 

@@ -64,26 +64,18 @@ export const sortProducts = (products, sortBy = 'featured', options = {}) => {
       });
       break;
 
-    case 'rating':
-      // Sort by average rating (highest first), then by number of reviews
+    case 'rating': {
+      const ratings = new Map(sorted.map(p => {
+        const id = String(p._id || p.id || '');
+        return [id, getProductRating(id)];
+      }));
       sorted.sort((a, b) => {
-        const ratingA = getProductRating(String(a._id || a.id || ''));
-        const ratingB = getProductRating(String(b._id || b.id || ''));
-        
-        // Compare average ratings
-        if (ratingB.average !== ratingA.average) {
-          return ratingB.average - ratingA.average;
-        }
-        
-        // If ratings are equal, sort by number of reviews (more reviews = higher)
-        if (ratingB.count !== ratingA.count) {
-          return ratingB.count - ratingA.count;
-        }
-        
-        // If both are equal, maintain original order
-        return 0;
+        const ra = ratings.get(String(a._id || a.id || '')) || { average: 0, count: 0 };
+        const rb = ratings.get(String(b._id || b.id || '')) || { average: 0, count: 0 };
+        return rb.average !== ra.average ? rb.average - ra.average : rb.count - ra.count;
       });
       break;
+    }
 
     case 'featured':
     default:

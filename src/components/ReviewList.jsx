@@ -30,12 +30,12 @@ const StarDisplay = ({ rating, size = 'md' }) => {
 
 const ReviewCard = ({ review, onHelpful }) => {
   const [helpfulClicked, setHelpfulClicked] = useState(false);
-  const date = new Date(review.date);
-  const formattedDate = date.toLocaleDateString('en-IN', {
+  const date = review.date ? new Date(review.date) : null;
+  const formattedDate = date && !isNaN(date) ? date.toLocaleDateString('en-IN', {
     year: 'numeric',
     month: 'long',
     day: 'numeric'
-  });
+  }) : '';
 
   const handleHelpful = () => {
     if (!helpfulClicked && onHelpful) {

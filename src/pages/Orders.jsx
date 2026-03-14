@@ -1,3 +1,4 @@
+// TODO: Implement real order history. Currently shows placeholder data.
 import React, { useContext } from 'react'
 import { ShopContext } from '../context/ShopContext'
 import Title from '../components/Title';
@@ -14,6 +15,8 @@ const Orders = () => {
             <div className='text-2xl'>
                 <Title text1={'MY'} text2={'ORDERS'} />
             </div>
+
+            <p className="text-sm text-gray-500 mb-4">Order tracking is available through WhatsApp. Below is sample data.</p>
 
             <div>
                 {products.slice(1, 4).map((item, index) => (

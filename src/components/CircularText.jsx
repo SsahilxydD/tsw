@@ -21,7 +21,8 @@ const getTransition = (duration, from) => ({
 });
 
 const CircularText = ({ text, spinDuration = 20, onHover = 'speedUp', className = '' }) => {
-  const letters = Array.from(text);
+  const letters = Array.from(text || '');
+  if (!letters.length) return null;
   const controls = useAnimation();
   const rotation = useMotionValue(0);
 
@@ -87,8 +88,7 @@ const CircularText = ({ text, spinDuration = 20, onHover = 'speedUp', className 
       animate={controls}
       onMouseEnter={handleHoverStart}
       onMouseLeave={handleHoverEnd}
-      role="status"
-      aria-live="polite"
+      aria-hidden="true"
     >
       {letters.map((letter, i) => {
         const rotationDeg = (360 / letters.length) * i;

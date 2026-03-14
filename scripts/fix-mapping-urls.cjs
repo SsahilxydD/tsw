@@ -10,7 +10,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const ACCOUNT_HASH = 'Ysm_SanI713eaOY5mRhkPQ';
+const ACCOUNT_HASH = process.env.CLOUDFLARE_ACCOUNT_HASH;
+if (!ACCOUNT_HASH) { console.error('CLOUDFLARE_ACCOUNT_HASH env var required'); process.exit(1); }
 const MAPPING_FILE = path.join(__dirname, 'cloudflare-images-mapping.json');
 const BACKUP_FILE = MAPPING_FILE + '.backup.' + Date.now();
 

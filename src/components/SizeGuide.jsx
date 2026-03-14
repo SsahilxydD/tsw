@@ -135,9 +135,10 @@ const SizeGuide = ({ isOpen, onClose, product = null }) => {
       // Store the previously focused element
       previousActiveElement.current = document.activeElement;
       // Focus the close button when modal opens
-      setTimeout(() => {
+      const focusTimer = setTimeout(() => {
         closeButtonRef.current?.focus();
       }, 100);
+      return () => clearTimeout(focusTimer);
     } else {
       // Restore focus when modal closes
       if (previousActiveElement.current) {

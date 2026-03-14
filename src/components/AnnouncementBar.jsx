@@ -7,7 +7,7 @@ const AnnouncementBar = ({ isTransparent }) => {
             <Link
                 to="/category/discounted"
                 className="block h-full group focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
-                aria-label="Click here for huge discounts"
+                aria-label="View current promotions"
             >
                 <div className="annc-wrap h-full flex items-center">
                     <div className="annc-track uppercase tracking-widest text-[10px] sm:text-xs font-medium">

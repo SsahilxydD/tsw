@@ -34,7 +34,7 @@ const CONFIG = {
   
   // Your Cloudflare Images account hash (from dashboard → Images → Developer Resources)
   // This is a fixed value for your account, not per-image
-  accountHash: process.env.CLOUDFLARE_ACCOUNT_HASH || 'Ysm_SanI713eaOY5mRhkPQ',
+  accountHash: process.env.CLOUDFLARE_ACCOUNT_HASH,
   
   // Number of parallel uploads (5-10 is optimal for API rate limits)
   // For 10000+ images, 8-10 is a good balance
@@ -225,6 +225,10 @@ async function main() {
     process.exit(1);
   }
   
+  // Validate required env vars
+  const accountHash = process.env.CLOUDFLARE_ACCOUNT_HASH;
+  if (!accountHash) { console.error('CLOUDFLARE_ACCOUNT_HASH env var required'); process.exit(1); }
+
   // Validate config
   if (CONFIG.apiToken === 'YOUR_API_TOKEN' || CONFIG.accountId === 'YOUR_ACCOUNT_ID') {
     console.error('❌ Please configure your Cloudflare credentials!\n');
@@ -331,11 +335,11 @@ async function main() {
     // Automatically update products.json if any images were uploaded
     console.log(`\n🔄 Automatically updating products.json...`);
     try {
-      const { execSync } = require('child_process');
+      const { execFileSync } = require('child_process');
       const updateScript = path.join(__dirname, 'update-products-json.cjs');
       const productsJsonPath = path.join(__dirname, '..', 'public', 'data', 'products.json');
-      
-      execSync(`node "${updateScript}" "${productsJsonPath}"`, {
+
+      execFileSync('node', [updateScript, productsJsonPath], {
         stdio: 'inherit',
         cwd: path.join(__dirname, '..'),
       });

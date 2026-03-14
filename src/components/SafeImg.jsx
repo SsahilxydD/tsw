@@ -29,8 +29,8 @@ export default function SafeImg({
 }) {
   const [broken, setBroken] = useState(false);
 
-  // Check if Cloudflare Image Resizing is available (set to true if you've enabled it)
-  const CF_IMAGE_RESIZING = true; // Set to true after enabling in Cloudflare dashboard
+  // Check if Cloudflare Image Resizing is available
+  const CF_IMAGE_RESIZING = import.meta.env.VITE_CF_IMAGE_RESIZING !== 'false';
 
   // Generate Cloudflare Images optimized URL
   const getCFOptimizedUrl = (originalSrc, w, h) => {
@@ -44,39 +44,35 @@ export default function SafeImg({
     
     // Skip R2 URLs and other non-Cloudflare Images URLs
     if (!originalSrc.includes('imagedelivery.net')) return originalSrc;
-    
-    // Check if this is a Cloudflare Images URL (imagedelivery.net)
-    if (originalSrc.includes('imagedelivery.net')) {
-      // Cloudflare Images format: https://imagedelivery.net/{account_hash}/{image_id}/{variant}
-      // With flexible variants enabled, we can use URL parameters for resizing
-      const url = new URL(originalSrc);
-      const pathParts = url.pathname.split('/');
-      
-      // Extract account hash, image ID, and variant
-      if (pathParts.length >= 4) {
-        const accountHash = pathParts[1];
-        const imageId = pathParts[2];
-        const variant = pathParts[3] || 'public';
-        
-        // Build resizing parameters
-        const resizeParams = [];
-        if (w) resizeParams.push(`w=${w}`);
-        if (h) resizeParams.push(`h=${h}`);
-        resizeParams.push(`q=${quality}`); // Always include quality
-        resizeParams.push('f=auto'); // Auto format (WebP/AVIF when supported)
-        if (fit !== 'cover') resizeParams.push(`fit=${fit}`);
-        
-        // If we have resize params, use them; otherwise use the variant
-        if (resizeParams.length > 0) {
-          return `https://imagedelivery.net/${accountHash}/${imageId}/${resizeParams.join(',')}`;
-        }
-        
-        // Fallback to variant if no resize params
-        return `https://imagedelivery.net/${accountHash}/${imageId}/${variant}`;
+
+    // Cloudflare Images format: https://imagedelivery.net/{account_hash}/{image_id}/{variant}
+    // With flexible variants enabled, we can use URL parameters for resizing
+    const url = new URL(originalSrc);
+    const pathParts = url.pathname.split('/');
+
+    // Extract account hash, image ID, and variant
+    if (pathParts.length >= 4) {
+      const accountHash = pathParts[1];
+      const imageId = pathParts[2];
+      const variant = pathParts[3] || 'public';
+
+      // Build resizing parameters
+      const resizeParams = [];
+      if (w) resizeParams.push(`w=${w}`);
+      if (h) resizeParams.push(`h=${h}`);
+      resizeParams.push(`q=${quality}`); // Always include quality
+      resizeParams.push('f=auto'); // Auto format (WebP/AVIF when supported)
+      if (fit !== 'cover') resizeParams.push(`fit=${fit}`);
+
+      // If we have resize params, use them; otherwise use the variant
+      if (resizeParams.length > 0) {
+        return `https://imagedelivery.net/${accountHash}/${imageId}/${resizeParams.join(',')}`;
       }
+
+      // Fallback to variant if no resize params
+      return `https://imagedelivery.net/${accountHash}/${imageId}/${variant}`;
     }
-    
-    // For non-Cloudflare Images URLs, return as-is (or use /cdn-cgi/image/ if on your domain)
+
     return originalSrc;
   };
 

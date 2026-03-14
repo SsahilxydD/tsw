@@ -6,10 +6,9 @@ import AnnouncementBar from "./AnnouncementBar";
 import SafeImg from "./SafeImg";
 
 const Navbar = () => {
-  const { getCartCount, setIsCartOpen, setShowSearch, getWishlistCount, navigate } = useContext(ShopContext);
+  const { getCartCount, setIsCartOpen, isCartOpen, setShowSearch, getWishlistCount, navigate } = useContext(ShopContext);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const heroHeightRef = useRef(0);
 
   const isHome = location.pathname === "/";
@@ -72,13 +71,8 @@ const Navbar = () => {
 
   const showAnnouncement = !/^(?:\/category\/discounted)(?:\/|$)/i.test(location.pathname || "");
 
-  // Transparent mode: on home page, not scrolled, menu closed
-  const isTransparent = isHome && !scrolled && !isMenuOpen;
-
-  // Close menu on route change
-  useEffect(() => {
-    setIsMenuOpen(false);
-  }, [location]);
+  // Transparent mode: on home page, not scrolled
+  const isTransparent = isHome && !scrolled;
 
   return (
     <>
@@ -92,22 +86,8 @@ const Navbar = () => {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-14 flex items-center justify-between overflow-hidden">
 
-          {/* Mobile Menu Button */}
-          <button
-            className={`md:hidden p-2.5 -ml-2 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center ${isTransparent ? 'text-white' : 'text-primary'}`}
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            aria-label={isMenuOpen ? "Close menu" : "Open menu"}
-            aria-expanded={isMenuOpen}
-            aria-controls="mobile-menu"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {isMenuOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 12h16M4 18h16" />
-              )}
-            </svg>
-          </button>
+          {/* Mobile spacer (menu moved to bottom dock) */}
+          <div className="md:hidden w-6" />
 
           {/* Desktop Nav (Left) */}
           <nav className="hidden md:flex items-center gap-8" role="navigation" aria-label="Main navigation">
@@ -154,12 +134,12 @@ const Navbar = () => {
               <span>Chat</span>
             </a>
 
-            {/* Search - hidden on category and collection pages (they have their own search) */}
+            {/* Search - desktop only (mobile uses bottom dock) */}
             {!location.pathname.startsWith('/category/') && location.pathname !== '/collection' && (
               <button
                 onClick={() => setShowSearch(true)}
                 aria-label="Search"
-                className={`p-2 sm:p-1 transition-colors hover:text-accent min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center ${isTransparent ? 'text-white' : 'text-primary'}`}
+                className={`hidden sm:flex p-1 transition-colors hover:text-accent items-center justify-center ${isTransparent ? 'text-white' : 'text-primary'}`}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -167,11 +147,11 @@ const Navbar = () => {
               </button>
             )}
 
-            {/* Wishlist */}
+            {/* Wishlist - desktop only (mobile uses bottom dock) */}
             <button
               onClick={() => navigate('/wishlist')}
               aria-label={`Wishlist, ${wishlistCount > 0 ? `${wishlistCount} item${wishlistCount !== 1 ? 's' : ''}` : 'empty'}`}
-              className={`relative p-2 sm:p-1 group min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center ${isTransparent ? 'text-white' : 'text-primary'}`}
+              className={`hidden sm:flex relative p-1 group items-center justify-center ${isTransparent ? 'text-white' : 'text-primary'}`}
             >
               <svg className="w-6 h-6 transition-colors group-hover:text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -188,7 +168,7 @@ const Navbar = () => {
               id="cart-anchor"
               onClick={() => setIsCartOpen(true)}
               aria-label={`Cart, ${count > 0 ? `${count} item${count !== 1 ? 's' : ''} in cart` : 'empty'}`}
-              aria-expanded={false}
+              aria-expanded={isCartOpen}
               className="relative p-2 sm:p-1 group min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
             >
               <div className={`w-6 h-6 transition-colors group-hover:text-accent ${isTransparent ? 'text-white' : 'text-primary'}`}>
@@ -207,22 +187,6 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* Mobile Menu Dropdown */}
-        <div 
-          id="mobile-menu"
-          className={`md:hidden absolute top-full left-0 w-full bg-white border-b border-gray-100 shadow-lg transition-all duration-300 overflow-hidden z-50 ${isMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}
-          aria-hidden={!isMenuOpen}
-          inert={!isMenuOpen ? "" : undefined}
-        >
-          {isMenuOpen && (
-            <nav className="flex flex-col p-4 gap-2" role="navigation" aria-label="Main navigation">
-              <Link to="/" className="text-sm font-medium tracking-wide text-secondary hover:text-primary py-3 px-4 min-h-[44px] flex items-center justify-center rounded-md hover:bg-gray-50 transition-colors" onClick={() => setIsMenuOpen(false)}>HOME</Link>
-              <Link to="/about" className="text-sm font-medium tracking-wide text-secondary hover:text-primary py-3 px-4 min-h-[44px] flex items-center justify-center rounded-md hover:bg-gray-50 transition-colors" onClick={() => setIsMenuOpen(false)}>ABOUT</Link>
-              <Link to="/contact" className="text-sm font-medium tracking-wide text-secondary hover:text-primary py-3 px-4 min-h-[44px] flex items-center justify-center rounded-md hover:bg-gray-50 transition-colors" onClick={() => setIsMenuOpen(false)}>CONTACT</Link>
-              <a href="https://wa.me/919933778870" target="_blank" rel="noopener noreferrer" className="text-sm font-medium tracking-wide text-secondary hover:text-primary py-3 px-4 min-h-[44px] flex items-center justify-center rounded-md hover:bg-gray-50 transition-colors">WHATSAPP CHAT</a>
-            </nav>
-          )}
-        </div>
       </header>
     </>
   );

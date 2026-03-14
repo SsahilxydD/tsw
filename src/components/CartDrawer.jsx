@@ -25,17 +25,11 @@ const CartDrawer = () => {
     // Focus management for accessibility
     useEffect(() => {
         if (isCartOpen) {
-            // Store the previously focused element
             previousActiveElement.current = document.activeElement;
-            // Focus the close button when drawer opens
-            setTimeout(() => {
-                closeButtonRef.current?.focus();
-            }, 100);
+            const t = setTimeout(() => closeButtonRef.current?.focus(), 100);
+            return () => clearTimeout(t);
         } else {
-            // Restore focus when drawer closes
-            if (previousActiveElement.current) {
-                previousActiveElement.current.focus();
-            }
+            previousActiveElement.current?.focus();
         }
     }, [isCartOpen]);
 
@@ -156,7 +150,7 @@ const CartDrawer = () => {
                                             : productData.image) || '/assets/no-image.svg';
 
                                     return (
-                                        <div key={index} className="flex gap-4">
+                                        <div key={`${item._id}-${item.size}`} className="flex gap-4">
                                             <Link 
                                                 to={`/product/${item._id}`}
                                                 onClick={() => setIsCartOpen(false)}
@@ -217,7 +211,7 @@ const CartDrawer = () => {
                                                         </button>
                                                     </div>
                                                     <p className="font-medium text-sm">
-                                                        {currency}{productData.price * item.quantity}
+                                                        {currency}{(productData.price * item.quantity).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                                                     </p>
                                                 </div>
                                             </div>

@@ -77,6 +77,7 @@ const Wishlist = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => {
+                  // TODO: Replace with custom confirmation modal
                   if (window.confirm('Are you sure you want to clear your wishlist?')) {
                     clearWishlistItems();
                   }

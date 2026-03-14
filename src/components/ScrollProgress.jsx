@@ -3,6 +3,7 @@ import React from "react";
 export default function ScrollProgress() {
   const barRef = React.useRef(null);
   React.useEffect(() => {
+    if (typeof document === 'undefined') return;
     let raf = 0;
     const updateNow = () => {
       raf = 0;

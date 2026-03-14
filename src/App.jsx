@@ -16,6 +16,7 @@ import ScrollToTop from "./components/ScrollToTop";
 import CachedRoutes from "./components/CachedRoutes";
 import SkipLink from "./components/SkipLink";
 import LenisSmoothScroll from "./components/LenisSmoothScroll";
+import BottomDock from "./components/BottomDock";
 import { ShopContext } from "./context/ShopContext";
 
 // Lazy load CartDrawer (uses framer-motion) - only loads when cart opens
@@ -36,10 +37,12 @@ const Contact = lazy(() => import("./pages/Contact"));
 const Orders = lazy(() => import("./pages/Orders"));
 const Login = lazy(() => import("./pages/Login"));
 const Wishlist = lazy(() => import("./pages/Wishlist"));
+const CategoriesPage = lazy(() => import("./pages/CategoriesPage"));
 
 // Route configuration for caching
 const routes = [
   { path: "/", element: <Home /> },
+  { path: "/categories", element: <CategoriesPage /> },
   { path: "/collection", element: <Collection /> },
   { path: "/category/:cat", element: <Category /> },
   { path: "/product/:id", element: <Product /> },
@@ -100,12 +103,14 @@ export default function App() {
       {/* Hide footer on checkout page to avoid blocking the sticky CTA */}
       {!isCheckout && <Footer />}
 
+      {/* Mobile bottom dock navigation */}
+      <BottomDock />
+
 
 
       {/* Floating WhatsApp CTA (site-wide) */}
       <WhatsAppCTA
-        phone="+919933778870"
-        //walinkId="https://wa.me/message/NFOO5QIA4N27L1" // optional; remove if you don't use wa.link
+        phone={import.meta.env.VITE_WHATSAPP_PHONE || "+919933778870"}
         message="Hello!"
         iconOnly
       />

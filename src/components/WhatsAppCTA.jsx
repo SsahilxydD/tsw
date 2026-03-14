@@ -27,6 +27,7 @@ export default function WhatsAppCTA({
     return () => clearTimeout(t);
   }, []);
   const normalized = String(phone || "").replace(/\D/g, "");
+  if (!normalized || normalized.length < 10 || normalized.length > 15) return null;
   const encodedMsg = encodeURIComponent(message);
 
   const primaryHref = walinkId
@@ -38,6 +39,7 @@ export default function WhatsAppCTA({
 
   const onClick = useCallback(
     (e) => {
+      e.preventDefault();
       try {
         const win = window.open(primaryHref, "_blank", "noopener,noreferrer");
         setTimeout(() => {
@@ -55,7 +57,6 @@ export default function WhatsAppCTA({
       } catch {
         window.location.href = fallback1;
       }
-      e.preventDefault();
     },
     [primaryHref, fallback1, fallback2]
   );

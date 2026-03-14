@@ -2,6 +2,44 @@
 import React, { useState, useMemo } from 'react';
 import SizeChips from './SizeChips';
 
+const FilterSection = ({ title, sectionKey, children, count = null, expandedSections, toggleSection }) => {
+  const isExpanded = expandedSections[sectionKey];
+  const hasCount = count !== null && count > 0;
+
+  return (
+    <div className="border-b border-gray-200 last:border-b-0">
+      <button
+        type="button"
+        onClick={() => toggleSection(sectionKey)}
+        className="w-full flex items-center justify-between py-4 text-left focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset"
+        aria-expanded={isExpanded}
+        aria-controls={`filter-section-${sectionKey}`}
+      >
+        <span className="text-sm font-medium text-gray-900">
+          {title}
+          {hasCount && (
+            <span className="ml-2 text-xs text-gray-500">({count})</span>
+          )}
+        </span>
+        <svg
+          className={`w-5 h-5 text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {isExpanded && (
+        <div id={`filter-section-${sectionKey}`} className="pb-4">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+};
+
 /**
  * FilterSidebar Component
  * Provides comprehensive filtering options for products
@@ -182,44 +220,6 @@ const FilterSidebar = ({
 
   const activeFilterCount = getActiveFilterCount();
 
-  const FilterSection = ({ title, sectionKey, children, count = null }) => {
-    const isExpanded = expandedSections[sectionKey];
-    const hasCount = count !== null && count > 0;
-
-    return (
-      <div className="border-b border-gray-200 last:border-b-0">
-        <button
-          type="button"
-          onClick={() => toggleSection(sectionKey)}
-          className="w-full flex items-center justify-between py-4 text-left focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset"
-          aria-expanded={isExpanded}
-          aria-controls={`filter-section-${sectionKey}`}
-        >
-          <span className="text-sm font-medium text-gray-900">
-            {title}
-            {hasCount && (
-              <span className="ml-2 text-xs text-gray-500">({count})</span>
-            )}
-          </span>
-          <svg
-            className={`w-5 h-5 text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-        {isExpanded && (
-          <div id={`filter-section-${sectionKey}`} className="pb-4">
-            {children}
-          </div>
-        )}
-      </div>
-    );
-  };
-
   return (
     <aside className="min-w-60">
       <div className="flex items-center justify-between mb-4">
@@ -238,7 +238,7 @@ const FilterSidebar = ({
 
       <div className="border border-gray-300 bg-white">
         {/* Price Range */}
-        <FilterSection title="PRICE" sectionKey="price">
+        <FilterSection title="PRICE" sectionKey="price" expandedSections={expandedSections} toggleSection={toggleSection}>
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <input
@@ -269,10 +269,12 @@ const FilterSidebar = ({
 
         {/* Size Filter */}
         {availableSizes.length > 0 && (
-          <FilterSection 
-            title="SIZE" 
+          <FilterSection
+            title="SIZE"
             sectionKey="size"
             count={filters.sizes?.length || 0}
+            expandedSections={expandedSections}
+            toggleSection={toggleSection}
           >
             <SizeChips
               sizes={availableSizes}
@@ -285,10 +287,12 @@ const FilterSidebar = ({
 
         {/* Brand Filter */}
         {filterOptions.brands.length > 0 && (
-          <FilterSection 
-            title="BRAND" 
+          <FilterSection
+            title="BRAND"
             sectionKey="brand"
             count={filters.brands?.length || 0}
+            expandedSections={expandedSections}
+            toggleSection={toggleSection}
           >
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {filterOptions.brands.map((brand) => {
@@ -315,10 +319,12 @@ const FilterSidebar = ({
 
         {/* Category Filter */}
         {filterOptions.categories.length > 0 && (
-          <FilterSection 
-            title="CATEGORY" 
+          <FilterSection
+            title="CATEGORY"
             sectionKey="category"
             count={filters.categories?.length || 0}
+            expandedSections={expandedSections}
+            toggleSection={toggleSection}
           >
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {filterOptions.categories.map((category) => {
@@ -346,10 +352,12 @@ const FilterSidebar = ({
 
         {/* Color Filter */}
         {filterOptions.colors.length > 0 && (
-          <FilterSection 
-            title="COLOR" 
+          <FilterSection
+            title="COLOR"
             sectionKey="color"
             count={filters.colors?.length || 0}
+            expandedSections={expandedSections}
+            toggleSection={toggleSection}
           >
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {filterOptions.colors.map((color) => {

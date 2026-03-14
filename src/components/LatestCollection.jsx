@@ -25,7 +25,7 @@ const LatestCollection = () => {
       <div className='grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4 lg:gap-6'>
         {latestProducts.map((item, index) => (
           <ProductItem
-            key={item._id || index}
+            key={item._id}
             id={item._id}
             image={Array.isArray(item.image) ? item.image : (item.image ? [item.image] : [])}
             name={item.name}

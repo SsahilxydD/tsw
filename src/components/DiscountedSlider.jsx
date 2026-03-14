@@ -64,7 +64,7 @@ const DiscountedSlider = () => {
       const itemsPerSet = sliderProducts.length;
       let width = 0;
       for (let i = 0; i < itemsPerSet && i < items.length; i++) {
-        width += items[i].offsetWidth + 12;
+        width += items[i].offsetWidth + 16; // 16px gap (gap-4)
       }
       cachedSetWidth.current = width;
       return width;
@@ -78,28 +78,27 @@ const DiscountedSlider = () => {
     };
 
     // Use cached width to avoid reflow during scroll
+    let resetTimer = null;
     const handleScroll = () => {
       if (isResetting.current) return;
-      
+
       const setWidth = cachedSetWidth.current;
       if (setWidth === 0) return;
-      
+
       const scrollLeft = container.scrollLeft;
       const maxScroll = container.scrollWidth - container.clientWidth;
-      
+
       if (scrollLeft < setWidth * 0.3) {
         isResetting.current = true;
-        container.style.scrollBehavior = 'auto';
         container.scrollLeft = scrollLeft + setWidth;
-        container.style.scrollBehavior = '';
-        requestAnimationFrame(() => { isResetting.current = false; });
+        clearTimeout(resetTimer);
+        resetTimer = setTimeout(() => { isResetting.current = false; }, 80);
       }
       else if (scrollLeft > maxScroll - setWidth * 0.3) {
         isResetting.current = true;
-        container.style.scrollBehavior = 'auto';
         container.scrollLeft = scrollLeft - setWidth;
-        container.style.scrollBehavior = '';
-        requestAnimationFrame(() => { isResetting.current = false; });
+        clearTimeout(resetTimer);
+        resetTimer = setTimeout(() => { isResetting.current = false; }, 80);
       }
     };
 
@@ -124,27 +123,29 @@ const DiscountedSlider = () => {
   };
 
   // Fixed height container to prevent CLS - always renders with same dimensions
-  const SLIDER_MIN_HEIGHT = 'min-h-[200px] sm:min-h-[220px]';
+  const SLIDER_MIN_HEIGHT = 'min-h-[300px] sm:min-h-[340px]';
 
   // Show skeleton placeholders while loading
   if (loadingProducts || sliderProducts.length === 0) {
     return (
-      <div className={`w-full py-4 sm:py-6 bg-gray-50/50 ${SLIDER_MIN_HEIGHT}`}>
-        <div className="text-center mb-4">
-          <Title text1="SPECIAL" text2="Offers" />
+      <div className={`w-full py-8 sm:py-12 bg-gray-900 ${SLIDER_MIN_HEIGHT}`}>
+        <div className="text-center mb-6">
+          <Title text1="SPECIAL" text2="Offers" text2ClassName="text-red-400" />
         </div>
-        <div className="flex gap-3 overflow-hidden px-4 sm:px-6">
-          {[...Array(6)].map((_, i) => (
-            <div 
+        <div className="flex gap-4 overflow-hidden px-4 sm:px-6">
+          {[...Array(5)].map((_, i) => (
+            <div
               key={i}
-              className="flex-shrink-0 w-[40vw] sm:w-[28vw] md:w-[22vw] lg:w-[18vw] xl:w-[14vw] max-w-[200px] aspect-square"
+              className="flex-shrink-0 w-[38vw] sm:w-[28vw] md:w-[22vw] lg:w-[18vw] max-w-[200px]"
             >
-              <div className="w-full h-full bg-gray-200 rounded-lg animate-pulse" />
+              <div className="w-full aspect-[4/5] bg-gray-700 rounded-xl animate-pulse" />
+              <div className="mt-2 h-4 w-3/4 bg-gray-700 rounded animate-pulse" />
+              <div className="mt-1.5 h-4 w-1/2 bg-gray-700 rounded animate-pulse" />
             </div>
           ))}
         </div>
-        <div className="flex justify-center mt-5">
-          <div className="w-20 h-10 bg-gray-200 rounded animate-pulse" />
+        <div className="flex justify-center mt-6">
+          <div className="w-20 h-10 bg-gray-700 rounded animate-pulse" />
         </div>
       </div>
     );
@@ -156,7 +157,7 @@ const DiscountedSlider = () => {
     const container = scrollRef.current;
     if (!container) return;
     const itemWidth = container.querySelector('.slide-item')?.offsetWidth || 0;
-    const gap = 12;
+    const gap = 16;
     const scrollAmount = itemWidth + gap;
     container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
   };
@@ -165,64 +166,87 @@ const DiscountedSlider = () => {
     const container = scrollRef.current;
     if (!container) return;
     const itemWidth = container.querySelector('.slide-item')?.offsetWidth || 0;
-    const gap = 12;
+    const gap = 16;
     const scrollAmount = itemWidth + gap;
     container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
   };
 
   return (
-    <div className={`w-full py-4 sm:py-6 bg-gray-50/50 overflow-hidden ${SLIDER_MIN_HEIGHT} relative`}>
-      <div className="text-center mb-4">
-        <Title text1="SPECIAL" text2="Offers" />
+    <div className={`w-full py-8 sm:py-12 bg-gray-900 overflow-hidden ${SLIDER_MIN_HEIGHT} relative`}>
+      <div className="text-center mb-6">
+        <p className="uppercase tracking-[0.18em] text-[11px] sm:text-xs text-gray-300 font-medium inline-flex gap-3 items-center mb-1 select-none">
+          SPECIAL <span className="normal-case tracking-normal font-semibold text-red-400">Offers</span>
+          <span className="w-8 sm:w-12 h-[1px] sm:h-[2px] bg-gray-500"></span>
+        </p>
       </div>
 
       {/* Desktop Navigation Buttons */}
       <button
         onClick={scrollLeft}
-        className="hidden md:flex absolute left-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 items-center justify-center bg-white/90 backdrop-blur-sm rounded-full shadow-lg hover:bg-white transition-colors min-w-[44px] min-h-[44px]"
+        className="hidden md:flex absolute left-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 items-center justify-center bg-gray-800/90 backdrop-blur-sm rounded-full shadow-lg hover:bg-gray-700 transition-colors min-w-[44px] min-h-[44px]"
         aria-label="Scroll left"
       >
-        <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-5 h-5 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
         </svg>
       </button>
       <button
         onClick={scrollRight}
-        className="hidden md:flex absolute right-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 items-center justify-center bg-white/90 backdrop-blur-sm rounded-full shadow-lg hover:bg-white transition-colors min-w-[44px] min-h-[44px]"
+        className="hidden md:flex absolute right-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 items-center justify-center bg-gray-800/90 backdrop-blur-sm rounded-full shadow-lg hover:bg-gray-700 transition-colors min-w-[44px] min-h-[44px]"
         aria-label="Scroll right"
       >
-        <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-5 h-5 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
       </button>
 
-      <div 
+      <div
         ref={scrollRef}
-        className="flex gap-3 overflow-x-auto scrollbar-hide px-4 sm:px-6 scroll-smooth"
+        className="flex gap-4 overflow-x-auto scrollbar-hide px-4 sm:px-6"
       >
-        {loopedProducts.map((product, index) => (
-          <div 
-            key={`${product._id}-${index}`}
-            className="slide-item flex-shrink-0 w-[40vw] sm:w-[28vw] md:w-[22vw] lg:w-[18vw] xl:w-[14vw] max-w-[200px] aspect-square cursor-pointer"
-            onClick={() => handleProductClick(product)}
-          >
-            <div className="w-full h-full bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-              <SafeImg
-                src={product.image || NO_IMAGE_PLACEHOLDER}
-                alt={product.title || 'Product'}
-                className="w-full h-full object-cover"
-                width={200}
-                height={200}
-                loading="lazy"
-                quality={85}
-              />
+        {loopedProducts.map((product, index) => {
+          const discountPercent = product.mrp > product.price
+            ? Math.round(((product.mrp - product.price) / product.mrp) * 100)
+            : 0;
+          return (
+            <div
+              key={`${product._id}-${index}`}
+              className="slide-item flex-shrink-0 w-[38vw] sm:w-[28vw] md:w-[22vw] lg:w-[18vw] max-w-[200px] cursor-pointer group"
+              onClick={() => handleProductClick(product)}
+            >
+              <div className="w-full aspect-[4/5] bg-gray-800 rounded-xl overflow-hidden shadow-sm group-hover:shadow-lg group-hover:shadow-red-900/20 transition-shadow relative">
+                <SafeImg
+                  src={product.image || NO_IMAGE_PLACEHOLDER}
+                  alt={product.title || 'Product'}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  width={260}
+                  height={325}
+                  loading="lazy"
+                  quality={85}
+                />
+                {/* Discount badge */}
+                {discountPercent > 0 && (
+                  <span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-md shadow-sm">
+                    -{discountPercent}%
+                  </span>
+                )}
+              </div>
+              <div className="mt-2 px-1">
+                <p className="text-sm text-gray-200 font-medium line-clamp-2 leading-tight">{product.title}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="text-sm font-semibold text-white">{'\u20B9'}{product.price.toLocaleString('en-IN')}</p>
+                  {product.mrp > product.price && (
+                    <p className="text-xs text-gray-400 line-through">{'\u20B9'}{product.mrp.toLocaleString('en-IN')}</p>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      <div className="flex justify-center mt-5">
-        <Button as={Link} to="/category/discounted" variant="outline" size="sm">
+      <div className="flex justify-center mt-6">
+        <Button as={Link} to="/category/discounted" variant="outline" size="sm" className="!border-gray-500 !text-gray-200 hover:!bg-gray-800">
           View All
         </Button>
       </div>

@@ -95,8 +95,7 @@ const Login = () => {
                 errorMessage={errors.password}
                 required 
             />
-            <div className='w-full flex justify-between text-sm mt-[-8px]'>
-                <p className='cursor-pointer hover:text-primary transition-colors'>Forgot your password?</p>
+            <div className='w-full flex justify-end text-sm mt-[-8px]'>
                 {
                     currentState === 'Login'
                         ? <p onClick={() => switchMode('Sign Up')} className='cursor-pointer hover:text-primary transition-colors'>Create account</p>

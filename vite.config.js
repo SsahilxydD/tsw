@@ -31,7 +31,7 @@ function copyExtraAssets({ from = 'src/assets', to = 'assets' } = {}) {
         // Do NOT remove existing hashed assets under dist/assets; just add originals.
         fs.mkdirSync(dest, { recursive: true });
         copyDir(src, dest, { skipIfExists: true });
-      } catch {}
+      } catch (err) { console.warn('[copy-extra-assets]', err.message); }
     }
   };
 }
@@ -71,7 +71,7 @@ export default defineConfig({
     outDir: 'dist',
     assetsDir: 'assets',
     emptyOutDir: true,
-    sourcemap: true,
+    sourcemap: 'hidden',
     manifest: true,
     rollupOptions: {
       output: {
@@ -97,10 +97,6 @@ export default defineConfig({
             // Framer Motion - heavy library, split out
             if (id.includes('framer-motion') || id.includes('@use-gesture')) {
               return 'vendor-motion';
-            }
-            // UI libraries
-            if (id.includes('react-toastify')) {
-              return 'vendor-ui';
             }
             // Other vendor code
             return 'vendor-other';

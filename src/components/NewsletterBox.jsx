@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Button from './Button'
 import Input from './Input'
 import { validateEmail } from '../utils/validation'
@@ -8,23 +8,26 @@ const NewsletterBox = () => {
   const [error, setError] = useState(null)
   const [submitted, setSubmitted] = useState(false)
 
+  useEffect(() => {
+    if (!submitted) return;
+    const t = setTimeout(() => setSubmitted(false), 3000);
+    return () => clearTimeout(t);
+  }, [submitted]);
+
   const onSubmit = (e) => {
     e.preventDefault()
     const emailError = validateEmail(email)
-    
+
     if (emailError) {
       setError(emailError)
       return
     }
-    
+
     // Form is valid - handle subscription
     // TODO: Implement actual newsletter subscription
     setSubmitted(true)
     setEmail('')
     setError(null)
-    
-    // Reset success message after 3 seconds
-    setTimeout(() => setSubmitted(false), 3000)
   }
 
   const onChange = (e) => {
@@ -36,7 +39,7 @@ const NewsletterBox = () => {
     <div className='text-center'>
 
       <p className='text-2xl font-medium text-gray-800'>Subscribe now & get 20% off</p>
-      <p className='text-gray-400 mt-3'>Lorem Ipsum is simply dummy text of the printing and typesetting industry. </p>
+      <p className='text-gray-400 mt-3'>Subscribe for exclusive drops, new arrivals, and special offers.</p>
 
       {submitted ? (
         <div className="w-full sm:w-1/2 mx-auto my-6 p-4 bg-green-50 border border-green-200 rounded-lg">

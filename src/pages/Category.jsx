@@ -1,4 +1,4 @@
-﻿import React, { useContext, useEffect, useMemo, useState } from "react";
+﻿import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import Title from "../components/Title";
 import ProductItem from "../components/ProductItem";
@@ -11,10 +11,20 @@ import { assets } from "../assets/assets";
 import useDebouncedValue from "../hooks/useDebouncedValue";
 import SEO from "../components/SEO";
 
-// NEW: session-seeded scramble (adds only â€œFeaturedâ€ ordering)
+// NEW: session-seeded scramble (adds only "Featured" ordering)
 import { scrambleProducts } from "../utils/scramble";
 import { getSessionSeed } from "../utils/rand";
 import { sortProducts } from "../utils/sortProducts";
+
+// Module-scope: no component-level dependencies
+const normalizeSizesForProduct = (p) => {
+  let arr = Array.isArray(p?.sizes) ? p.sizes : [];
+  const catRaw = String(p?.categoryRaw || p?.category || '').toLowerCase();
+  // Apply UK size conversion for footwear products only (womenshoes uses raw sizes)
+  if (isFootwearProduct(p) && catRaw !== 'womenshoes') return uniqueUKLabels(arr);
+  if (isJeansProduct(p)) return normalizeJeansSizes(arr);
+  return arr.map((s) => String(s)).filter(Boolean);
+};
 
 const toDisplay = (s) => {
   let t = String(s ?? "")
@@ -99,16 +109,6 @@ const Category = () => {
 
     return list;
   }, [products, catKeyLower]);
-
-  // sizes present in this category
-  const normalizeSizesForProduct = (p) => {
-    let arr = Array.isArray(p?.sizes) ? p.sizes : [];
-    const catRaw = String(p?.categoryRaw || p?.category || '').toLowerCase();
-    // Apply UK size conversion for footwear products only (womenshoes uses raw sizes)
-    if (isFootwearProduct(p) && catRaw !== 'womenshoes') return uniqueUKLabels(arr);
-    if (isJeansProduct(p)) return normalizeJeansSizes(arr);
-    return arr.map((s) => String(s)).filter(Boolean);
-  };
 
   // Discounted handling
   const isDiscounted = catKeyLower === 'discounted' || catKeyLower === 'sale';
@@ -235,7 +235,7 @@ const Category = () => {
   const toggleSize = (val) =>
     setSizeFilters((prev) => (prev.includes(val) ? prev.filter((s) => s !== val) : [...prev, val]));
 
-  const applyFilterAndOrder = () => {
+  const applyFilterAndOrder = useCallback(() => {
     let copy = baseProducts.slice();
 
     // Local category search
@@ -270,12 +270,11 @@ const Category = () => {
     setList(copy);
     setVisibleCount(PAGE_SIZE);
     setLoadingMore(false);
-  };
+  }, [baseProducts, sizeSource, hasSizes, sizeFilters, debouncedSearch, sortValue, catKeyLower, subFilter, isDiscounted]);
 
   useEffect(() => {
     applyFilterAndOrder();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [baseProducts, sizeSource, hasSizes, sizeFilters, debouncedSearch, sortValue, catKeyLower, subFilter]);
+  }, [applyFilterAndOrder]);
   
   // Focus search input when opened
   useEffect(() => {
@@ -499,7 +498,7 @@ const Category = () => {
               {/* Mobile/Tablet: 3 per row */}
               <div className="lg:hidden">
                 <div className="grid grid-cols-3 gap-4">
-                  {subcats.map((sc, idx) => (
+                  {subcats.map((sc) => (
                     <button
                       key={sc.key}
                       type="button"
@@ -521,7 +520,7 @@ const Category = () => {
               {/* Desktop: 5 per row */}
               <div className="hidden lg:block">
                 <div className="grid grid-cols-5 gap-4">
-                  {subcats.map((sc, idx) => (
+                  {subcats.map((sc) => (
                     <button
                       key={sc.key}
                       type="button"

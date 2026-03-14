@@ -2,20 +2,17 @@
 // Single source of truth for scroll position management
 
 const SCROLL_STORAGE_PREFIX = 'scroll_';
-const RESTORING_FLAG = '__scroll_restoring__';
+
+// Module-local flag avoids polluting the window namespace
+let _scrollRestoring = false;
 
 // Global flag to indicate scroll restoration is in progress
 export const setRestoring = (value) => {
-  if (typeof window !== 'undefined') {
-    window[RESTORING_FLAG] = value;
-  }
+  _scrollRestoring = Boolean(value);
 };
 
 export const isRestoring = () => {
-  if (typeof window !== 'undefined') {
-    return window[RESTORING_FLAG] === true;
-  }
-  return false;
+  return _scrollRestoring;
 };
 
 /**
@@ -81,6 +78,7 @@ export const setupScrollSaving = () => {
       let visibleCount = null;
       try {
         // Check if we're on a category/collection page with infinite scroll
+        // TODO: This selector is fragile — the product grid should use a data attribute (e.g. data-product-grid) instead
         const productGrid = document.querySelector('.grid.grid-cols-2, .grid.grid-cols-3');
         if (productGrid && productGrid.children.length > 0) {
           // Estimate visibleCount based on rendered products
@@ -121,7 +119,8 @@ export const setupScrollSaving = () => {
           // Try to get visibleCount from the page (for infinite scroll pages)
           let visibleCount = null;
           try {
-            const productGrid = document.querySelector('.grid.grid-cols-2, .grid.grid-cols-3');
+            // TODO: This selector is fragile — the product grid should use a data attribute (e.g. data-product-grid) instead
+          const productGrid = document.querySelector('.grid.grid-cols-2, .grid.grid-cols-3');
             if (productGrid && productGrid.children.length > 0) {
               visibleCount = productGrid.children.length;
             }

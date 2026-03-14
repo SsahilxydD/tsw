@@ -21,6 +21,10 @@ const ProductItem = ({ id, image, name, price, i = 0, showAdd = false }) => {
     return (products || []).find(pr => String(pr._id ?? pr.slug ?? pr.id) === pid);
   }, [products, id]);
 
+  const hasSale = productObj && Number(productObj.mrp) > 0 && Number(productObj.mrp) > Number(productObj.price);
+  const discountPct = hasSale ? Math.round((1 - Number(productObj.price) / Number(productObj.mrp)) * 100) : 0;
+  const isBestseller = productObj?.bestseller === true;
+
   const tileSizes = useMemo(() => {
     let arr = Array.isArray(productObj?.sizes) ? productObj.sizes : [];
     const catRaw = String(productObj?.categoryRaw || productObj?.category || '').toLowerCase();
@@ -62,7 +66,23 @@ const ProductItem = ({ id, image, name, price, i = 0, showAdd = false }) => {
           {!imageLoaded && (
             <div className="absolute inset-0 bg-gray-200 animate-pulse" />
           )}
-          
+
+          {/* Product Badges */}
+          {(hasSale || isBestseller) && (
+            <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
+              {hasSale && (
+                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-rose-600 text-white">
+                  SALE -{discountPct}%
+                </span>
+              )}
+              {isBestseller && (
+                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-amber-400 text-amber-900">
+                  Bestseller
+                </span>
+              )}
+            </div>
+          )}
+
           <SafeImg
             src={cover}
             alt={name}
@@ -117,6 +137,11 @@ const ProductItem = ({ id, image, name, price, i = 0, showAdd = false }) => {
           {/* Price */}
           <p className="text-xs sm:text-sm font-bold text-gray-900 mb-1.5 sm:mb-2">
             {currency}{Number(price).toLocaleString('en-IN')}
+            {hasSale && (
+              <span className="ml-1.5 font-normal line-through text-gray-400">
+                {currency}{Number(productObj.mrp).toLocaleString('en-IN')}
+              </span>
+            )}
           </p>
           
           {/* Size Pills - Compact on mobile */}

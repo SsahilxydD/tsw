@@ -6,7 +6,11 @@ const express = require('express');
 const https = require('https');
 
 const app = express();
+app.disable('x-powered-by');
 const PORT = 3001;
+
+// Request timeout middleware
+app.use((req, res, next) => { req.setTimeout(10000, () => res.status(408).send('Request Timeout')); next(); });
 
 // Helper to fetch URL
 function fetchUrl(url) {
@@ -21,6 +25,10 @@ function fetchUrl(url) {
 
 app.get('/product/:id', async (req, res) => {
   const { id } = req.params;
+
+  if (!id || !/^[a-zA-Z0-9_-]{1,150}$/.test(id)) {
+    return res.status(400).send('Invalid product ID');
+  }
 
   try {
     // Fetch products
@@ -72,15 +80,15 @@ app.get('/product/:id', async (req, res) => {
     const metaTags = `
     <title>${escapeHtml(productName)} – Solo Wardrobe</title>
     <meta name="description" content="${escapeHtml(description)}" />
-    <link rel="canonical" href="${productUrl}" />
+    <link rel="canonical" href="${escapeHtml(productUrl)}" />
 
     <!-- Open Graph -->
     <meta property="og:title" content="${escapeHtml(productName)} – Solo Wardrobe" />
     <meta property="og:description" content="${escapeHtml(description)}" />
-    <meta property="og:url" content="${productUrl}" />
+    <meta property="og:url" content="${escapeHtml(productUrl)}" />
     <meta property="og:type" content="product" />
-    <meta property="og:image" content="${imageUrl}" />
-    <meta property="og:image:secure_url" content="${imageUrl}" />
+    <meta property="og:image" content="${escapeHtml(imageUrl)}" />
+    <meta property="og:image:secure_url" content="${escapeHtml(imageUrl)}" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="1200" />
     <meta property="og:image:type" content="image/jpeg" />
@@ -92,7 +100,7 @@ app.get('/product/:id', async (req, res) => {
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${escapeHtml(productName)} – Solo Wardrobe" />
     <meta name="twitter:description" content="${escapeHtml(description)}" />
-    <meta name="twitter:image" content="${imageUrl}" />
+    <meta name="twitter:image" content="${escapeHtml(imageUrl)}" />
     `;
 
     let modifiedHtml = html.replace(/<title>.*?<\/title>/i, '');
@@ -105,7 +113,7 @@ app.get('/product/:id', async (req, res) => {
 
   } catch (error) {
     console.error('Error:', error);
-    res.status(500).send('Error: ' + error.message);
+    res.status(500).send('Internal server error');
   }
 });
 

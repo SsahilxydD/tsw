@@ -29,13 +29,19 @@ const Categories = () => {
   const isLoading = Boolean(loadingProducts);
   const showSkeletons = isLoading && categories.length === 0;
 
-  // ---- 3-col (mobile/tablet) remainder logic ----
+  // ---- 2-col (mobile) remainder logic ----
+  const rem2 = categories.length % 2;
+  const main2Count = rem2 === 0 ? categories.length : categories.length - rem2;
+  const main2 = categories.slice(0, main2Count);
+  const tail2 = categories.slice(main2Count); // 0/1 items
+  const GAP_PX = 16; // matches tailwind gap-4
+  const COL_W2 = `calc((100% - ${(2 - 1) * GAP_PX}px) / 2)`;
+
+  // ---- 3-col (tablet) remainder logic ----
   const rem3 = categories.length % 3;
   const main3Count = rem3 === 0 ? categories.length : categories.length - rem3;
   const main3 = categories.slice(0, main3Count);
-  const tail3 = categories.slice(main3Count); // 0/1/2 items
-  // Keep last-row tiles the same width as grid columns, but spread them evenly across the row.
-  const GAP_PX = 16; // matches tailwind gap-4
+  const tail3 = categories.slice(main3Count);
   const COL_W3 = `calc((100% - ${(3 - 1) * GAP_PX}px) / 3)`;
 
   // ---- 5-col (desktop lg+) remainder logic ----
@@ -52,10 +58,10 @@ const Categories = () => {
         <Title text1="SHOP BY" text2="CATEGORY" />
       </div>
 
-      {/* ===== Mobile/Tablet: 3 per row, center the last row ===== */}
+      {/* ===== Mobile/Tablet: 3 per row ===== */}
       <div className="lg:hidden">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-3 sm:gap-4">
           {showSkeletons ? (
             <>
               <CategorySkeleton />
@@ -64,12 +70,9 @@ const Categories = () => {
             </>
           ) : (
             <>
-              {/* Full rows */}
               {main3.map(({ name, count, image }, idx) => (
                 <CategoryCard key={name} name={name} count={count} image={image} i={idx} />
               ))}
-
-              {/* Centered last row (1–2 items) */}
               {rem3 !== 0 && (
                 <div className="col-span-3">
                   <div className="flex justify-evenly">

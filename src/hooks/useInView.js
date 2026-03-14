@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export default function useInView(options = {}) {
-  const ref = useRef(null);
+  const [node, setNode] = useState(null);
+  const ref = useCallback(n => setNode(n), []);
   const [inView, setInView] = useState(false);
 
   useEffect(() => {
@@ -9,27 +10,21 @@ export default function useInView(options = {}) {
       setInView(true);
       return;
     }
-    const node = ref.current;
     if (!node) return;
 
-    const observer = new IntersectionObserver((entries) => {
-      for (const entry of entries) {
-        if (entry.isIntersecting) {
-          setInView(true);
-          if (options.once !== false) observer.unobserve(entry.target);
-        }
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setInView(true);
+        if (options?.once) observer.disconnect();
       }
     }, {
-      root: options.root ?? null,
-      // Pre-arm well before entering the viewport to avoid blank gaps during rapid scroll
-      rootMargin: options.rootMargin ?? "100% 0px 20% 0px",
-      threshold: options.threshold ?? 0.01
+      threshold: options?.threshold ?? 0,
+      rootMargin: options?.rootMargin ?? '0px'
     });
 
     observer.observe(node);
     return () => observer.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ref.current]);
+  }, [node, options?.once, options?.threshold, options?.rootMargin]);
 
-  return [ref, inView];
+  return { ref, inView };
 }

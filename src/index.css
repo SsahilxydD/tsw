@@ -276,3 +276,24 @@
   background-size: 1000px 100%;
   animation: shimmer 2s infinite;
 }
+
+/* Safe area for bottom dock on iPhones with home indicator */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Slide-up animation for categories panel */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.25s ease-out;
+}

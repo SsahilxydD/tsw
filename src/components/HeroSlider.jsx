@@ -50,7 +50,7 @@ const HeroSlider = () => {
       const itemsPerSet = sliderProducts.length;
       let width = 0;
       for (let i = 0; i < itemsPerSet && i < items.length; i++) {
-        width += items[i].offsetWidth + 12; // 12px gap
+        width += items[i].offsetWidth + 16; // 16px gap (gap-4)
       }
       cachedSetWidth.current = width;
       return width;
@@ -65,31 +65,30 @@ const HeroSlider = () => {
     };
 
     // Handle seamless loop - use cached width to avoid reflow
+    let resetTimer = null;
     const handleScroll = () => {
       if (isResetting.current) return;
-      
+
       const setWidth = cachedSetWidth.current;
       if (setWidth === 0) return;
-      
+
       // Read all layout properties at once (single reflow)
       const scrollLeft = container.scrollLeft;
       const maxScroll = container.scrollWidth - container.clientWidth;
-      
+
       // If near the start, jump to middle
       if (scrollLeft < setWidth * 0.3) {
         isResetting.current = true;
-        container.style.scrollBehavior = 'auto';
         container.scrollLeft = scrollLeft + setWidth;
-        container.style.scrollBehavior = '';
-        requestAnimationFrame(() => { isResetting.current = false; });
+        clearTimeout(resetTimer);
+        resetTimer = setTimeout(() => { isResetting.current = false; }, 80);
       }
       // If near the end, jump to middle
       else if (scrollLeft > maxScroll - setWidth * 0.3) {
         isResetting.current = true;
-        container.style.scrollBehavior = 'auto';
         container.scrollLeft = scrollLeft - setWidth;
-        container.style.scrollBehavior = '';
-        requestAnimationFrame(() => { isResetting.current = false; });
+        clearTimeout(resetTimer);
+        resetTimer = setTimeout(() => { isResetting.current = false; }, 80);
       }
     };
 
@@ -115,27 +114,29 @@ const HeroSlider = () => {
   };
 
   // Fixed height container to prevent CLS - always renders with same dimensions
-  const SLIDER_MIN_HEIGHT = 'min-h-[200px] sm:min-h-[220px]';
+  const SLIDER_MIN_HEIGHT = 'min-h-[280px] sm:min-h-[320px]';
 
   // Show skeleton placeholders while loading - prevents CLS and improves perceived speed
   if (loadingProducts || sliderProducts.length === 0) {
     return (
-      <div className={`w-full py-4 sm:py-6 bg-gray-50/50 ${SLIDER_MIN_HEIGHT}`}>
-        <div className="text-center mb-4">
+      <div className={`w-full py-8 sm:py-12 bg-white ${SLIDER_MIN_HEIGHT}`}>
+        <div className="text-center mb-6">
           <Title text1="BEST SELLING" text2="Shoes" />
         </div>
-        <div className="flex gap-3 overflow-hidden px-4 sm:px-6">
+        <div className="flex gap-4 overflow-hidden px-4 sm:px-6">
           {/* Skeleton placeholder cards - same dimensions as real cards */}
-          {[...Array(6)].map((_, i) => (
-            <div 
+          {[...Array(5)].map((_, i) => (
+            <div
               key={i}
-              className="flex-shrink-0 w-[40vw] sm:w-[28vw] md:w-[22vw] lg:w-[18vw] xl:w-[14vw] max-w-[200px] aspect-square"
+              className="flex-shrink-0 w-[38vw] sm:w-[28vw] md:w-[22vw] lg:w-[18vw] max-w-[200px]"
             >
-              <div className="w-full h-full bg-gray-200 rounded-lg animate-pulse" />
+              <div className="w-full aspect-[4/5] bg-gray-200 rounded-xl animate-pulse" />
+              <div className="mt-2 h-4 w-3/4 bg-gray-200 rounded animate-pulse" />
+              <div className="mt-1.5 h-4 w-1/3 bg-gray-200 rounded animate-pulse" />
             </div>
           ))}
         </div>
-        <div className="flex justify-center mt-5">
+        <div className="flex justify-center mt-6">
           <div className="w-20 h-10 bg-gray-200 rounded animate-pulse" />
         </div>
       </div>
@@ -149,7 +150,7 @@ const HeroSlider = () => {
     const container = scrollRef.current;
     if (!container) return;
     const itemWidth = container.querySelector('.slide-item')?.offsetWidth || 0;
-    const gap = 12;
+    const gap = 16;
     const scrollAmount = itemWidth + gap;
     container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
   };
@@ -158,14 +159,14 @@ const HeroSlider = () => {
     const container = scrollRef.current;
     if (!container) return;
     const itemWidth = container.querySelector('.slide-item')?.offsetWidth || 0;
-    const gap = 12;
+    const gap = 16;
     const scrollAmount = itemWidth + gap;
     container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
   };
 
   return (
-    <div className={`w-full py-4 sm:py-6 bg-gray-50/50 overflow-hidden ${SLIDER_MIN_HEIGHT} relative`}>
-      <div className="text-center mb-4">
+    <div className={`w-full py-8 sm:py-12 bg-white overflow-hidden ${SLIDER_MIN_HEIGHT} relative`}>
+      <div className="text-center mb-6">
         <Title text1="BEST SELLING" text2="Shoes" />
       </div>
 
@@ -189,32 +190,36 @@ const HeroSlider = () => {
         </svg>
       </button>
 
-      <div 
+      <div
         ref={scrollRef}
-        className="flex gap-3 overflow-x-auto scrollbar-hide px-4 sm:px-6 scroll-smooth"
+        className="flex gap-4 overflow-x-auto scrollbar-hide px-4 sm:px-6"
       >
         {loopedProducts.map((product, index) => (
-          <div 
+          <div
             key={`${product._id}-${index}`}
-            className="slide-item flex-shrink-0 w-[40vw] sm:w-[28vw] md:w-[22vw] lg:w-[18vw] xl:w-[14vw] max-w-[200px] aspect-square cursor-pointer"
+            className="slide-item flex-shrink-0 w-[38vw] sm:w-[28vw] md:w-[22vw] lg:w-[18vw] max-w-[200px] cursor-pointer group"
             onClick={() => handleProductClick(product)}
           >
-            <div className="w-full h-full bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+            <div className="w-full aspect-[4/5] bg-gray-50 rounded-xl overflow-hidden shadow-sm group-hover:shadow-md transition-shadow">
               <SafeImg
                 src={product.image || NO_IMAGE_PLACEHOLDER}
                 alt={product.title || 'Product'}
-                className="w-full h-full object-cover"
-                width={200}
-                height={200}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                width={260}
+                height={325}
                 loading="lazy"
                 quality={85}
               />
+            </div>
+            <div className="mt-2 px-1">
+              <p className="text-sm text-gray-800 font-medium line-clamp-2 leading-tight">{product.title}</p>
+              <p className="text-sm font-semibold text-gray-900 mt-1">{'\u20B9'}{product.price.toLocaleString('en-IN')}</p>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="flex justify-center mt-5">
+      <div className="flex justify-center mt-6">
         <Button as={Link} to="/category/shoes" variant="outline" size="sm">
           View All
         </Button>

@@ -3,6 +3,7 @@ import React from "react";
 // Adds/removes CSS classes on <html> based on scroll velocity to tune animations.
 export default function ScrollEffects() {
   React.useEffect(() => {
+    if (typeof document === 'undefined') return;
     let lastY = window.scrollY;
     let lastT = performance.now();
     let raf = 0;

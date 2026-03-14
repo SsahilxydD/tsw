@@ -74,6 +74,23 @@ const scaleIn = {
   }
 };
 
+// --- description generator (module-scope, no component dependencies) ---
+const generateDescription = (product, currency) => {
+  const name = product.name || product.title || "";
+  const brand = product.brand ? ` by ${product.brand}` : "";
+  const category = product.category ? ` in ${product.category}` : "";
+  const priceText = product.price != null ? ` for ${currency}${Number(product.price).toLocaleString()}` : "";
+  let desc = `Shop ${name}${brand}${category}${priceText} at Solo Wardrobe.`;
+  if (product.mrp && product.price && product.mrp > product.price) {
+    const discount = Math.round(((product.mrp - product.price) / product.mrp) * 100);
+    desc += ` Save ${discount}%!`;
+  }
+  if (desc.length > 160) {
+    desc = desc.substring(0, 157) + "...";
+  }
+  return desc;
+};
+
 // --- size helpers ---
 const APPAREL_SIZES = ["S", "M", "L", "XL", "XXL"];
 const ONE_SIZE = ["ONESIZE"];
@@ -111,6 +128,15 @@ export default function Product() {
   const [added, setAdded] = React.useState(false);
   const [showReviewForm, setShowReviewForm] = React.useState(false);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = React.useState(false);
+  const flyTimerRef = React.useRef(null);
+  const addedTimerRef = React.useRef(null);
+
+  React.useEffect(() => {
+    return () => {
+      if (flyTimerRef.current) clearTimeout(flyTimerRef.current);
+      if (addedTimerRef.current) clearTimeout(addedTimerRef.current);
+    };
+  }, []);
 
   React.useEffect(() => {
     if (isRestoring()) return;
@@ -240,10 +266,10 @@ export default function Product() {
           clone.style.transform = `translate(${dx}px, ${dy}px) scale(.08)`;
           clone.style.opacity = '0.1';
         });
-        setTimeout(() => { try { document.body.removeChild(clone); } catch { } }, 650);
+        flyTimerRef.current = setTimeout(() => { try { document.body.removeChild(clone); } catch { } }, 650);
       }
     } catch { }
-    setTimeout(() => setAdded(false), 700);
+    addedTimerRef.current = setTimeout(() => setAdded(false), 700);
   };
 
   const related = React.useMemo(() => {
@@ -277,22 +303,6 @@ export default function Product() {
     );
   }
 
-  const generateDescription = () => {
-    const name = product.name || product.title || "";
-    const brand = product.brand ? ` by ${product.brand}` : "";
-    const category = product.category ? ` in ${product.category}` : "";
-    const priceText = product.price ? ` for ${currency}${Number(product.price).toLocaleString()}` : "";
-    let desc = `Shop ${name}${brand}${category}${priceText} at Solo Wardrobe.`;
-    if (product.mrp && product.price && product.mrp > product.price) {
-      const discount = Math.round(((product.mrp - product.price) / product.mrp) * 100);
-      desc += ` Save ${discount}%!`;
-    }
-    if (desc.length > 160) {
-      desc = desc.substring(0, 157) + "...";
-    }
-    return desc;
-  };
-
   const discountPercent = product.mrp && product.price && product.mrp > product.price 
     ? Math.round(((product.mrp - product.price) / product.mrp) * 100)
     : 0;
@@ -306,7 +316,7 @@ export default function Product() {
     >
       <SEO
         title={`${product.name || product.title} – Solo Wardrobe`}
-        description={generateDescription()}
+        description={generateDescription(product, currency)}
         url={typeof window !== 'undefined' ? window.location.href : ''}
         canonical={typeof window !== 'undefined' ? window.location.href : ''}
         type="product"

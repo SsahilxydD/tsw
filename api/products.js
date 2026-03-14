@@ -19,7 +19,18 @@ function fetchUrl(url) {
 }
 
 module.exports = async (req, res) => {
-  const { category, limit = 10 } = req.query;
+  const { category } = req.query;
+
+  // Validate and sanitize limit parameter
+  const rawLimit = parseInt(req.query.limit, 10);
+  const limit = (!Number.isFinite(rawLimit) || rawLimit < 1) ? 10 : Math.min(rawLimit, 100);
+
+  // Validate category parameter
+  if (category !== undefined && (typeof category !== 'string' || category.length > 100)) {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    return res.status(400).json({ error: 'Invalid category parameter' });
+  }
 
   if (!category) {
     res.setHeader('Content-Type', 'application/json');
@@ -43,7 +54,7 @@ module.exports = async (req, res) => {
     });
 
     // Limit results
-    const limited = filtered.slice(0, parseInt(limit, 10));
+    const limited = filtered.slice(0, limit);
 
     // Format products for the slider
     const formatted = limited.map(item => {
@@ -67,6 +78,7 @@ module.exports = async (req, res) => {
     });
 
     res.setHeader('Content-Type', 'application/json');
+    // Wildcard CORS is intentional: this is a public product data API with no sensitive information
     res.setHeader('Access-Control-Allow-Origin', '*');
     // Cache API responses for 10 minutes (600 seconds)
     res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=300');
@@ -76,7 +88,7 @@ module.exports = async (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     // Don't cache error responses
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    return res.status(500).json({ error: 'Failed to fetch products: ' + error.message });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 };
 

@@ -12,12 +12,20 @@ export default {
 
     // Manual trigger endpoint for testing: https://your-worker.workers.dev/send-now
     if (url.pathname === '/send-now') {
+      const secret = request.headers.get('X-Admin-Secret');
+      if (!secret || secret !== env.ADMIN_SECRET) {
+        return new Response('Unauthorized', { status: 401 });
+      }
       await sendNewShoesToWhatsApp(env);
       return new Response('Products checked and sent!', { status: 200 });
     }
 
     // Status endpoint: https://your-worker.workers.dev/status
     if (url.pathname === '/status') {
+      const secret = request.headers.get('X-Admin-Secret');
+      if (!secret || secret !== env.ADMIN_SECRET) {
+        return new Response('Unauthorized', { status: 401 });
+      }
       const stats = await getStats(env);
       return new Response(JSON.stringify(stats, null, 2), {
         headers: { 'Content-Type': 'application/json' }

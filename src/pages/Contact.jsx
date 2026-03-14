@@ -44,8 +44,9 @@ const Contact = () => {
       return;
     }
     
-    const text = `Hello Solo Wardrobe,%0A%0AName: ${encodeURIComponent(name)}%0AEmail: ${encodeURIComponent(email)}%0A%0A${encodeURIComponent(message)}`
-    const href = `https://wa.me/919933778870?text=${text}`
+    const phoneNumber = import.meta.env.VITE_WHATSAPP_PHONE?.replace(/\D/g, '') || "919933778870";
+    const messageText = `Hello Solo Wardrobe,\n\nName: ${name}\nEmail: ${email}\n\n${message}`;
+    const href = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(messageText)}`;
     window.open(href, '_blank', 'noopener')
   }
 

@@ -205,8 +205,8 @@ export default function Address() {
     const zipError = validateZip(form.zip);
     if (zipError) {
       errs.zip = zipError;
-    } else if (!zipValid && form.zip?.trim()) {
-      // Additional check: ZIP must be validated via API
+    } else if (!zipValid && form.zip?.trim() && !zipError && !zipLoading) {
+      // Block only if API call succeeded but returned no match (not an API failure/network error)
       errs.zip = "Please wait for PIN code validation";
     }
     
@@ -256,7 +256,8 @@ export default function Address() {
     
     setAddress(form);
     const msg = composeMessage();
-    window.open(`https://wa.me/919933778870?text=${encodeURIComponent(msg)}`, '_blank');
+    const phoneNumber = import.meta.env.VITE_WHATSAPP_PHONE?.replace(/\D/g, '') || "919933778870";
+    window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
   if (cartList.length === 0) {
@@ -407,6 +408,7 @@ export default function Address() {
                     {zipLookupMsg && !errors.zip && (
                       <p className="text-xs text-green-600 mt-1">{zipLookupMsg}</p>
                     )}
+                    {zipError && <p className="text-red-500 text-sm mt-1">{zipError.message || String(zipError)}</p>}
                   </div>
                 </div>
 

@@ -2,9 +2,9 @@
 export default async function handler(req, res) {
   const { id } = req.query;
 
-  if (!id) {
+  if (!id || !/^[a-zA-Z0-9_-]{1,150}$/.test(id)) {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    return res.status(400).send('Product ID required');
+    return res.status(400).send('Invalid product ID');
   }
 
   try {
@@ -31,7 +31,8 @@ export default async function handler(req, res) {
     res.setHeader('Cache-Control', 'public, s-maxage=900, stale-while-revalidate=600');
     return res.redirect(302, imageUrl);
   } catch (error) {
+    console.error('Error in OG image function:', error);
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    return res.status(500).send('Error: ' + error.message);
+    return res.status(500).send('Internal server error');
   }
 }
