@@ -17,8 +17,6 @@
 const fs = require('fs');
 const path = require('path');
 const { promisify } = require('util');
-const FormData = require('form-data');
-const fetch = require('node-fetch');
 const readdir = promisify(fs.readdir);
 const stat = promisify(fs.stat);
 const readFile = promisify(fs.readFile);
@@ -120,18 +118,15 @@ async function uploadImage(fileInfo) {
   const ext = path.extname(fileInfo.localPath).toLowerCase();
   const contentType = MIME_TYPES[ext] || 'image/jpeg';
   
-  // Create form data
+  // Create form data using native FormData + Blob (Node 18+)
   const formData = new FormData();
-  formData.append('file', fileContent, {
-    filename: path.basename(fileInfo.localPath),
-    contentType: contentType,
-  });
-  
+  const blob = new Blob([fileContent], { type: contentType });
+  formData.append('file', blob, path.basename(fileInfo.localPath));
+
   const response = await fetch(`${API_BASE}`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${CONFIG.apiToken}`,
-      ...formData.getHeaders(),
     },
     body: formData,
   });
@@ -148,22 +143,27 @@ async function uploadImage(fileInfo) {
   }
   
   const imageId = result.result.id;
-  const accountHash = CONFIG.accountHash;
-  
-  if (!accountHash || accountHash === 'YOUR_ACCOUNT_HASH') {
-    throw new Error('Please set CLOUDFLARE_ACCOUNT_HASH in environment or CONFIG');
+
+  // Extract delivery URL from the API response variants array
+  // Cloudflare returns full URLs like: https://imagedelivery.net/<hash>/<id>/public
+  let imageUrl;
+  if (result.result.variants && result.result.variants.length > 0) {
+    imageUrl = result.result.variants[0];
+  } else {
+    // Fallback: construct manually if accountHash is available
+    const accountHash = CONFIG.accountHash || process.env.CLOUDFLARE_ACCOUNT_HASH;
+    if (accountHash) {
+      imageUrl = `https://imagedelivery.net/${accountHash}/${imageId}/${CONFIG.variant}`;
+    } else {
+      imageUrl = `https://imagedelivery.net/_/${imageId}/${CONFIG.variant}`;
+    }
   }
-  
-  // Build Cloudflare Images URL
-  // Format: https://imagedelivery.net/{account_hash}/{image_id}/{variant}
-  const imageUrl = `https://imagedelivery.net/${accountHash}/${imageId}/${CONFIG.variant}`;
-  
+
   return {
     status: 'uploaded',
     relativePath: fileInfo.relativePath,
     imageUrl: imageUrl,
     imageId: imageId,
-    accountHash: accountHash,
   };
 }
 
@@ -225,10 +225,6 @@ async function main() {
     process.exit(1);
   }
   
-  // Validate required env vars
-  const accountHash = process.env.CLOUDFLARE_ACCOUNT_HASH;
-  if (!accountHash) { console.error('CLOUDFLARE_ACCOUNT_HASH env var required'); process.exit(1); }
-
   // Validate config
   if (CONFIG.apiToken === 'YOUR_API_TOKEN' || CONFIG.accountId === 'YOUR_ACCOUNT_ID') {
     console.error('❌ Please configure your Cloudflare credentials!\n');
@@ -308,6 +304,9 @@ async function main() {
         return result;
       } catch (err) {
         failed++;
+        if (failed <= 3) {
+          console.error(`\n⚠️  Upload error (${fileInfo.relativePath}): ${err.message}`);
+        }
         failedFiles.push({ path: fileInfo.relativePath, error: err.message });
         return { status: 'failed', path: fileInfo.relativePath, error: err.message };
       }
@@ -349,8 +348,7 @@ async function main() {
       console.log(`\n⚠️  Could not auto-update products.json: ${err.message}`);
       console.log(`   Run manually: node scripts/update-products-json.cjs`);
     }
-  } else if (skipped > 0) {
-    console.log(`\n💾 Image mappings saved to: ${CONFIG.mappingFile}`);
+  } else if (failed === 0 && uploaded === 0) {
     console.log(`\n📝 All images already uploaded. Run update script if needed:`);
     console.log(`   node scripts/update-products-json.cjs`);
   }

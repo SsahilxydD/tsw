@@ -19,7 +19,8 @@
       "Bash(node -e \"const fs = require\\(''fs''\\); const data = JSON.parse\\(fs.readFileSync\\(''c:/Sites/tsw/public/data/products.json'', ''utf8''\\)\\); const filtered = data.filter\\(p => p.price >= 1000\\); console.log\\(''Removed:'', data.length - filtered.length, ''| Remaining:'', filtered.length\\); fs.writeFileSync\\(''c:/Sites/tsw/public/data/products.json'', JSON.stringify\\(filtered, null, 2\\)\\);\")",
       "Bash(node -e \"const fs = require\\(''fs''\\); const data = JSON.parse\\(fs.readFileSync\\(''c:/Sites/tsw/public/data/products.json'', ''utf8''\\)\\); const domains = [...new Set\\(data.map\\(p => { try { return new URL\\(p.detail_url_src\\).hostname; } catch\\(e\\) { return ''invalid''; } }\\)\\)]; console.log\\(''Unique domains:'', domains\\); console.log\\(''Total products:'', data.length\\);\")",
       "Bash(python3 -c \"import sys; content = sys.stdin.read\\(\\); print\\(len\\(content\\), ''chars''\\); print\\(content[:2000]\\)\")",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(node -e \"console.log\\(require\\(''''node-fetch''''\\).default || require\\(''''node-fetch''''\\)\\)\")"
     ],
     "deny": [],
     "ask": []
