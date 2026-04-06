@@ -21,9 +21,14 @@
 
 /**
  * Predefined coupons database
- * In a real application, this would come from a backend API
+ *
+ * SECURITY NOTE: These coupon codes and discount values are bundled into the
+ * client-side JavaScript and can be read by anyone via browser DevTools.
+ * The final order is placed via WhatsApp, so there is no server-side
+ * verification of the discount. Treat these as publicly-known promotional
+ * codes only. For tamper-proof discounts, move validation to a backend
+ * (e.g. a Cloudflare Worker) that the WhatsApp order message can reference.
  */
-// WARNING: These codes are visible in the client bundle. Move to server-side validation for production use.
 const COUPONS_DB = [
   {
     code: 'WELCOME10',

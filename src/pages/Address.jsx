@@ -4,7 +4,7 @@ import SafeImg from "../components/SafeImg";
 import Button from "../components/Button";
 import Input from "../components/Input";
 import Loading from "../components/Loading";
-import { safeFetch, handleError } from "../utils/errorHandler";
+import { safeFetchRaw, handleError } from "../utils/errorHandler";
 import ErrorMessage from "../components/ErrorMessage";
 import { validateName, validateNameRequired, validatePhone, validateEmail, validateAddress, validateCity, validateState, validateZip } from "../utils/validation";
 
@@ -94,7 +94,7 @@ export default function Address() {
 
     if (code === 'IN') {
       try {
-        const res = await safeFetch(`https://api.postalpincode.in/pincode/${zip}`, { timeout: 5000 }, 1);
+        const res = await safeFetchRaw(`https://api.postalpincode.in/pincode/${zip}`, { timeout: 5000 }, 1);
         if (res.ok) {
           const arr = await res.json();
           if (arr[0]?.Status === 'Success' && arr[0]?.PostOffice?.[0]) {
@@ -111,7 +111,7 @@ export default function Address() {
     }
 
     try {
-      const res = await safeFetch(`https://api.zippopotam.us/${code}/${zip}`, { timeout: 5000 }, 1);
+      const res = await safeFetchRaw(`https://api.zippopotam.us/${code}/${zip}`, { timeout: 5000 }, 1);
       if (res.ok) {
         const data = await res.json();
         if (data.places?.[0]) {

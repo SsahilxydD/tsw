@@ -87,14 +87,14 @@ const SearchBar = () => {
     setSelectedIndex(-1);
   }, [debouncedSearch, products]);
 
-  // Search products (full results)
+  // Search products (full results) - uses debounced value to avoid filtering on every keystroke
   useEffect(() => {
-    if (!search.trim()) {
+    if (!debouncedSearch.trim()) {
       setResults([]);
       setVisibleCount(8);
       return;
     }
-    const q = search.toLowerCase().trim();
+    const q = debouncedSearch.toLowerCase().trim();
     const filtered = (products || [])
       .filter(p => {
         const name = (p.name || '').toLowerCase();
@@ -104,7 +104,7 @@ const SearchBar = () => {
       });
     setResults(filtered);
     setVisibleCount(8); // Reset visible count on new search
-  }, [search, products]);
+  }, [debouncedSearch, products]);
 
   const handleProductClick = (id) => {
     setShowSearch(false);

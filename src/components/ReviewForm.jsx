@@ -123,6 +123,7 @@ const ReviewForm = ({ productId, onSubmit, onCancel }) => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <p className="text-xs text-gray-400 italic">Reviews are saved locally in your browser and are only visible to you.</p>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Rating <span className="text-red-500">*</span>

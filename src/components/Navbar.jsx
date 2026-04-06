@@ -126,7 +126,7 @@ const Navbar = () => {
           <div className="flex items-center gap-3 sm:gap-5">
             {/* WhatsApp */}
             <a
-              href="https://wa.me/919933778870"
+              href={`https://wa.me/${import.meta.env.VITE_WHATSAPP_PHONE?.replace(/\D/g, '') || '919933778870'}`}
               target="_blank"
               rel="noopener noreferrer"
               className={`hidden sm:flex items-center gap-2 text-sm font-medium hover:text-accent transition-colors min-h-[44px] sm:min-h-0 ${isTransparent ? 'text-white' : 'text-secondary'}`}

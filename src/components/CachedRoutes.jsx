@@ -8,7 +8,9 @@ import { useLocation, useRoutes } from "react-router-dom";
  * Uses useRoutes to render routes, but keeps all visited routes mounted
  */
 const routeCache = new Map();
-const MAX_CACHE = 15;
+const routeTimestamps = new Map();
+const MAX_CACHE = 8;
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 export default function CachedRoutes({ routes }) {
   const location = useLocation();
@@ -40,6 +42,7 @@ export default function CachedRoutes({ routes }) {
         // Only cache if not already cached
         if (!routeCache.has(currentPath)) {
           routeCache.set(currentPath, element);
+          routeTimestamps.set(currentPath, Date.now());
           setCache((prev) => {
             // Only update if not already in cache
             if (prev[currentPath]) return prev;
@@ -53,14 +56,31 @@ export default function CachedRoutes({ routes }) {
     }
   }, [currentPath]); // Only depend on currentPath, not currentElement
 
-  // Clean up old cache entries
+  // Clean up old cache entries by size and TTL
   useEffect(() => {
-    if (routeCache.size > MAX_CACHE) {
-      const keys = Array.from(routeCache.keys());
-      const toRemove = keys
-        .filter((k) => k !== currentPath)
-        .slice(0, keys.length - MAX_CACHE);
-      toRemove.forEach((k) => routeCache.delete(k));
+    const now = Date.now();
+    const toRemove = [];
+
+    // Remove expired entries
+    for (const [path, ts] of routeTimestamps) {
+      if (path !== currentPath && now - ts > CACHE_TTL_MS) {
+        toRemove.push(path);
+      }
+    }
+
+    // If still over limit, evict oldest entries
+    if (routeCache.size - toRemove.length > MAX_CACHE) {
+      const sorted = Array.from(routeTimestamps.entries())
+        .filter(([k]) => k !== currentPath && !toRemove.includes(k))
+        .sort((a, b) => a[1] - b[1]);
+      const excess = routeCache.size - toRemove.length - MAX_CACHE;
+      for (let i = 0; i < excess && i < sorted.length; i++) {
+        toRemove.push(sorted[i][0]);
+      }
+    }
+
+    if (toRemove.length > 0) {
+      toRemove.forEach((k) => { routeCache.delete(k); routeTimestamps.delete(k); });
       setCache((prev) => {
         const newCache = { ...prev };
         toRemove.forEach((k) => delete newCache[k]);

@@ -46,7 +46,7 @@ const Footer = () => {
             <h3 className="font-serif text-lg font-medium mb-6">Get in Touch</h3>
             <ul className="space-y-4 text-sm text-gray-300">
               <li>
-                <a href="tel:+919933778870" className="hover:text-white transition-colors">+91 99337 78870</a>
+                <a href={`tel:+${import.meta.env.VITE_WHATSAPP_PHONE?.replace(/\D/g, '') || '919933778870'}`} className="hover:text-white transition-colors">{import.meta.env.VITE_WHATSAPP_PHONE || '+91 99337 78870'}</a>
               </li>
               <li>
                 <a href="mailto:thesolowardrobe@gmail.com" className="hover:text-white transition-colors break-all">thesolowardrobe@gmail.com</a>
@@ -58,7 +58,7 @@ const Footer = () => {
         {/* WhatsApp CTA centered below both columns */}
         <div className="flex justify-center mt-8">
           <a
-            href="https://wa.me/919933778870"
+            href={`https://wa.me/${import.meta.env.VITE_WHATSAPP_PHONE?.replace(/\D/g, '') || '919933778870'}`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 text-white border border-white/20 px-5 py-2.5 rounded hover:bg-white hover:text-black transition-colors text-sm"
@@ -71,8 +71,8 @@ const Footer = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 border-t border-white/10 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-400">
         <p>&copy; {new Date().getFullYear()} Solo Wardrobe. All rights reserved.</p>
         <div className="flex gap-6">
-          <Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
-          <Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
+          <span className="hover:text-white transition-colors cursor-default">Privacy Policy</span>
+          <span className="hover:text-white transition-colors cursor-default">Terms of Service</span>
         </div>
       </div>
     </footer>

@@ -19,8 +19,8 @@ const Orders = () => {
             <p className="text-sm text-gray-500 mb-4">Order tracking is available through WhatsApp. Below is sample data.</p>
 
             <div>
-                {products.slice(1, 4).map((item, index) => (
-                    <div key={index} className='py-4 border-t border-b text-gray-700 flex flex-col md:flex-row md:items-center md:justify-between gap-4'>
+                {products.slice(1, 4).map((item) => (
+                    <div key={item._id || item.slug} className='py-4 border-t border-b text-gray-700 flex flex-col md:flex-row md:items-center md:justify-between gap-4'>
                         <div className='flex items-start gap-6 text-sm '>
                             <SafeImg className='w-16 sm:w-20' src={item.image[0]} alt={item.name || "Product image"} width={80} height={80} quality={85} />
                             <div>

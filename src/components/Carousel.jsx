@@ -203,7 +203,7 @@ export default function Carousel({
       >
         {carouselItems.map((item, index) => (
           <CarouselSlide
-            key={item._id || index}
+            key={`${item._id || item.slug || 'item'}-${index}`}
             item={item}
             index={index}
             x={x}

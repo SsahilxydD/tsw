@@ -1,4 +1,4 @@
-import { createContext, useEffect, useRef, useState, useCallback } from "react";
+import { createContext, useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { isJeansProduct, isFootwearProduct, normalizeJeansSizes, uniqueUKLabels, toUKLabel } from "../utils/size";
 import { useNavigate } from "react-router-dom";
 import { safeFetch, safeLocalStorage, handleError } from "../utils/errorHandler";
@@ -477,12 +477,15 @@ const ShopContextProvider = (props) => {
     return cleanup;
   }, []); // Empty deps - only setup once
 
-  const addToCart = async (itemId, size) => {
+  const MAX_ITEM_QTY = 10;
+
+  const addToCart = (itemId, size) => {
     if (!size) { notify('Select product size'); return; }
     let cartData = structuredClone(cartItems);
     if (cartData[itemId]) {
-      if (cartData[itemId][size]) cartData[itemId][size] += 1;
-      else cartData[itemId][size] = 1;
+      const current = cartData[itemId][size] || 0;
+      if (current >= MAX_ITEM_QTY) { notify(`Maximum ${MAX_ITEM_QTY} per item`); return; }
+      cartData[itemId][size] = current + 1;
     } else {
       cartData[itemId] = { [size]: 1 };
     }
@@ -491,15 +494,14 @@ const ShopContextProvider = (props) => {
     notify('Added to bag');
   }
 
-  const updateQuantity = async (itemId, size, quantity) => {
+  const updateQuantity = (itemId, size, quantity) => {
     let cartData = structuredClone(cartItems);
     if (!cartData[itemId]) cartData[itemId] = {};
     if (quantity <= 0) {
       delete cartData[itemId][size];
-      // clean empty product entry
       if (Object.keys(cartData[itemId]).length === 0) delete cartData[itemId];
     } else {
-      cartData[itemId][size] = quantity;
+      cartData[itemId][size] = Math.min(quantity, MAX_ITEM_QTY);
     }
     setCartItems(cartData);
     if (quantity === 0) notify('Removed from bag');
@@ -540,13 +542,9 @@ const ShopContextProvider = (props) => {
     }
   }
 
-  const isInWishlist = (productId) => {
-    return wishlist.includes(String(productId));
-  }
+  const isInWishlist = useCallback((productId) => wishlist.includes(String(productId)), [wishlist]);
 
-  const getWishlistCount = () => {
-    return wishlist.length;
-  }
+  const getWishlistCount = useCallback(() => wishlist.length, [wishlist]);
 
   const moveToCart = (productId, size = 'std') => {
     removeFromWishlist(productId);
@@ -560,42 +558,49 @@ const ShopContextProvider = (props) => {
     notify('Wishlist cleared');
   }
 
-  const getCartCount = () => {
-    let totalCount = 0;
-    Object.values(cartItems).forEach(sizes => {
-      Object.values(sizes).forEach(qty => { if (qty > 0) totalCount += qty; });
-    });
-    return totalCount;
-  }
+  const productLookup = useMemo(() => {
+    const map = new Map();
+    for (const p of products) {
+      if (p._id) map.set(p._id, p);
+      if (p.slug) map.set(p.slug, p);
+    }
+    return map;
+  }, [products]);
 
-  const getCartAmount = () => {
-    let totalAmount = 0;
+  const cartCount = useMemo(() => {
+    let total = 0;
+    Object.values(cartItems).forEach(sizes => {
+      Object.values(sizes).forEach(qty => { if (qty > 0) total += qty; });
+    });
+    return total;
+  }, [cartItems]);
+
+  const cartAmount = useMemo(() => {
+    let total = 0;
     Object.entries(cartItems).forEach(([itemId, sizes]) => {
-      const itemInfo = products.find((product) => product._id === itemId || product.slug === itemId);
+      const itemInfo = productLookup.get(itemId);
       Object.entries(sizes).forEach(([, qty]) => {
         if (qty > 0 && itemInfo) {
-          totalAmount += (Number(itemInfo.price) || 0) * qty;
+          total += (Number(itemInfo.price) || 0) * qty;
         }
       });
     });
-    return totalAmount;
-  }
+    return total;
+  }, [cartItems, productLookup]);
 
-  const getCartSubtotal = () => {
-    return getCartAmount();
-  }
+  const getCartCount = useCallback(() => cartCount, [cartCount]);
+  const getCartAmount = useCallback(() => cartAmount, [cartAmount]);
+  const getCartSubtotal = useCallback(() => cartAmount, [cartAmount]);
 
-  const getDiscountAmount = () => {
+  const discountAmount = useMemo(() => {
     if (!appliedCoupon) return 0;
-    const subtotal = getCartSubtotal();
-    return calculateDiscount(appliedCoupon, subtotal);
-  }
+    return calculateDiscount(appliedCoupon, cartAmount);
+  }, [appliedCoupon, cartAmount]);
 
-  const getCartTotal = () => {
-    const subtotal = getCartSubtotal();
-    const discount = getDiscountAmount();
-    return Math.max(0, subtotal - discount);
-  }
+  const cartTotal = useMemo(() => Math.max(0, cartAmount - discountAmount), [cartAmount, discountAmount]);
+
+  const getDiscountAmount = useCallback(() => discountAmount, [discountAmount]);
+  const getCartTotal = useCallback(() => cartTotal, [cartTotal]);
 
   const applyCoupon = (code) => {
     const subtotal = getCartSubtotal();
@@ -664,13 +669,8 @@ const ShopContextProvider = (props) => {
     }
   }
 
-  const getReviewsForProduct = (productId) => {
-    return getProductReviews(String(productId));
-  }
-
-  const getRatingForProduct = (productId) => {
-    return getProductRating(String(productId));
-  }
+  const getReviewsForProduct = useCallback((productId) => getProductReviews(String(productId)), []);
+  const getRatingForProduct = useCallback((productId) => getProductRating(String(productId)), []);
 
   const markHelpful = (reviewId) => {
     const result = markReviewHelpful(reviewId);
