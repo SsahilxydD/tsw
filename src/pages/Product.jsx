@@ -18,6 +18,8 @@ import RecentlyViewed from "../components/RecentlyViewed";
 import SizeGuide from "../components/SizeGuide";
 import { selectRelatedProducts } from "../utils/related";
 import StickyATC from '../components/StickyATC';
+import PriceDisplay from '../components/PriceDisplay';
+import UrgencyBadge from '../components/UrgencyBadge';
 
 // --- Animation Variants ---
 const pageVariants = {
@@ -432,11 +434,17 @@ export default function Product() {
           )}
 
           {/* Product Name */}
-          <motion.h1 
+          <motion.h1
             variants={fadeInUp}
             className="mt-2 text-lg sm:text-xl font-medium text-gray-900 leading-relaxed"
           >
             {product.name || product.title || ""}
+            <UrgencyBadge
+              productId={product._id || product.slug}
+              bestseller={product.bestseller}
+              discounted={product.categoryRaw === 'Discounted'}
+              className="text-xs ml-2"
+            />
           </motion.h1>
 
           {/* Price Block */}

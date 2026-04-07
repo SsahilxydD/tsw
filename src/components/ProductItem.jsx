@@ -3,6 +3,8 @@ import React, { useContext, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ShopContext } from "../context/ShopContext";
 import SafeImg from "./SafeImg";
+import UrgencyBadge from './UrgencyBadge';
+import PriceDisplay from './PriceDisplay';
 import { isFootwearProduct, isJeansProduct, normalizeJeansSizes, uniqueUKLabels } from "../utils/size";
 
 const ProductItem = ({ id, image, name, price, i = 0, showAdd = false }) => {
@@ -111,6 +113,11 @@ const ProductItem = ({ id, image, name, price, i = 0, showAdd = false }) => {
             </svg>
           </button>
 
+          {/* Urgency Badge */}
+          <div className="absolute bottom-2 left-2 z-10">
+            <UrgencyBadge productId={id} bestseller={productObj?.bestseller} discounted={productObj?.categoryRaw === 'Discounted' || productObj?.subCategory === 'Discounted'} />
+          </div>
+
           {/* Quick Add Button - only on desktop */}
           {showAdd && tileSizes.length > 0 && (
             <div className={`hidden sm:block absolute bottom-0 left-0 right-0 p-3 transition-all duration-300 ${
@@ -135,14 +142,9 @@ const ProductItem = ({ id, image, name, price, i = 0, showAdd = false }) => {
           </h3>
 
           {/* Price */}
-          <p className="text-xs sm:text-sm font-bold text-gray-900 mb-1.5 sm:mb-2">
-            {currency}{Number(price).toLocaleString('en-IN')}
-            {hasSale && (
-              <span className="ml-1.5 font-normal line-through text-gray-400">
-                {currency}{Number(productObj.mrp).toLocaleString('en-IN')}
-              </span>
-            )}
-          </p>
+          <div className="text-xs sm:text-sm mb-1.5 sm:mb-2">
+            <PriceDisplay price={price} mrp={productObj?.mrp} currency={currency} compact />
+          </div>
           
           {/* Size Pills - Compact on mobile */}
           {displaySizes.length > 0 && (
