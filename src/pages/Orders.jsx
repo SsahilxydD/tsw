@@ -1,53 +1,47 @@
-// TODO: Implement real order history. Currently shows placeholder data.
-import React, { useContext } from 'react'
-import { ShopContext } from '../context/ShopContext'
+import React from 'react'
 import Title from '../components/Title';
-import SafeImg from '../components/SafeImg';
 import Button from '../components/Button';
+import { useNavigate } from 'react-router-dom';
 
 const Orders = () => {
+  const navigate = useNavigate();
 
-    const { products, currency } = useContext(ShopContext);
+  return (
+    <div className='border-t pt-16 px-4 max-w-6xl mx-auto pb-20 md:pb-0'>
+      <div className='text-2xl'>
+        <Title text1={'MY'} text2={'ORDERS'} />
+      </div>
 
-    return (
-        <div className='border-t pt-16'>
-
-            <div className='text-2xl'>
-                <Title text1={'MY'} text2={'ORDERS'} />
-            </div>
-
-            <p className="text-sm text-gray-500 mb-4">Order tracking is available through WhatsApp. Below is sample data.</p>
-
-            <div>
-                {products.slice(1, 4).map((item) => (
-                    <div key={item._id || item.slug} className='py-4 border-t border-b text-gray-700 flex flex-col md:flex-row md:items-center md:justify-between gap-4'>
-                        <div className='flex items-start gap-6 text-sm '>
-                            <SafeImg className='w-16 sm:w-20' src={item.image[0]} alt={item.name || "Product image"} width={80} height={80} quality={85} />
-                            <div>
-                                <p className='sm:text-base font-medium'>{item.name}</p>
-                                <div className='flex items-center gap-3 mt-2 text-base text-gray-700'>
-                                    <p className='text-lg'>{currency}{item.price}</p>
-                                    <p>Quantity: 1</p>
-                                    <p>Size: L</p>
-                                </div>
-                                <p className='mt-2'>Date: <span className='text-gray-400'>25, May, 2024</span></p>
-                            </div>
-                        </div>
-                        <div className='md:w-1/2 flex justify-between'>
-                            <div className='flex items-center gap-2'>
-                                <p className='min-w-2 h-2 rounded-full bg-green-500'></p>
-                                <p className='text-sm md:text-base'>Ready to ship</p>
-                            </div>
-                            <Button variant="outline" size="sm">Track Order</Button>
-                        </div>
-
-                    </div>
-                ))}
-            </div>
-
-
+      <div className="mt-12 text-center min-h-[40vh] flex flex-col items-center justify-center">
+        <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gray-100 mb-6">
+          <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+          </svg>
         </div>
-    )
+        <h2 className="text-2xl font-semibold text-gray-900 mb-3">No orders yet</h2>
+        <p className="text-gray-600 mb-2 max-w-md mx-auto">
+          Your order history will appear here once you place an order via WhatsApp.
+        </p>
+        <p className="text-sm text-gray-500 mb-8 max-w-md mx-auto">
+          For existing order tracking, please contact us on WhatsApp.
+        </p>
+        <div className="flex gap-3">
+          <Button onClick={() => navigate('/collection')}>
+            Start Shopping
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              const phone = import.meta.env.VITE_WHATSAPP_PHONE?.replace(/\D/g, '') || '919933778870';
+              window.open(`https://wa.me/${phone}?text=${encodeURIComponent('Hi, I want to check my order status.')}`, '_blank');
+            }}
+          >
+            Track via WhatsApp
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default Orders

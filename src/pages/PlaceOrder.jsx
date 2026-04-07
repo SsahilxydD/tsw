@@ -7,14 +7,14 @@ import Input from '../components/Input'
 import { validateName, validateNameRequired, validatePhone, validateEmail, validateAddress, validateCity, validateState, validateZip } from '../utils/validation'
 
 const PlaceOrder = () => {
-    const { navigate, address, setAddress, cartItems, products, currency, getCartTotal, getCartSubtotal, getDiscountAmount, appliedCoupon, getCartCount, notify } = useContext(ShopContext);
+    const { navigate, address, setAddress, cartItems, products, productLookup, currency, getCartTotal, getCartSubtotal, getDiscountAmount, appliedCoupon, getCartCount, notify } = useContext(ShopContext);
     const [method, setMethod] = useState('cod');
     const [errors, setErrors] = useState({});
     const refs = useRef({});
 
     useEffect(() => {
         if (getCartCount() === 0) navigate('/cart');
-    }, []);
+    }, [getCartCount, navigate]);
 
     // Initialize form with context address or empty
     const [formData, setFormData] = useState({
@@ -114,7 +114,7 @@ const PlaceOrder = () => {
         for (const items in cartItems) {
             for (const item in cartItems[items]) {
                 if (cartItems[items][item] > 0) {
-                    const itemInfo = products.find((product) => product._id === items);
+                    const itemInfo = productLookup.get(items);
                     if (itemInfo) {
                         message += `- ${itemInfo.name} (Size: ${item}) x ${cartItems[items][item]}\n`;
                         hasItems = true;
@@ -142,7 +142,7 @@ const PlaceOrder = () => {
         // Open WhatsApp
         const phoneNumber = import.meta.env.VITE_WHATSAPP_PHONE?.replace(/\D/g, '') || "919933778870";
         const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
-        window.open(url, '_blank');
+        window.open(url, '_blank', 'noopener');
 
         navigate('/');
     }

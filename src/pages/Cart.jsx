@@ -18,7 +18,7 @@ import Loading from '../components/Loading';
 
 const Cart = () => {
 
-  const { products, currency, navigate, cartItems, updateQuantity, loadingProducts, addToWishlist, applyCoupon, removeCoupon, appliedCoupon } = useContext(ShopContext);
+  const { products, productLookup, currency, navigate, cartItems, updateQuantity, loadingProducts, addToWishlist, applyCoupon, removeCoupon, appliedCoupon } = useContext(ShopContext);
   const [couponCode, setCouponCode] = useState('');
   const [couponError, setCouponError] = useState('');
 
@@ -50,7 +50,7 @@ const Cart = () => {
       for (const item in cartItems[items]) {
         if (cartItems[items][item] > 0) {
           // Check if product exists before adding to cart data
-          const productExists = products.some(product => product._id === items);
+          const productExists = productLookup.has(items);
           if (productExists) {
             tempData.push({
               _id: items,
@@ -111,7 +111,7 @@ const Cart = () => {
   // No checkout on My Bag; proceed to Address.
 
   return (
-    <div className='border-t pt-14'>
+    <div className='border-t pt-14 pb-20 md:pb-0'>
 
       <div className='mb-5'>
         <CartSteps active="bag" />
@@ -126,7 +126,7 @@ const Cart = () => {
             {loadingProducts ? (
               <Loading size="sm" />
             ) : (
-              `${cartData.filter(i => i && i.quantity > 0).length} item${cartData.filter(i => i && i.quantity > 0).length !== 1 ? 's' : ''} selected`
+              (() => { const count = cartData.filter(i => i && i.quantity > 0).length; return `${count} item${count !== 1 ? 's' : ''} selected`; })()
             )}
           </div>
         </div>
@@ -138,7 +138,7 @@ const Cart = () => {
           </>
         ) : (
           cartData.filter(item => item && item._id && item.quantity > 0).map((item, index) => {
-            const productData = products.find((product) => product._id === item._id);
+            const productData = productLookup.get(item._id);
 
             // Skip rendering if product not found
             if (!productData) {
@@ -260,7 +260,7 @@ const Cart = () => {
                   errorMessage={couponError}
                   className="flex-1 h-10"
                   label="Coupon Code"
-                  onKeyPress={(e) => {
+                  onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       handleApplyCoupon();
                     }

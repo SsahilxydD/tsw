@@ -1,109 +1,36 @@
-import React, { useState } from 'react'
+import React from 'react'
 import Button from '../components/Button'
-import Input from '../components/Input'
-import { validateEmail, validatePassword, validateName } from '../utils/validation'
+import { useNavigate } from 'react-router-dom'
 
 const Login = () => {
-    const [currentState, setCurrentState] = useState('Login');
-    const [formData, setFormData] = useState({
-        name: '',
-        email: '',
-        password: ''
-    });
-    const [errors, setErrors] = useState({});
-
-    const onChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-        // Clear error when user starts typing
-        if (errors[name]) {
-            setErrors(prev => ({ ...prev, [name]: null }));
-        }
-    };
-
-    const validate = () => {
-        const errs = {};
-        
-        if (currentState === 'Sign Up') {
-            const nameError = validateName(formData.name, 'Name');
-            if (nameError) errs.name = nameError;
-        }
-        
-        const emailError = validateEmail(formData.email);
-        if (emailError) errs.email = emailError;
-        
-        const passwordError = validatePassword(formData.password, currentState === 'Sign Up');
-        if (passwordError) errs.password = passwordError;
-        
-        return errs;
-    };
-
-    const onSubmitHandler = async (e) => {
-        e.preventDefault();
-        const errs = validate();
-        
-        if (Object.keys(errs).length > 0) {
-            setErrors(errs);
-            return;
-        }
-        
-        // Form is valid - handle submission
-        // TODO: Implement actual login/signup logic
-    }
-
-    const switchMode = (mode) => {
-        setCurrentState(mode);
-        setFormData({ name: '', email: '', password: '' });
-        setErrors({});
-    };
+    const navigate = useNavigate();
 
     return (
-        <form onSubmit={onSubmitHandler} className='flex flex-col items-center w-[90%] sm:max-w-96 m-auto mt-14 gap-4 text-gray-800'>
-            <div className='inline-flex items-center gap-2 mb-2 mt-10'>
-                <p className='prata-regular text-3xl'>{currentState}</p>
-                <hr className=' border-none h-[1.5px] w-8 bg-gray-800' />
+        <div className='flex flex-col items-center w-[90%] sm:max-w-md m-auto mt-14 gap-4 text-gray-800 min-h-[60vh] justify-center pb-20 md:pb-0'>
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 mb-4">
+                <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
             </div>
-            {currentState === 'Sign Up' && (
-                <Input 
-                    type="text" 
-                    name="name"
-                    placeholder='Name' 
-                    value={formData.name}
-                    onChange={onChange}
-                    error={!!errors.name}
-                    errorMessage={errors.name}
-                    required 
-                />
-            )}
-            <Input 
-                type="email" 
-                name="email"
-                placeholder='Email' 
-                value={formData.email}
-                onChange={onChange}
-                error={!!errors.email}
-                errorMessage={errors.email}
-                required 
-            />
-            <Input 
-                type="password" 
-                name="password"
-                placeholder='Password' 
-                value={formData.password}
-                onChange={onChange}
-                error={!!errors.password}
-                errorMessage={errors.password}
-                required 
-            />
-            <div className='w-full flex justify-end text-sm mt-[-8px]'>
-                {
-                    currentState === 'Login'
-                        ? <p onClick={() => switchMode('Sign Up')} className='cursor-pointer hover:text-primary transition-colors'>Create account</p>
-                        : <p onClick={() => switchMode('Login')} className='cursor-pointer hover:text-primary transition-colors'>Login here</p>
-                }
+            <h1 className='prata-regular text-2xl'>Account Coming Soon</h1>
+            <p className='text-gray-600 text-center max-w-sm'>
+                We're working on user accounts. For now, all orders are placed directly via WhatsApp — no login needed.
+            </p>
+            <div className='flex gap-3 mt-4'>
+                <Button onClick={() => navigate('/collection')}>
+                    Browse Collection
+                </Button>
+                <Button
+                    variant="outline"
+                    onClick={() => {
+                        const phone = import.meta.env.VITE_WHATSAPP_PHONE?.replace(/\D/g, '') || '919933778870';
+                        window.open(`https://wa.me/${phone}?text=${encodeURIComponent('Hello!')}`, '_blank');
+                    }}
+                >
+                    Chat on WhatsApp
+                </Button>
             </div>
-            <Button type='submit' className='mt-4'>{currentState === 'Login' ? 'Sign in' : 'Sign up'}</Button>
-        </form>
+        </div>
     )
 }
 

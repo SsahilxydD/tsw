@@ -124,7 +124,7 @@ function inferMasterSizes(p) {
 
 export default function Product() {
   const { id } = useParams();
-  const { products, currency, addToCart, navigate, loadingProducts, toggleWishlist, isInWishlist, submitReview, getReviewsForProduct, getRatingForProduct, markHelpful, trackProductView } = React.useContext(ShopContext);
+  const { products, productLookup, currency, addToCart, navigate, loadingProducts, toggleWishlist, isInWishlist, submitReview, getReviewsForProduct, getRatingForProduct, markHelpful, trackProductView } = React.useContext(ShopContext);
   const [added, setAdded] = React.useState(false);
   const [showReviewForm, setShowReviewForm] = React.useState(false);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = React.useState(false);
@@ -155,13 +155,9 @@ export default function Product() {
   }, [id]);
 
   const product = React.useMemo(() => {
-    if (!Array.isArray(products)) return null;
-    return (
-      products.find((p) => String(p._id) === String(id)) ||
-      products.find((p) => String(p.slug) === String(id)) ||
-      null
-    );
-  }, [products, id]);
+    if (productLookup.size === 0) return null;
+    return productLookup.get(String(id)) || null;
+  }, [productLookup, id]);
 
   // Track product view when product is loaded
   React.useEffect(() => {
@@ -312,7 +308,7 @@ export default function Product() {
       variants={pageVariants}
       initial="initial"
       animate="animate"
-      className="px-4 sm:px-6 lg:px-8 py-8 sm:py-10 max-w-7xl mx-auto"
+      className="px-4 sm:px-6 lg:px-8 pt-8 sm:pt-10 pb-32 md:pb-10 max-w-7xl mx-auto"
     >
       <SEO
         title={`${product.name || product.title} – Solo Wardrobe`}

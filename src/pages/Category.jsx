@@ -235,6 +235,8 @@ const Category = () => {
   const toggleSize = (val) =>
     setSizeFilters((prev) => (prev.includes(val) ? prev.filter((s) => s !== val) : [...prev, val]));
 
+  const isInitialMount = React.useRef(true);
+
   const applyFilterAndOrder = useCallback(() => {
     let copy = baseProducts.slice();
 
@@ -268,14 +270,26 @@ const Category = () => {
     });
 
     setList(copy);
-    setVisibleCount(PAGE_SIZE);
+    // Preserve restored visibleCount on initial mount (back-navigation)
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+    } else {
+      setVisibleCount(PAGE_SIZE);
+    }
     setLoadingMore(false);
   }, [baseProducts, sizeSource, hasSizes, sizeFilters, debouncedSearch, sortValue, catKeyLower, subFilter, isDiscounted]);
 
   useEffect(() => {
     applyFilterAndOrder();
   }, [applyFilterAndOrder]);
-  
+
+  // Persist visibleCount to sessionStorage for back-navigation restore
+  useEffect(() => {
+    if (typeof window !== 'undefined' && visibleCount > PAGE_SIZE) {
+      sessionStorage.setItem(`scroll_${window.location.pathname}_visibleCount`, String(visibleCount));
+    }
+  }, [visibleCount]);
+
   // Focus search input when opened
   useEffect(() => {
     if (showLocalSearch && searchInputRef.current) {
@@ -337,7 +351,7 @@ const Category = () => {
   }, []);
 
   return (
-    <div className="pt-10 border-t">
+    <div className="pt-10 border-t pb-20 md:pb-0">
       <SEO
         title={`${isDiscounted ? 'Sale' : toDisplay(catKey)} – Solo Wardrobe`}
         description={`Browse ${isDiscounted ? 'discounted' : toDisplay(catKey)} products at Solo Wardrobe.`}

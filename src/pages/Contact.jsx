@@ -51,7 +51,7 @@ const Contact = () => {
   }
 
   return (
-    <div className='border-t'>
+    <div className='border-t pb-20 md:pb-0'>
       <div className='text-center text-2xl pt-10'>
         <Title text1={'CONTACT'} text2={'SOLO WARDROBE'} />
       </div>

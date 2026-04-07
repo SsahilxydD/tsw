@@ -5,9 +5,10 @@ import CartTotal from "../components/CartTotal";
 import CartStickyBar from "../components/CartStickyBar";
 import SafeImg from "../components/SafeImg";
 import Button from "../components/Button";
+import { recordCouponUsage } from "../utils/coupons";
 
 export default function Payment() {
-  const { products, currency, cartItems, address, navigate, getCartCount, getCartTotal, getCartSubtotal, getDiscountAmount, appliedCoupon } = useContext(ShopContext);
+  const { products, productLookup, currency, cartItems, address, navigate, getCartCount, getCartTotal, getCartSubtotal, getDiscountAmount, appliedCoupon } = useContext(ShopContext);
 
   const cartList = useMemo(() => {
     const out = [];
@@ -31,7 +32,7 @@ export default function Payment() {
     lines.push("");
     lines.push("*Items:*");
     for (const it of cartList) {
-      const p = products.find((pr) => String(pr._id) === String(it._id) || String(pr.slug) === String(it._id));
+      const p = productLookup.get(String(it._id));
       if (!p) continue;
       const pid = String(p._id ?? p.slug ?? it._id);
       const url = `${window.location.origin}/product/${pid}`;
@@ -91,6 +92,7 @@ export default function Payment() {
   };
 
   const onWhatsApp = () => {
+    if (appliedCoupon) recordCouponUsage(appliedCoupon.code);
     const msg = composeMessage();
     const phoneNumber = import.meta.env.VITE_WHATSAPP_PHONE?.replace(/\D/g, '') || "919933778870";
     const href = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(msg)}`;
@@ -107,7 +109,7 @@ export default function Payment() {
   }
 
   return (
-    <div className="border-t pt-14">
+    <div className="border-t pt-14 pb-32 md:pb-0">
       <div className="mb-5">
         <CartSteps active="payment" />
       </div>
@@ -117,7 +119,7 @@ export default function Payment() {
         <div className="grid sm:grid-cols-3 gap-6">
           <div className="sm:col-span-2 space-y-3">
             {cartList.map((it, idx) => {
-              const p = products.find((pr) => String(pr._id) === String(it._id) || String(pr.slug) === String(it._id));
+              const p = productLookup.get(String(it._id));
               const cover = Array.isArray(p?.image)
                 ? (p.image[0] || '')
                 : (Array.isArray(p?.images) ? (p.images[0] || '') : (p?.image || ''));

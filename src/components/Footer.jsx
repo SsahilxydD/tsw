@@ -5,7 +5,7 @@ import SafeImg from './SafeImg'
 
 const Footer = () => {
   return (
-    <footer className="bg-primary text-white pt-16 pb-[72px]">
+    <footer className="bg-primary text-white pt-16 pb-24 md:pb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 mb-12">
         {/* Logo + tagline centered */}
         <div className="flex flex-col items-center text-center mb-10">

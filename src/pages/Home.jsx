@@ -27,7 +27,7 @@ const Home = () => {
   }, []);
 
   return (
-    <div>
+    <div className="pb-20 md:pb-0">
       <SEO
         title="Solo Wardrobe – Honest prices, curated drops"
         description="Discover everyday pieces that last. Shop curated apparel, accessories, and more at honest prices."

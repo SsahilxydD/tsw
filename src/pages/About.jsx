@@ -77,7 +77,7 @@ const About = () => {
       </section>
 
       {/* spacer */}
-      <div className='h-10' />
+      <div className='h-20 md:h-10' />
     </div>
   )
 }

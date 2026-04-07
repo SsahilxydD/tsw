@@ -9,7 +9,8 @@ import SafeImg from '../components/SafeImg';
 import SEO from '../components/SEO';
 
 const Wishlist = () => {
-  const { wishlist, products, currency, removeFromWishlist, moveToCart, clearWishlistItems, navigate } = useContext(ShopContext);
+  const { wishlist, products, productLookup, currency, removeFromWishlist, moveToCart, clearWishlistItems, navigate } = useContext(ShopContext);
+  const [showClearConfirm, setShowClearConfirm] = React.useState(false);
 
   // Get wishlist products
   const wishlistProducts = useMemo(() => {
@@ -18,12 +19,9 @@ const Wishlist = () => {
     }
 
     return wishlist
-      .map(productId => {
-        const product = products.find(p => String(p._id ?? p.slug) === String(productId));
-        return product;
-      })
+      .map(productId => productLookup.get(String(productId)))
       .filter(Boolean);
-  }, [wishlist, products]);
+  }, [wishlist, productLookup, products]);
 
   if (wishlistProducts.length === 0) {
     return (
@@ -35,7 +33,7 @@ const Wishlist = () => {
           canonical={typeof window !== 'undefined' ? window.location.href : ''}
           type="website"
         />
-        <div className="max-w-6xl mx-auto px-4 py-12 sm:py-16">
+        <div className="max-w-6xl mx-auto px-4 pt-12 sm:pt-16 pb-20 md:pb-16">
           <Title text1="MY" text2="WISHLIST" />
           <div className="mt-12 text-center">
             <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gray-100 mb-6">
@@ -65,7 +63,7 @@ const Wishlist = () => {
         canonical={typeof window !== 'undefined' ? window.location.href : ''}
         type="website"
       />
-      <div className="max-w-6xl mx-auto px-4 py-12 sm:py-16">
+      <div className="max-w-6xl mx-auto px-4 pt-12 sm:pt-16 pb-20 md:pb-16">
         <div className="flex items-center justify-between mb-8">
           <Title text1="MY" text2="WISHLIST" />
           <div className="flex items-center gap-4">
@@ -73,18 +71,36 @@ const Wishlist = () => {
               {wishlistProducts.length} item{wishlistProducts.length !== 1 ? 's' : ''}
             </span>
             {wishlistProducts.length > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  // TODO: Replace with custom confirmation modal
-                  if (window.confirm('Are you sure you want to clear your wishlist?')) {
-                    clearWishlistItems();
-                  }
-                }}
-              >
-                Clear All
-              </Button>
+              showClearConfirm ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Clear all?</span>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => {
+                      clearWishlistItems();
+                      setShowClearConfirm(false);
+                    }}
+                  >
+                    Yes
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowClearConfirm(false)}
+                  >
+                    No
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowClearConfirm(true)}
+                >
+                  Clear All
+                </Button>
+              )
             )}
           </div>
         </div>
@@ -121,13 +137,15 @@ const Wishlist = () => {
                     size="sm"
                     className="flex-1 text-xs"
                     onClick={() => {
-                      const defaultSize = Array.isArray(product.sizes) && product.sizes.length > 0 
-                        ? product.sizes[0] 
-                        : 'std';
-                      moveToCart(product._id, defaultSize);
+                      const hasSizes = Array.isArray(product.sizes) && product.sizes.length > 0;
+                      if (hasSizes) {
+                        navigate(`/product/${product._id}`);
+                      } else {
+                        moveToCart(product._id, 'std');
+                      }
                     }}
                   >
-                    Add to Cart
+                    {Array.isArray(product.sizes) && product.sizes.length > 0 ? 'Select Size' : 'Add to Cart'}
                   </Button>
                   <button
                     onClick={() => removeFromWishlist(product._id)}

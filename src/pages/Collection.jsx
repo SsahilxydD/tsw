@@ -83,6 +83,8 @@ const Collection = () => {
   const toggleSize = (val) =>
     setSizeFilters((prev) => (prev.includes(val) ? prev.filter((s) => s !== val) : [...prev, val]));
 
+  const isInitialMount = React.useRef(true);
+
   const applyFilterAndOrder = useCallback(() => {
     let copy = Array.isArray(products) ? products.slice() : [];
     // Globally hide jeans with no sizes in data
@@ -112,7 +114,12 @@ const Collection = () => {
     });
 
     setList(copy);
-    setVisibleCount(PAGE_SIZE);
+    // Preserve restored visibleCount on initial mount (back-navigation)
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+    } else {
+      setVisibleCount(PAGE_SIZE);
+    }
     setLoadingMore(false);
   }, [products, debouncedSearch, hasSizes, sizeFilters, sortValue]);
 
@@ -120,6 +127,13 @@ const Collection = () => {
     applyFilterAndOrder();
   }, [applyFilterAndOrder]);
   
+  // Persist visibleCount to sessionStorage for back-navigation restore
+  useEffect(() => {
+    if (typeof window !== 'undefined' && visibleCount > PAGE_SIZE) {
+      sessionStorage.setItem(`scroll_${window.location.pathname}_visibleCount`, String(visibleCount));
+    }
+  }, [visibleCount]);
+
   // Focus search input when opened
   React.useEffect(() => {
     if (showLocalSearch && searchInputRef.current) {
@@ -175,7 +189,7 @@ const Collection = () => {
   }, []);
 
   return (
-    <div className="pt-10 border-t">
+    <div className="pt-10 border-t pb-20 md:pb-0">
       <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row gap-6">
         {/* LEFT: Desktop filters */}
         {hasSizes && (
