@@ -64,8 +64,7 @@ export default function WhatsAppCTA({
   // Position leaves space for sticky ATC on mobile (bottom-20). Lower on desktop.
   return (
     <div
-      className={`fixed right-4 bottom-20 sm:bottom-6 z-40 ${show ? 'animate-slide-up' : 'opacity-0'}`}
-      style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+      className={`fixed right-4 bottom-28 sm:bottom-6 z-30 ${show ? 'animate-slide-up' : 'opacity-0'}`}
     >
       <button
         onClick={onClick}

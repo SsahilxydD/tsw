@@ -30,7 +30,6 @@ const Product = lazy(() => import("./pages/Product"));
 const Cart = lazy(() => import("./pages/Cart"));
 const Address = lazy(() => import("./pages/Address"));
 const Payment = lazy(() => import("./pages/Payment"));
-const PlaceOrder = lazy(() => import("./pages/PlaceOrder"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const About = lazy(() => import("./pages/About"));
 const Contact = lazy(() => import("./pages/Contact"));
@@ -52,7 +51,6 @@ const routes = [
   { path: "/wishlist", element: <Wishlist /> },
   { path: "/address", element: <Address /> },
   { path: "/payment", element: <Payment /> },
-  { path: "/place-order", element: <PlaceOrder /> },
   { path: "/orders", element: <Orders /> },
   { path: "/login", element: <Login /> },
   { path: "*", element: <NotFound /> },
@@ -82,7 +80,13 @@ export default function App() {
       <ScrollEffects />
 
       {/* Spacer for fixed navbar on non-home pages */}
-      {!isHome && <div className="h-[100px] sm:h-[92px]" />}
+      {!isHome && (
+        <div className={
+          /^(?:\/category\/discounted)(?:\/|$)/i.test(location.pathname)
+            ? "h-16 sm:h-14"
+            : "h-[100px] sm:h-[92px]"
+        } />
+      )}
 
       <main id="main-content" className="min-h-[60vh]">
         <div className="animate-page">
@@ -105,8 +109,6 @@ export default function App() {
 
       {/* Mobile bottom dock navigation */}
       <BottomDock />
-
-
 
       {/* Floating WhatsApp CTA (site-wide) */}
       <WhatsAppCTA

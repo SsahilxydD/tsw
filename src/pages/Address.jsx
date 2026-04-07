@@ -7,6 +7,7 @@ import Loading from "../components/Loading";
 import { safeFetchRaw, handleError } from "../utils/errorHandler";
 import ErrorMessage from "../components/ErrorMessage";
 import { validateName, validateNameRequired, validatePhone, validateEmail, validateAddress, validateCity, validateState, validateZip } from "../utils/validation";
+import { recordCouponUsage } from "../utils/coupons";
 
 const EMPTY = {
   firstName: "",
@@ -23,13 +24,12 @@ const EMPTY = {
 };
 
 export default function Address() {
-  const { address, setAddress, navigate, getCartCount, cartItems, products, currency } = useContext(ShopContext);
+  const { address, setAddress, navigate, getCartCount, cartItems, products, productLookup, currency, getCartTotal, getCartSubtotal, getDiscountAmount, appliedCoupon } = useContext(ShopContext);
   const [form, setForm] = useState(address || EMPTY);
   const [errors, setErrors] = useState({});
   const refs = useRef({});
   const [zipLookupMsg, setZipLookupMsg] = useState("");
   const [zipLoading, setZipLoading] = useState(false);
-  const zipAbortRef = useRef(null);
   const [zipValid, setZipValid] = useState(false);
   const zipDebounceRef = useRef(null);
   const [zipResolvedFor, setZipResolvedFor] = useState("");
@@ -41,7 +41,7 @@ export default function Address() {
       for (const size in cartItems[id]) {
         const qty = cartItems[id][size];
         if (qty > 0) {
-          const product = products.find(p => String(p._id) === String(id) || String(p.slug) === String(id));
+          const product = productLookup.get(String(id));
           if (product) {
             const cover = Array.isArray(product.images) ? product.images[0] : (Array.isArray(product.image) ? product.image[0] : product.image) || '';
             out.push({
@@ -59,7 +59,9 @@ export default function Address() {
     return out;
   }, [cartItems, products]);
 
-  const total = useMemo(() => cartList.reduce((sum, item) => sum + (item.price * item.quantity), 0), [cartList]);
+  const subtotal = getCartSubtotal();
+  const discountAmt = getDiscountAmount();
+  const total = getCartTotal();
 
   useEffect(() => {
     if (address) setForm(prev => ({ ...prev, ...address }));
@@ -72,7 +74,7 @@ export default function Address() {
   const onChange = (e) => {
     const { name, value } = e.target;
     setForm(f => ({ ...f, [name]: value }));
-    setErrors(e => ({ ...e, [name]: undefined }));
+    setErrors(prev => ({ ...prev, [name]: undefined }));
     
     if (name === 'zip') {
       const digits = String(value || '').replace(/\D/g, '');
@@ -223,7 +225,13 @@ export default function Address() {
       lines.push(`- ${item.name}${size}${qty}`, `  ${url}`);
     }
     
-    lines.push("", `*Total:* ${currency}${total.toLocaleString('en-IN')}`, "", "*Shipping address:*", "", "*Contact:*");
+    lines.push("");
+    lines.push(`*Subtotal:* ${currency}${subtotal.toLocaleString('en-IN')}`);
+    if (appliedCoupon && discountAmt > 0) {
+      lines.push(`*Discount (${appliedCoupon.code}):* -${currency}${discountAmt.toLocaleString('en-IN')}`);
+    }
+    lines.push(`*Total:* ${currency}${total.toLocaleString('en-IN')}`);
+    lines.push("", "*Shipping address:*", "", "*Contact:*");
     
     const name = `${form.firstName || ''} ${form.lastName || ''}`.trim();
     if (name) lines.push(`Name: ${name}`);
@@ -255,6 +263,7 @@ export default function Address() {
     }
     
     setAddress(form);
+    if (appliedCoupon) recordCouponUsage(appliedCoupon.code);
     const msg = composeMessage();
     const phoneNumber = import.meta.env.VITE_WHATSAPP_PHONE?.replace(/\D/g, '') || "919933778870";
     window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(msg)}`, '_blank');
@@ -276,7 +285,7 @@ export default function Address() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b sticky top-0 z-10">
+      <div className="bg-white border-b">
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <button onClick={() => navigate('/cart')} className="flex items-center gap-2 text-sm text-gray-600 hover:text-black">
@@ -413,24 +422,28 @@ export default function Address() {
                 </div>
 
                 {/* District and State */}
-                {zipValid && (form.district || form.state) && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <Input
-                      value={form.district}
-                      readOnly
-                      placeholder="District"
-                      className="bg-gray-50"
-                    />
-                    <Input
-                      value={form.state}
-                      readOnly
-                      placeholder="State"
-                      className="bg-gray-50"
-                      error={!!errors.state}
-                      errorMessage={errors.state}
-                    />
-                  </div>
-                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Input
+                    ref={el => refs.current.district = el}
+                    name="district"
+                    value={form.district}
+                    onChange={zipValid ? undefined : onChange}
+                    readOnly={zipValid}
+                    placeholder="District"
+                    className={zipValid ? "bg-gray-50" : ""}
+                  />
+                  <Input
+                    ref={el => refs.current.state = el}
+                    name="state"
+                    value={form.state}
+                    onChange={zipValid ? undefined : onChange}
+                    readOnly={zipValid}
+                    placeholder="State *"
+                    className={zipValid ? "bg-gray-50" : ""}
+                    error={!!errors.state}
+                    errorMessage={errors.state}
+                  />
+                </div>
 
                 {/* Country */}
                 <div>
@@ -497,8 +510,14 @@ export default function Address() {
               <div className="border-t mt-4 pt-4 space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Subtotal</span>
-                  <span>{currency}{total.toLocaleString('en-IN')}</span>
+                  <span>{currency}{subtotal.toLocaleString('en-IN')}</span>
                 </div>
+                {appliedCoupon && discountAmt > 0 && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Discount ({appliedCoupon.code})</span>
+                    <span>-{currency}{discountAmt.toLocaleString('en-IN')}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Shipping</span>
                   <span className="text-green-600 font-medium">FREE</span>
@@ -518,7 +537,7 @@ export default function Address() {
       </div>
 
       {/* Mobile Fixed Bottom Button */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t p-4" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 16px)' }}>
+      <div className="lg:hidden fixed bottom-[56px] md:bottom-0 left-0 right-0 bg-white border-t p-4" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 16px)' }}>
         <Button
           onClick={onSubmit}
           disabled={zipLoading}
