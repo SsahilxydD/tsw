@@ -4,6 +4,8 @@ import { ShopContext } from '../context/ShopContext';
 import { assets } from '../assets/assets';
 import { motion, AnimatePresence } from 'framer-motion';
 import SafeImg from './SafeImg';
+import ShippingProgressBar from './ShippingProgressBar';
+import PriceDisplay from './PriceDisplay';
 
 const CartDrawer = () => {
     const {
@@ -236,6 +238,7 @@ const CartDrawer = () => {
                         {/* Footer */}
                         {cartData.length > 0 && (
                             <div className="border-t p-5 bg-gray-50 space-y-4">
+                                <ShippingProgressBar />
                                 {/* Trust Badges */}
                                 <div className="border border-gray-300 rounded-lg p-3 bg-white">
                                     <div className="grid grid-cols-2 gap-2 text-xs">

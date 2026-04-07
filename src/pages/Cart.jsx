@@ -11,6 +11,8 @@ import CartRecommendations from '../components/CartRecommendations';
 import CartStickyBar from '../components/CartStickyBar';
 import { isFootwearProduct, toUKLabel } from '../utils/size';
 import SafeImg from '../components/SafeImg';
+import ShippingProgressBar from '../components/ShippingProgressBar';
+import PriceDisplay from '../components/PriceDisplay';
 import Button from '../components/Button';
 import Input from '../components/Input';
 import CartItemSkeleton from '../components/CartItemSkeleton';
@@ -222,6 +224,8 @@ const Cart = () => {
           })
         )}
       </div>
+
+      <ShippingProgressBar />
 
       <div className='mt-8 grid sm:grid-cols-2 gap-4'>
         <Accordion title="Apply Coupon">
