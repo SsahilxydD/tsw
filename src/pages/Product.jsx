@@ -303,9 +303,6 @@ export default function Product() {
     );
   }
 
-  const discountPercent = product.mrp && product.price && product.mrp > product.price 
-    ? Math.round(((product.mrp - product.price) / product.mrp) * 100)
-    : 0;
 
   return (
     <motion.div

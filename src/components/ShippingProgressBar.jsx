@@ -4,7 +4,7 @@ import { ShopContext } from '../context/ShopContext';
 const FREE_SHIPPING_THRESHOLD = 999;
 
 export default function ShippingProgressBar() {
-  const { getCartSubtotal } = useContext(ShopContext);
+  const { getCartSubtotal, currency } = useContext(ShopContext);
   const subtotal = getCartSubtotal();
   const remaining = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
   const progress = Math.min(100, (subtotal / FREE_SHIPPING_THRESHOLD) * 100);
@@ -23,7 +23,7 @@ export default function ShippingProgressBar() {
         </div>
       ) : (
         <p className="text-xs text-gray-600 mb-1.5">
-          Add <span className="font-semibold text-gray-900">₹{remaining.toLocaleString('en-IN')}</span> more for <span className="font-semibold text-green-600">FREE shipping</span>
+          Add <span className="font-semibold text-gray-900">{currency}{remaining.toLocaleString('en-IN')}</span> more for <span className="font-semibold text-green-600">FREE shipping</span>
         </p>
       )}
       <div className="h-1.5 rounded-full bg-gray-200 overflow-hidden">

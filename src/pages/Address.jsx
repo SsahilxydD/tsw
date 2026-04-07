@@ -7,7 +7,6 @@ import Loading from "../components/Loading";
 import { safeFetchRaw, handleError } from "../utils/errorHandler";
 import ErrorMessage from "../components/ErrorMessage";
 import { validateName, validateNameRequired, validatePhone, validateEmail, validateAddress, validateCity, validateState, validateZip } from "../utils/validation";
-import { recordCouponUsage } from "../utils/coupons";
 
 const EMPTY = {
   firstName: "",
@@ -57,7 +56,7 @@ export default function Address() {
       }
     }
     return out;
-  }, [cartItems, products]);
+  }, [cartItems, productLookup]);
 
   const subtotal = getCartSubtotal();
   const discountAmt = getDiscountAmount();
@@ -263,7 +262,6 @@ export default function Address() {
     }
     
     setAddress(form);
-    if (appliedCoupon) recordCouponUsage(appliedCoupon.code);
     const msg = composeMessage();
     const phoneNumber = import.meta.env.VITE_WHATSAPP_PHONE?.replace(/\D/g, '') || "919933778870";
     window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(msg)}`, '_blank');

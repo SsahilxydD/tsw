@@ -1,12 +1,12 @@
 import { createContext, useEffect, useRef, useState, useCallback, useMemo } from "react";
-import { isJeansProduct, isFootwearProduct, normalizeJeansSizes, uniqueUKLabels, toUKLabel } from "../utils/size";
+import { isJeansProduct, isFootwearProduct, normalizeJeansSizes, uniqueUKLabels } from "../utils/size";
 import { useNavigate } from "react-router-dom";
 import { safeFetch, safeLocalStorage, handleError } from "../utils/errorHandler";
 import { loadCart, saveCart, setupCartSync, clearCart } from "../utils/cartPersistence";
 import { loadWishlist, saveWishlist, setupWishlistSync, clearWishlist } from "../utils/wishlistPersistence";
-import { loadRecentlyViewed, saveRecentlyViewed, setupRecentlyViewedSync, addToRecentlyViewed, getRecentlyViewedProductIds } from "../utils/recentlyViewedPersistence";
+import { loadRecentlyViewed, saveRecentlyViewed, setupRecentlyViewedSync, addToRecentlyViewed } from "../utils/recentlyViewedPersistence";
 import { validateCoupon, calculateDiscount } from "../utils/coupons";
-import { loadReviews, addReview, getProductReviews, getProductRating, markReviewHelpful, generateReviewId } from "../utils/reviewPersistence";
+import { loadReviews, addReview, markReviewHelpful, generateReviewId } from "../utils/reviewPersistence";
 
 export const ShopContext = createContext();
 
@@ -38,11 +38,11 @@ const ShopContextProvider = (props) => {
   const [notice, setNotice] = useState(null);
   const noticeTimerRef = useRef(null);
 
-  const notify = (msg) => {
+  const notify = useCallback((msg) => {
     try { if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current); } catch { }
     setNotice({ id: Date.now(), msg: String(msg || '') });
     noticeTimerRef.current = setTimeout(() => setNotice(null), 2000);
-  };
+  }, []);
 
   // Cleanup notice timer on unmount to prevent memory leak
   useEffect(() => {
@@ -425,8 +425,8 @@ const ShopContextProvider = (props) => {
   // Setup cross-tab cart synchronization
   useEffect(() => {
     const cleanup = setupCartSync((newCartData) => {
-      // Only update if cart data actually changed (avoid infinite loops)
-      // Use a ref to track the last synced cart to prevent loops
+      // Validate incoming data before applying
+      if (!newCartData || typeof newCartData !== 'object' || Array.isArray(newCartData)) return;
       setCartItems((prevCartItems) => {
         const prevStr = JSON.stringify(prevCartItems);
         const newStr = JSON.stringify(newCartData);
@@ -443,6 +443,8 @@ const ShopContextProvider = (props) => {
   // Setup cross-tab wishlist synchronization
   useEffect(() => {
     const cleanup = setupWishlistSync((newWishlistData) => {
+      // Validate incoming data before applying
+      if (!Array.isArray(newWishlistData)) return;
       setWishlist((prevWishlist) => {
         const prevStr = JSON.stringify(prevWishlist);
         const newStr = JSON.stringify(newWishlistData);
@@ -464,6 +466,8 @@ const ShopContextProvider = (props) => {
   // Setup cross-tab recently viewed synchronization
   useEffect(() => {
     const cleanup = setupRecentlyViewedSync((newRecentlyViewedData) => {
+      // Validate incoming data before applying
+      if (!Array.isArray(newRecentlyViewedData)) return;
       setRecentlyViewed((prevRecentlyViewed) => {
         const prevStr = JSON.stringify(prevRecentlyViewed);
         const newStr = JSON.stringify(newRecentlyViewedData);
@@ -479,7 +483,7 @@ const ShopContextProvider = (props) => {
 
   const MAX_ITEM_QTY = 10;
 
-  const addToCart = (itemId, size) => {
+  const addToCart = (itemId, size, silent = false) => {
     if (!size) { notify('Select product size'); return; }
     let cartData = structuredClone(cartItems);
     if (cartData[itemId]) {
@@ -490,8 +494,10 @@ const ShopContextProvider = (props) => {
       cartData[itemId] = { [size]: 1 };
     }
     setCartItems(cartData);
-    setIsCartOpen(true);
-    notify('Added to bag');
+    if (!silent) {
+      setIsCartOpen(true);
+      notify('Added to bag');
+    }
   }
 
   const updateQuantity = (itemId, size, quantity) => {
@@ -526,11 +532,11 @@ const ShopContextProvider = (props) => {
     }
   }
 
-  const removeFromWishlist = (productId) => {
+  const removeFromWishlist = (productId, silent = false) => {
     const pid = String(productId);
     const newWishlist = wishlist.filter(id => id !== pid);
     setWishlist(newWishlist);
-    notify('Removed from wishlist');
+    if (!silent) notify('Removed from wishlist');
   }
 
   const toggleWishlist = (productId) => {
@@ -547,8 +553,8 @@ const ShopContextProvider = (props) => {
   const getWishlistCount = useCallback(() => wishlist.length, [wishlist]);
 
   const moveToCart = (productId, size = 'std') => {
-    removeFromWishlist(productId);
-    addToCart(productId, size);
+    removeFromWishlist(productId, true);
+    addToCart(productId, size, true);
     notify('Moved to cart');
   }
 
@@ -607,7 +613,7 @@ const ShopContextProvider = (props) => {
     // Build cart items array for category checking
     const cartItemsArray = [];
     for (const items in cartItems) {
-      const itemInfo = products.find((product) => product._id === items || product.slug === items);
+      const itemInfo = productLookup.get(items);
       if (itemInfo) {
         for (const item in cartItems[items]) {
           if (cartItems[items][item] > 0) {
@@ -653,7 +659,7 @@ const ShopContextProvider = (props) => {
       authorEmail: reviewData.authorEmail,
       date: new Date().toISOString(),
       helpfulCount: 0,
-      verified: false, // Could be set to true if user has purchased the product
+      verified: false,
       status: 'approved'
     };
 
@@ -669,8 +675,21 @@ const ShopContextProvider = (props) => {
     }
   }
 
-  const getReviewsForProduct = useCallback((productId) => getProductReviews(String(productId)), []);
-  const getRatingForProduct = useCallback((productId) => getProductRating(String(productId)), []);
+  const getReviewsForProduct = useCallback((productId) => {
+    const pid = String(productId);
+    return reviews.filter(r => r.productId === pid && r.status === 'approved');
+  }, [reviews]);
+
+  const getRatingForProduct = useCallback((productId) => {
+    const pid = String(productId);
+    const productReviews = reviews.filter(r => r.productId === pid && r.status === 'approved');
+    if (productReviews.length === 0) return { average: 0, count: 0 };
+    const sum = productReviews.reduce((acc, r) => acc + r.rating, 0);
+    return {
+      average: Math.round((sum / productReviews.length) * 10) / 10,
+      count: productReviews.length
+    };
+  }, [reviews]);
 
   const markHelpful = (reviewId) => {
     const result = markReviewHelpful(reviewId);
@@ -695,21 +714,18 @@ const ShopContextProvider = (props) => {
   }, []);
 
   const getRecentlyViewedProducts = useCallback(() => {
-    // Use recentlyViewed state instead of reading from localStorage directly
     const productIds = recentlyViewed.map(item => item.productId);
-    if (!Array.isArray(products) || productIds.length === 0) return [];
-    
-    // Get products in order of most recently viewed
-    const viewedProducts = productIds
-      .map(id => products.find(p => String(p._id) === id || String(p.slug) === id))
-      .filter(Boolean); // Remove undefined products
-    
-    return viewedProducts;
-  }, [products, recentlyViewed]);
+    if (productLookup.size === 0 || productIds.length === 0) return [];
 
-  const value = {
+    // Use productLookup Map for O(1) lookups instead of find() per item
+    return productIds
+      .map(id => productLookup.get(id))
+      .filter(Boolean);
+  }, [productLookup, recentlyViewed]);
+
+  const value = useMemo(() => ({
     currency, delivery_fee,
-    products, loadingProducts,
+    products, productLookup, loadingProducts,
     navigate,
     notice, notify,
     address, setAddress,
@@ -727,7 +743,17 @@ const ShopContextProvider = (props) => {
     submitReview, getReviewsForProduct, getRatingForProduct, markHelpful,
     recentlyViewed,
     trackProductView, getRecentlyViewedProducts
-  }
+  }), [
+    currency, delivery_fee, products, productLookup, loadingProducts,
+    navigate, notice, notify, address, search, showSearch,
+    addToCart, updateQuantity, clearCartItems, cartItems,
+    getCartCount, getCartAmount, getCartSubtotal, getCartTotal,
+    getDiscountAmount, applyCoupon, removeCoupon, appliedCoupon,
+    isCartOpen, wishlist, addToWishlist, removeFromWishlist, toggleWishlist,
+    isInWishlist, getWishlistCount, moveToCart, clearWishlistItems,
+    reviews, submitReview, getReviewsForProduct, getRatingForProduct, markHelpful,
+    recentlyViewed, trackProductView, getRecentlyViewedProducts
+  ]);
 
   return (
     <ShopContext.Provider value={value}>

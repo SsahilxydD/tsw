@@ -287,8 +287,8 @@ const Cart = () => {
         </Accordion>
       </div>
 
-      {/* Primary action placed beneath coupon section */}
-      <div className='mt-6 flex justify-center'>
+      {/* Primary checkout action is the CartStickyBar on mobile, this button for desktop */}
+      <div className='mt-6 hidden md:flex justify-center'>
         <Button
           type='button'
           disabled={cartData.length === 0}
