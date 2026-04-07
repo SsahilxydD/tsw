@@ -338,7 +338,7 @@ export default function Product() {
       />
 
       {/* Product Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-12">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-12">
         
         {/* Gallery */}
         <motion.div variants={slideUp} className="space-y-4">

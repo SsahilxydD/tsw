@@ -63,7 +63,7 @@ const Contact = () => {
             <p className='text-gray-600 text-sm mt-2'>Questions about fit, shipping, or a product? Drop us a note and we’ll get back quickly.</p>
           </div>
 
-          <div className='grid sm:grid-cols-2 gap-4 text-sm animate-soft-reveal' style={{animationDelay:'80ms'}}>
+          <div className='grid grid-cols-2 gap-4 text-sm animate-soft-reveal' style={{animationDelay:'80ms'}}>
             <div className='border rounded-md p-4 bg-white'>
               <p className='text-gray-500'>WhatsApp</p>
               <p className='font-medium mt-1'>+91 99337 78870</p>

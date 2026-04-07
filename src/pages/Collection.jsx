@@ -190,10 +190,10 @@ const Collection = () => {
 
   return (
     <div className="pt-10 border-t pb-20 md:pb-0">
-      <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row gap-6">
+      <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row gap-6">
         {/* LEFT: Desktop filters */}
         {hasSizes && (
-          <aside className="min-w-60 hidden sm:block">
+          <aside className="md:min-w-60 hidden md:block">
             <p className="my-2 text-xl">FILTERS</p>
             <div className="border border-gray-300 p-4 mt-4">
               <p className="mb-3 text-sm font-medium">SIZE</p>
@@ -210,7 +210,7 @@ const Collection = () => {
         {/* RIGHT */}
         <section className="flex-1">
           {/* Mobile toolbar */}
-          <div className="sm:hidden sticky z-10 bg-white/95 backdrop-blur border-b -mx-4 px-4 py-2 mb-4" style={{ top: stickyTop }}>
+          <div className="md:hidden sticky z-10 bg-white/95 backdrop-blur border-b -mx-4 px-4 py-2 mb-4" style={{ top: stickyTop }}>
             {/* Search bar (expandable) */}
             {showLocalSearch ? (
               <div className="flex items-center gap-2">
@@ -274,7 +274,7 @@ const Collection = () => {
           </div>
 
           {/* Desktop header */}
-          <div className="hidden sm:block mb-4">
+          <div className="hidden md:block mb-4">
             <div className="flex justify-between items-center text-base sm:text-2xl">
               <Title text1={"ALL"} text2={"PRODUCTS"} />
               <div className="flex items-center gap-3">

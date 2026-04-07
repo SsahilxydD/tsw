@@ -36,7 +36,7 @@ const About = () => {
         <div className='text-center mb-6'>
           <Title text1={'WHAT'} text2={'WE BELIEVE'} />
         </div>
-        <div className='grid md:grid-cols-3 gap-6 text-sm'>
+        <div className='grid sm:grid-cols-2 md:grid-cols-3 gap-6 text-sm'>
           <div className='border rounded-md p-6 bg-white animate-soft-reveal'>
             <h3 className='font-semibold mb-2'>Fewer, Better</h3>
             <p className='text-gray-600'>We ship fewer styles, but we obsess over the details—fabric, stitching, feel and fit.</p>
@@ -57,7 +57,7 @@ const About = () => {
         <div className='text-center mb-6'>
           <Title text1={'HOW'} text2={'WE WORK'} />
         </div>
-        <div className='grid md:grid-cols-3 gap-6 text-sm'>
+        <div className='grid sm:grid-cols-2 md:grid-cols-3 gap-6 text-sm'>
           <div className='border rounded-md p-6 bg-white animate-soft-reveal'>
             <p className='text-gray-400 text-xs'>01</p>
             <h4 className='font-semibold mt-1 mb-2'>Curate</h4>
