@@ -50,8 +50,13 @@ export default {
       animation: {
         'fade-in': 'fadeIn 0.3s ease-out forwards',
         'slide-up': 'slideUp 0.3s ease-out forwards',
+        'pulse-subtle': 'pulseSubtle 2s ease-in-out infinite',
       },
       keyframes: {
+        pulseSubtle: {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.7' },
+        },
         fadeIn: {
           '0%': { opacity: '0.8' },
           '100%': { opacity: '1' },

@@ -439,34 +439,16 @@ export default function Product() {
             className="mt-2 text-lg sm:text-xl font-medium text-gray-900 leading-relaxed"
           >
             {product.name || product.title || ""}
-            <UrgencyBadge
-              productId={product._id || product.slug}
-              bestseller={product.bestseller}
-              discounted={product.categoryRaw === 'Discounted'}
-              className="text-xs ml-2"
-            />
           </motion.h1>
+          <UrgencyBadge
+            productId={product._id || product.slug}
+            bestseller={product.bestseller}
+            discounted={product.categoryRaw === 'Discounted'}
+          />
 
           {/* Price Block */}
-          <motion.div variants={fadeInUp} className="mt-4 flex items-baseline gap-3 flex-wrap">
-            <span className="text-xl sm:text-2xl font-bold text-gray-900">
-              {currency}{Number(product.price).toLocaleString()}
-            </span>
-            {discountPercent > 0 && (
-              <>
-                <span className="text-sm text-gray-400 line-through">
-                  {currency}{Number(product.mrp).toLocaleString()}
-                </span>
-                <motion.span 
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: "spring", stiffness: 500, delay: 0.3 }}
-                  className="px-2 py-0.5 text-xs font-semibold bg-green-100 text-green-700 rounded"
-                >
-                  {discountPercent}% OFF
-                </motion.span>
-              </>
-            )}
+          <motion.div variants={fadeInUp} className="mt-4">
+            <PriceDisplay price={product.price} mrp={product.mrp} currency={currency} />
           </motion.div>
 
           {/* Rating Display */}
