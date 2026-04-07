@@ -182,7 +182,7 @@ const Cart = () => {
                         </div>
                       )}
                       <div className='px-2 py-1 text-sm font-semibold border rounded-md bg-white w-fit'>
-                        {currency}{productData?.price || 0}
+                        <PriceDisplay price={productData?.price} mrp={productData?.mrp} currency={currency} compact />
                       </div>
                     </div>
                   </div>

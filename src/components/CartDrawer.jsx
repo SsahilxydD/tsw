@@ -200,7 +200,7 @@ const CartDrawer = () => {
                                                     </div>
                                                     <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
                                                         <span className="px-2 py-0.5 border rounded bg-gray-50">{String(item.size).replace(/^UK-/, '')}</span>
-                                                        <span>{currency}{productData.price}</span>
+                                                        <PriceDisplay price={productData.price} mrp={productData.mrp} currency={currency} compact />
                                                     </div>
                                                 </div>
 
