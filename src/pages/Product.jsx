@@ -577,7 +577,7 @@ export default function Product() {
           )}
 
           {/* CTA Buttons */}
-          <motion.div variants={fadeInUp} className="mt-8 flex gap-3">
+          <motion.div variants={fadeInUp} className="mt-8 flex flex-col sm:flex-row gap-3">
             <motion.button
               whileHover={{ scale: 1.02, boxShadow: "0 4px 20px rgba(0,0,0,0.15)" }}
               whileTap={{ scale: 0.98 }}

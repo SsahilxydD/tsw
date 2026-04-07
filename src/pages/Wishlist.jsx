@@ -64,7 +64,7 @@ const Wishlist = () => {
         type="website"
       />
       <div className="max-w-6xl mx-auto px-4 pt-12 sm:pt-16 pb-20 md:pb-16">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8">
           <Title text1="MY" text2="WISHLIST" />
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-600">

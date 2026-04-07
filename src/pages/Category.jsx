@@ -558,7 +558,7 @@ const Category = () => {
 
           {isEmpty && <p className="text-sm text-gray-500 mb-6">No products match your filters.</p>}
 
-          <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4 lg:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4 lg:gap-6">
             {list.slice(0, visibleCount).map((item, index) => (
               <ProductItem
                 key={item._id || item.id || item.slug || index}

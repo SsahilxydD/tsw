@@ -16,7 +16,7 @@ const Login = () => {
             <p className='text-gray-600 text-center max-w-sm'>
                 We're working on user accounts. For now, all orders are placed directly via WhatsApp — no login needed.
             </p>
-            <div className='flex gap-3 mt-4'>
+            <div className='flex flex-col sm:flex-row gap-3 mt-4'>
                 <Button onClick={() => navigate('/collection')}>
                     Browse Collection
                 </Button>

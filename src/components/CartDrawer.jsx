@@ -11,6 +11,7 @@ const CartDrawer = () => {
         setIsCartOpen,
         cartItems,
         products,
+        productLookup,
         currency,
         updateQuantity,
         getCartAmount, getCartTotal, getCartSubtotal, getDiscountAmount, appliedCoupon,
@@ -32,6 +33,16 @@ const CartDrawer = () => {
             previousActiveElement.current?.focus();
         }
     }, [isCartOpen]);
+
+    // Close on Escape key
+    useEffect(() => {
+        if (!isCartOpen) return;
+        const handleEsc = (e) => {
+            if (e.key === 'Escape') setIsCartOpen(false);
+        };
+        document.addEventListener('keydown', handleEsc);
+        return () => document.removeEventListener('keydown', handleEsc);
+    }, [isCartOpen, setIsCartOpen]);
 
     // Trap focus within drawer when open
     useEffect(() => {
@@ -139,7 +150,7 @@ const CartDrawer = () => {
                                 </div>
                             ) : (
                                 cartData.map((item, index) => {
-                                    const productData = products.find((product) => product._id === item._id);
+                                    const productData = productLookup.get(item._id);
                                     if (!productData) return null;
 
                                     // Handle different image formats
@@ -186,7 +197,7 @@ const CartDrawer = () => {
                                                         </button>
                                                     </div>
                                                     <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-                                                        <span className="px-2 py-0.5 border rounded bg-gray-50">{item.size}</span>
+                                                        <span className="px-2 py-0.5 border rounded bg-gray-50">{String(item.size).replace(/^UK-/, '')}</span>
                                                         <span>{currency}{productData.price}</span>
                                                     </div>
                                                 </div>
@@ -195,7 +206,7 @@ const CartDrawer = () => {
                                                     <div className="flex items-center border rounded">
                                                         <button
                                                             onClick={() => updateQuantity(item._id, item.size, item.quantity - 1)}
-                                                            className="px-2 py-1 hover:bg-gray-50 text-gray-600 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                                                            className="px-2 py-1 hover:bg-gray-50 text-gray-600 min-w-[36px] min-h-[36px] sm:min-w-[44px] sm:min-h-[44px] flex items-center justify-center"
                                                             disabled={item.quantity === 1}
                                                             aria-label={`Decrease quantity of ${productData.name}, size ${item.size}`}
                                                         >
@@ -204,7 +215,8 @@ const CartDrawer = () => {
                                                         <span className="px-2 text-sm font-medium w-8 text-center" aria-label={`Quantity: ${item.quantity}`}>{item.quantity}</span>
                                                         <button
                                                             onClick={() => updateQuantity(item._id, item.size, item.quantity + 1)}
-                                                            className="px-2 py-1 hover:bg-gray-50 text-gray-600 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                                                            className={`px-2 py-1 min-w-[36px] min-h-[36px] sm:min-w-[44px] sm:min-h-[44px] flex items-center justify-center ${item.quantity >= 10 ? 'text-gray-300 cursor-not-allowed' : 'hover:bg-gray-50 text-gray-600'}`}
+                                                            disabled={item.quantity >= 10}
                                                             aria-label={`Increase quantity of ${productData.name}, size ${item.size}`}
                                                         >
                                                             <span aria-hidden="true">+</span>

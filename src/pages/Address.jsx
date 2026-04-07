@@ -307,7 +307,7 @@ export default function Address() {
               
               <form onSubmit={onSubmit} className="space-y-4">
                 {/* Name */}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Input
                       ref={el => refs.current.firstName = el}

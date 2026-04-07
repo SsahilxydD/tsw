@@ -25,7 +25,7 @@ const Orders = () => {
         <p className="text-sm text-gray-500 mb-8 max-w-md mx-auto">
           For existing order tracking, please contact us on WhatsApp.
         </p>
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <Button onClick={() => navigate('/collection')}>
             Start Shopping
           </Button>

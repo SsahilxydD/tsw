@@ -18,7 +18,7 @@ function tokens(str) {
 }
 
 export default function CartRecommendations() {
-  const { products, cartItems } = useContext(ShopContext);
+  const { products, productLookup, cartItems } = useContext(ShopContext);
   const [list, setList] = useState([]);
   const usedIdsRef = useRef(new Set());
   const relatedPoolRef = useRef([]);
@@ -43,7 +43,7 @@ export default function CartRecommendations() {
       const cached = sessionStorage.getItem(cacheKey);
       if (cached) {
         const ids = JSON.parse(cached);
-        const arr = ids.map(id => products.find(p => String(p._id ?? p.slug) === id)).filter(Boolean);
+        const arr = ids.map(id => productLookup.get(id)).filter(Boolean);
         if (arr.length > 0) {
           setList(arr);
           usedIdsRef.current = new Set(ids);
@@ -55,7 +55,7 @@ export default function CartRecommendations() {
           const catCount = new Map();
           const bagTokens = new Set();
           for (const id of bagIds) {
-            const p = products.find(pr => String(pr._id ?? pr.slug) === String(id));
+            const p = productLookup.get(String(id));
             if (p) {
               const cat = (p.categoryRaw || p.category || '').toLowerCase();
               if (cat) catCount.set(cat, (catCount.get(cat) || 0) + 1);
@@ -85,7 +85,7 @@ export default function CartRecommendations() {
     const catCount = new Map();
     const bagTokens = new Set();
     for (const id of bagIds) {
-      const p = products.find(pr => String(pr._id ?? pr.slug) === String(id));
+      const p = productLookup.get(String(id));
       if (p) {
         const cat = (p.categoryRaw || p.category || '').toLowerCase();
         if (cat) catCount.set(cat, (catCount.get(cat) || 0) + 1);
@@ -153,7 +153,7 @@ export default function CartRecommendations() {
     randomPoolRef.current = rndRemain.filter(id => !usedIdsRef.current.has(id));
     const anchorBefore = rootRef.current ? (rootRef.current.getBoundingClientRect().top + window.scrollY) : null;
     const moreProducts = ids
-      .map(id => products.find(p => String(p._id ?? p.slug) === id))
+      .map(id => productLookup.get(id))
       .filter(Boolean);
     const nextList = [...list, ...moreProducts];
     setList(nextList);
@@ -175,7 +175,7 @@ export default function CartRecommendations() {
       <div className="flex items-center justify-between">
         <Title text1={"YOU MAY ALSO"} text2={"LIKE"} />
       </div>
-      <div className="mt-4 grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4 lg:gap-6">
+      <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4 lg:gap-6">
         {list.map((item, index) => (
           <ProductItem
             key={item._id || item.slug || index}
