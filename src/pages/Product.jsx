@@ -17,6 +17,7 @@ import Accordion from "../components/Accordion";
 import RecentlyViewed from "../components/RecentlyViewed";
 import SizeGuide from "../components/SizeGuide";
 import { selectRelatedProducts } from "../utils/related";
+import StickyATC from '../components/StickyATC';
 
 // --- Animation Variants ---
 const pageVariants = {
@@ -810,6 +811,12 @@ export default function Product() {
         isOpen={isSizeGuideOpen}
         onClose={() => setIsSizeGuideOpen(false)}
         product={product}
+      />
+
+      <StickyATC
+        priceText={`${currency}${product.price?.toLocaleString('en-IN') || 0}`}
+        disabled={hasSizes && !selectedSize}
+        onClick={handleAdd}
       />
     </motion.div>
   );

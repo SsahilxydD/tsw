@@ -522,7 +522,7 @@ const Category = () => {
                     >
                       <div className="relative aspect-[5/4] overflow-hidden bg-white">
                         <div className="absolute inset-0 grid place-content-center text-center px-4">
-                          <h3 className={`prata-regular text-base sm:text-lg px-1 ${subFilter===sc.key ? 'text-red-600' : 'text-gray-800'}`}>{sc.display}</h3>
+                          <h3 className={`font-serif text-base sm:text-lg px-1 ${subFilter===sc.key ? 'text-red-600' : 'text-gray-800'}`}>{sc.display}</h3>
                           <div className="mt-2 h-px w-8 bg-gray-300 mx-auto" />
                           <p className="mt-2 text-xs text-gray-500">{sc.count} items</p>
                         </div>
@@ -544,7 +544,7 @@ const Category = () => {
                     >
                       <div className="relative aspect-[5/4] overflow-hidden bg-white">
                         <div className="absolute inset-0 grid place-content-center text-center px-4">
-                          <h3 className={`prata-regular text-base sm:text-lg px-1 ${subFilter===sc.key ? 'text-red-600' : 'text-gray-800'}`}>{sc.display}</h3>
+                          <h3 className={`font-serif text-base sm:text-lg px-1 ${subFilter===sc.key ? 'text-red-600' : 'text-gray-800'}`}>{sc.display}</h3>
                           <div className="mt-2 h-px w-8 bg-gray-300 mx-auto" />
                           <p className="mt-2 text-xs text-gray-500">{sc.count} items</p>
                         </div>

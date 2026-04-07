@@ -122,7 +122,7 @@ const CartDrawer = () => {
                     >
                         {/* Header */}
                         <div className="flex items-center justify-between p-5 border-b">
-                            <h2 id="cart-title" className="text-xl font-medium prata-regular">Shopping Cart ({cartData.length})</h2>
+                            <h2 id="cart-title" className="text-xl font-medium font-serif">Shopping Cart ({cartData.length})</h2>
                             <button
                                 ref={closeButtonRef}
                                 onClick={() => setIsCartOpen(false)}

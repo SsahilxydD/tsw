@@ -91,7 +91,7 @@ const CategoryCard = ({ name, count, image, i }) => {
             {/* Text overlay pinned to bottom */}
             <div className="absolute inset-x-0 bottom-0 px-3 pb-3 pt-6 text-center">
               <h3
-                className={`prata-regular text-sm sm:text-base drop-shadow-sm ${isDiscounted ? 'text-red-300' : 'text-white'}`}
+                className={`font-serif text-sm sm:text-base drop-shadow-sm ${isDiscounted ? 'text-red-300' : 'text-white'}`}
                 style={titleClampStyle}
               >
                 {display}
@@ -104,7 +104,7 @@ const CategoryCard = ({ name, count, image, i }) => {
           /* Fallback: text-only card when no image is available */
           <div className="absolute inset-0 grid place-content-center text-center px-2 bg-white">
             <h3
-              className={`prata-regular text-sm sm:text-base px-1 ${isDiscounted ? 'text-red-600' : 'text-gray-800'}`}
+              className={`font-serif text-sm sm:text-base px-1 ${isDiscounted ? 'text-red-600' : 'text-gray-800'}`}
               style={titleClampStyle}
             >
               {display}

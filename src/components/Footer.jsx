@@ -49,7 +49,7 @@ const Footer = () => {
                 <a href={`tel:+${import.meta.env.VITE_WHATSAPP_PHONE?.replace(/\D/g, '') || '919933778870'}`} className="hover:text-white transition-colors">{import.meta.env.VITE_WHATSAPP_PHONE || '+91 99337 78870'}</a>
               </li>
               <li>
-                <a href="mailto:thesolowardrobe@gmail.com" className="hover:text-white transition-colors break-all">thesolowardrobe@gmail.com</a>
+                <a href="mailto:thesolowardrobe@gmail.com" className="hover:text-white transition-colors break-words">thesolowardrobe@gmail.com</a>
               </li>
             </ul>
           </div>

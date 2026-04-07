@@ -30,7 +30,7 @@ const Hero = () => {
       {/* Text overlay — bottom-center on mobile, bottom-left on desktop */}
       <div className="absolute bottom-0 left-0 right-0 px-6 pb-12 sm:pb-16 md:pb-20 sm:px-12 lg:px-20">
         <div className="max-w-xl text-center sm:text-left animate-slide-up">
-          <h1 className="prata-regular text-3xl sm:text-4xl md:text-4xl text-white leading-tight tracking-tight">
+          <h1 className="font-serif text-3xl sm:text-4xl md:text-4xl text-white leading-tight tracking-tight">
             Curated Drops, Honest Prices
           </h1>
 

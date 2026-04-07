@@ -8,7 +8,7 @@ import QuantityStepper from '../components/QuantityStepper';
 import CartSteps from '../components/CartSteps';
 import Accordion from '../components/Accordion';
 import CartRecommendations from '../components/CartRecommendations';
-// import CartStickyBar from '../components/CartStickyBar';
+import CartStickyBar from '../components/CartStickyBar';
 import { isFootwearProduct, toUKLabel } from '../utils/size';
 import SafeImg from '../components/SafeImg';
 import Button from '../components/Button';
@@ -158,11 +158,11 @@ const Cart = () => {
               >
                 <Link to={`/product/${item._id}`} className="shrink-0">
                   <SafeImg
-                    className='w-20 h-20 rounded-md object-cover border hover:opacity-80 transition-opacity'
+                    className='w-16 h-16 sm:w-20 sm:h-20 rounded-md object-cover border hover:opacity-80 transition-opacity'
                     src={cover || '/placeholder-image.png'}
                     alt={productData?.name || 'Product'}
-                    width={80}
-                    height={80}
+                    width={64}
+                    height={64}
                     quality={85}
                   />
                 </Link>
@@ -184,18 +184,21 @@ const Cart = () => {
                       </div>
                     </div>
                   </div>
-                  <div className='mt-3 hidden sm:flex items-center gap-6 text-xs text-gray-500'>
-                    <Button variant="link" size="sm" onClick={() => requestRemove(item._id, item.size)} className="text-xs">Remove</Button>
-                    <Button 
-                      variant="link" 
-                      size="sm" 
+                  <div className='mt-3 flex items-center gap-6 text-xs text-gray-500'>
+                    <Button variant="link" size="sm" onClick={() => requestRemove(item._id, item.size)} className="text-xs hidden sm:inline-flex">Remove</Button>
+                    <Button
+                      variant="link"
+                      size="sm"
                       onClick={() => {
                         addToWishlist(item._id);
                         updateQuantity(item._id, item.size, 0);
                       }}
                       className="text-xs"
                     >
-                      Move to wishlist
+                      <span className="hidden sm:inline">Move to wishlist</span>
+                      <svg className="w-4 h-4 sm:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                      </svg>
                     </Button>
                   </div>
                 </div>
@@ -294,6 +297,12 @@ const Cart = () => {
       {/* Totals removed from My Bag (shown on Payment step) */}
 
       <CartRecommendations />
+
+      <CartStickyBar
+        buttonText="CHECKOUT"
+        onClick={() => navigate('/address')}
+        disabled={cartData.length === 0}
+      />
     </div>
   )
 }
