@@ -20,6 +20,7 @@ import { selectRelatedProducts } from "../utils/related";
 import StickyATC from '../components/StickyATC';
 import PriceDisplay from '../components/PriceDisplay';
 import UrgencyBadge from '../components/UrgencyBadge';
+import ShareButton from '../components/ShareButton';
 
 // --- Animation Variants ---
 const pageVariants = {
@@ -614,6 +615,8 @@ export default function Product() {
               </svg>
             </motion.button>
           </motion.div>
+
+          <ShareButton product={product} currency={currency} />
 
           {/* Trust Badges */}
           <motion.div 
