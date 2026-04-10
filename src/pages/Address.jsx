@@ -534,8 +534,11 @@ export default function Address() {
         </div>
       </div>
 
-      {/* Mobile Fixed Bottom Button */}
-      <div className="lg:hidden fixed bottom-[56px] md:bottom-0 left-0 right-0 bg-white border-t p-4" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 16px)' }}>
+      {/* Mobile Fixed Bottom Button - sits above BottomDock (56px + safe-area) on mobile, flush at md+ where dock is hidden */}
+      <div
+        className="lg:hidden fixed bottom-[calc(56px_+_env(safe-area-inset-bottom))] md:bottom-0 left-0 right-0 z-[57] bg-white border-t p-4"
+        style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 16px)' }}
+      >
         <Button
           onClick={onSubmit}
           disabled={zipLoading}
@@ -557,8 +560,8 @@ export default function Address() {
         </Button>
       </div>
 
-      {/* Bottom padding for mobile fixed button */}
-      <div className="lg:hidden h-24"></div>
+      {/* Bottom padding for mobile fixed button (CTA wrapper ~89px + dock 56px + safe-area) */}
+      <div className="lg:hidden h-[calc(145px_+_env(safe-area-inset-bottom))] md:h-[90px]"></div>
     </div>
   );
 }
