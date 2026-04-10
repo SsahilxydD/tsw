@@ -534,9 +534,9 @@ export default function Address() {
         </div>
       </div>
 
-      {/* Mobile Fixed Bottom Button - sits above BottomDock (56px + safe-area) on mobile, flush at md+ where dock is hidden */}
+      {/* Mobile Fixed Bottom Button — BottomDock is hidden on /address (see App.jsx), so this sits flush at the viewport bottom */}
       <div
-        className="lg:hidden fixed bottom-[calc(56px_+_env(safe-area-inset-bottom))] md:bottom-0 left-0 right-0 z-[57] bg-white border-t p-4"
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-[60] bg-white border-t p-4"
         style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 16px)' }}
       >
         <Button
@@ -560,8 +560,11 @@ export default function Address() {
         </Button>
       </div>
 
-      {/* Bottom padding for mobile fixed button (CTA wrapper ~89px + dock 56px + safe-area) */}
-      <div className="lg:hidden h-[calc(145px_+_env(safe-area-inset-bottom))] md:h-[90px]"></div>
+      {/* Spacer so the last form field isn't hidden behind the sticky CTA (wrapper ~89px + safe-area) */}
+      <div
+        className="lg:hidden"
+        style={{ height: 'calc(89px + max(env(safe-area-inset-bottom), 16px))' }}
+      ></div>
     </div>
   );
 }

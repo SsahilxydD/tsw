@@ -107,8 +107,8 @@ export default function App() {
       {/* Hide footer on checkout page to avoid blocking the sticky CTA */}
       {!isCheckout && <Footer />}
 
-      {/* Mobile bottom dock navigation */}
-      <BottomDock />
+      {/* Mobile bottom dock navigation — hidden on checkout to give the sticky Place Order CTA room */}
+      {!isCheckout && <BottomDock />}
 
       {/* Floating WhatsApp CTA (site-wide) */}
       <WhatsAppCTA
