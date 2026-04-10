@@ -144,7 +144,7 @@ export const loadRecentlyViewed = () => {
     try {
       safeLocalStorage.removeItem(RECENTLY_VIEWED_STORAGE_KEY);
       safeLocalStorage.removeItem('recentlyViewed.metadata');
-    } catch {}
+    } catch { /* storage cleanup failed - ignore */ }
     return [];
   }
 };

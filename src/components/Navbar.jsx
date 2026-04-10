@@ -64,6 +64,7 @@ const Navbar = () => {
     if (count > prevRef.current) {
       setBump(true);
       const t = setTimeout(() => setBump(false), 300);
+      prevRef.current = count;
       return () => clearTimeout(t);
     }
     prevRef.current = count;
@@ -135,17 +136,15 @@ const Navbar = () => {
             </a>
 
             {/* Search - desktop only (mobile uses bottom dock) */}
-            {!location.pathname.startsWith('/category/') && location.pathname !== '/collection' && (
-              <button
-                onClick={() => setShowSearch(true)}
-                aria-label="Search"
-                className={`hidden sm:flex p-1 transition-colors hover:text-accent items-center justify-center ${isTransparent ? 'text-white' : 'text-primary'}`}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </button>
-            )}
+            <button
+              onClick={() => setShowSearch(true)}
+              aria-label="Search"
+              className={`hidden sm:flex p-1 transition-colors hover:text-accent items-center justify-center ${isTransparent ? 'text-white' : 'text-primary'}`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
 
             {/* Wishlist - desktop only (mobile uses bottom dock) */}
             <button

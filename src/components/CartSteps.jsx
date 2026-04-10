@@ -4,6 +4,7 @@ export default function CartSteps({ active = "bag" }) {
   const steps = [
     { key: "bag", label: "MY BAG" },
     { key: "address", label: "CHECKOUT" },
+    { key: "payment", label: "PAYMENT" },
   ];
 
   const idx = steps.findIndex((s) => s.key === active);

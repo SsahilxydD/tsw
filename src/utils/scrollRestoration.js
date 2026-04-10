@@ -84,10 +84,10 @@ export const setupScrollSaving = () => {
           // Estimate visibleCount based on rendered products
           visibleCount = productGrid.children.length;
         }
-      } catch (e) {
+      } catch {
         // Ignore errors
       }
-      
+
       saveScrollPosition(currentPath, visibleCount);
       lastSaved = currentScroll;
     }
@@ -120,11 +120,11 @@ export const setupScrollSaving = () => {
           let visibleCount = null;
           try {
             // TODO: This selector is fragile — the product grid should use a data attribute (e.g. data-product-grid) instead
-          const productGrid = document.querySelector('.grid.grid-cols-2, .grid.grid-cols-3');
+            const productGrid = document.querySelector('.grid.grid-cols-2, .grid.grid-cols-3');
             if (productGrid && productGrid.children.length > 0) {
               visibleCount = productGrid.children.length;
             }
-          } catch (e) {
+          } catch {
             // Ignore errors
           }
           

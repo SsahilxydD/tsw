@@ -143,8 +143,9 @@ export const validateCoupon = (code, cartAmount = 0, cartItems = []) => {
     };
   }
 
-  // Check usage limit
-  if (coupon.usageLimit && coupon.usageCount >= coupon.usageLimit) {
+  // Check usage limit (combine static count with localStorage tracking)
+  const totalUsage = (coupon.usageCount || 0) + getCouponUsageCount(coupon.code);
+  if (coupon.usageLimit && totalUsage >= coupon.usageLimit) {
     return { valid: false, coupon: null, error: 'This coupon has reached its usage limit' };
   }
 
@@ -197,6 +198,35 @@ export const calculateDiscount = (coupon, cartAmount) => {
 
   // Round to 2 decimal places
   return Math.round(discount * 100) / 100;
+};
+
+/**
+ * Record coupon usage in localStorage (client-side tracking)
+ * @param {string} code - Coupon code that was used
+ */
+export const recordCouponUsage = (code) => {
+  if (!code) return;
+  const key = 'coupon_usage';
+  try {
+    const raw = localStorage.getItem(key);
+    const usage = raw ? JSON.parse(raw) : {};
+    usage[code.toUpperCase()] = (usage[code.toUpperCase()] || 0) + 1;
+    localStorage.setItem(key, JSON.stringify(usage));
+  } catch { /* localStorage unavailable */ }
+};
+
+/**
+ * Get coupon usage count from localStorage
+ * @param {string} code - Coupon code
+ * @returns {number} - Usage count
+ */
+export const getCouponUsageCount = (code) => {
+  if (!code) return 0;
+  try {
+    const raw = localStorage.getItem('coupon_usage');
+    const usage = raw ? JSON.parse(raw) : {};
+    return usage[code.toUpperCase()] || 0;
+  } catch { return 0; }
 };
 
 /**

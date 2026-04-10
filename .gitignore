@@ -29,6 +29,7 @@ dist-ssr
 cursor-mcp-config.json
 
 dev-debug.log
+*.bak
 # Dependency directories
 node_modules/
 # Environment variables

@@ -20,7 +20,22 @@
       "Bash(node -e \"const fs = require\\(''fs''\\); const data = JSON.parse\\(fs.readFileSync\\(''c:/Sites/tsw/public/data/products.json'', ''utf8''\\)\\); const domains = [...new Set\\(data.map\\(p => { try { return new URL\\(p.detail_url_src\\).hostname; } catch\\(e\\) { return ''invalid''; } }\\)\\)]; console.log\\(''Unique domains:'', domains\\); console.log\\(''Total products:'', data.length\\);\")",
       "Bash(python3 -c \"import sys; content = sys.stdin.read\\(\\); print\\(len\\(content\\), ''chars''\\); print\\(content[:2000]\\)\")",
       "Read(//tmp/**)",
-      "Bash(node -e \"console.log\\(require\\(''''node-fetch''''\\).default || require\\(''''node-fetch''''\\)\\)\")"
+      "Bash(node -e \"console.log\\(require\\(''''node-fetch''''\\).default || require\\(''''node-fetch''''\\)\\)\")",
+      "Bash(ls -la *.js *.json)",
+      "Bash(npx vite:*)",
+      "Bash(\"C:/Users/Administrator/.claude/plugins/marketplaces/claude-plugins-official/plugins/ralph-loop/scripts/setup-ralph-loop.sh\":*)",
+      "Bash(npm run:*)",
+      "Bash(npm ls:*)",
+      "Bash(xargs wc:*)",
+      "Bash(npm list:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npm install:*)",
+      "Skill(ralph-loop:ralph-loop)",
+      "Skill(ralph-loop:cancel-ralph)",
+      "Bash(wc -l ./src/pages/*.jsx)",
+      "Bash(wc -l ./src/utils/*.js*)",
+      "Bash(ls -la ./src/components/*.jsx)",
+      "Bash(find ./src -type f \\\\\\( -name \"*.jsx\" -o -name \"*.js\" \\\\\\) -exec wc -l {} +)"
     ],
     "deny": [],
     "ask": []

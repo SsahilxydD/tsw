@@ -137,6 +137,7 @@ const AllCategoriesSlider = () => {
     
     return () => {
       cancelAnimationFrame(rafId);
+      clearTimeout(resetTimer);
       window.removeEventListener('resize', recalc);
       container.removeEventListener('scroll', handleScroll);
     };

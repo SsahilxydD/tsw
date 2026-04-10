@@ -24,8 +24,8 @@ function ScrollRouterContent({ children }) {
       prevPathnameRef.current = currentPath;
       
       // Check if this is a page load after back navigation
-      const navType = sessionStorage.getItem('__nav_type__');
-      if (navType === 'back') {
+      const storedNavType = sessionStorage.getItem('__nav_type__');
+      if (storedNavType === 'back') {
         restorationAttempted.current = true;
         const savedPos = getScrollPosition(currentPath);
         if (savedPos !== null && savedPos >= 0) {
@@ -100,8 +100,6 @@ function ScrollRouterContent({ children }) {
       if (prevPath) {
         const saved = getScrollPosition(prevPath);
         if (saved === null) {
-          // Not saved yet, save it now (though it might already be 0)
-          const currentScroll = window.scrollY || window.pageYOffset || 0;
           saveScrollPosition(prevPath);
         }
       }

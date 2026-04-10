@@ -7,7 +7,6 @@
 import { safeLocalStorage } from './errorHandler';
 
 const REVIEWS_STORAGE_KEY = 'reviews.v1';
-const REVIEWS_VERSION = 1;
 
 /**
  * @typedef {Object} Review
@@ -135,7 +134,7 @@ export const loadReviews = () => {
   } catch {
     try {
       safeLocalStorage.removeItem(REVIEWS_STORAGE_KEY);
-    } catch {}
+    } catch { /* storage cleanup failed - ignore */ }
     return [];
   }
 };

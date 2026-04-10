@@ -158,7 +158,7 @@ export const loadCart = () => {
     try {
       safeLocalStorage.removeItem(CART_STORAGE_KEY);
       safeLocalStorage.removeItem('cart.metadata');
-    } catch {}
+    } catch { /* storage cleanup failed - ignore */ }
     return {};
   }
 };

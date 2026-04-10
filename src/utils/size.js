@@ -18,7 +18,7 @@ export function isFootwearProduct(p) {
     for (const x of sizes) {
       if (toUKLabel(x)) return true;
     }
-  } catch {}
+  } catch { /* size parsing failed - not footwear */ }
 
   // Include flip-flops, slides, slippers, clogs, sandals alongside shoes
   const hasFootHint = /(shoe|sneaker|footwear|loafer|boot|flip\s?flop|slide|slipper|clog|sandal)/.test(cat);

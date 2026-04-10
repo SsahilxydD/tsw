@@ -54,11 +54,6 @@ const ReviewCard = ({ review, onHelpful }) => {
               <span className="text-sm font-medium text-gray-900">
                 {review.authorName}
               </span>
-              {review.verified && (
-                <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-medium">
-                  Verified Purchase
-                </span>
-              )}
             </div>
           </div>
           <h4 className="text-sm font-semibold text-gray-900 mb-1">

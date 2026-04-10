@@ -153,7 +153,7 @@ export const logError = (error, context = {}) => {
  * Handle error with logging and return user-friendly message
  */
 export const handleError = (error, context = {}) => {
-  const errorInfo = logError(error, context);
+  logError(error, context);
   return getErrorMessage(error);
 };
 

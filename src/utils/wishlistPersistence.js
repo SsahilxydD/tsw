@@ -129,7 +129,7 @@ export const loadWishlist = () => {
     try {
       safeLocalStorage.removeItem(WISHLIST_STORAGE_KEY);
       safeLocalStorage.removeItem('wishlist.metadata');
-    } catch {}
+    } catch { /* storage cleanup failed - ignore */ }
     return [];
   }
 };
