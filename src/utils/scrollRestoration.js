@@ -148,6 +148,11 @@ export const setupScrollSaving = () => {
   return () => {
     window.removeEventListener("scroll", handleScroll);
     document.removeEventListener("click", handleLinkClick, true);
-    if (timeoutId) clearTimeout(timeoutId);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      // Flush the pending debounced save so the last scroll position isn't lost
+      // on a fast navigation/unmount within the 100ms debounce window.
+      saveScroll();
+    }
   };
 };

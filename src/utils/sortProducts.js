@@ -65,13 +65,13 @@ export const sortProducts = (products, sortBy = 'featured', options = {}) => {
       break;
 
     case 'rating': {
-      const ratings = new Map(sorted.map(p => {
-        const id = String(p._id || p.id || '');
-        return [id, getProductRating(id)];
-      }));
+      // Include slug in the key — reviews are stored by _id ?? slug, so slug-only
+      // products would otherwise always resolve to a 0 rating and sink to the bottom.
+      const keyOf = (p) => String(p._id || p.id || p.slug || '');
+      const ratings = new Map(sorted.map(p => [keyOf(p), getProductRating(keyOf(p))]));
       sorted.sort((a, b) => {
-        const ra = ratings.get(String(a._id || a.id || '')) || { average: 0, count: 0 };
-        const rb = ratings.get(String(b._id || b.id || '')) || { average: 0, count: 0 };
+        const ra = ratings.get(keyOf(a)) || { average: 0, count: 0 };
+        const rb = ratings.get(keyOf(b)) || { average: 0, count: 0 };
         return rb.average !== ra.average ? rb.average - ra.average : rb.count - ra.count;
       });
       break;

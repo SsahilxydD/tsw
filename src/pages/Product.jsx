@@ -96,7 +96,8 @@ const generateDescription = (product, currency) => {
 };
 
 // --- size helpers ---
-const APPAREL_SIZES = ["S", "M", "L", "XL", "XXL"];
+const APPAREL_SIZES = ["S", "M", "L", "XL", "XXL"]; // default ladder always shown for topwear
+const APPAREL_ORDER = ["XS", "S", "M", "L", "XL", "XXL", "XXXL", "3XL", "4XL", "5XL"];
 const ONE_SIZE = ["ONESIZE"];
 const norm = (s) => String(s || "").toUpperCase();
 
@@ -111,7 +112,13 @@ function inferMasterSizes(p) {
   const isTopwear = /(topwear|shirt|t\s?-?shirt|tshirt|hoodie|jacket|sweat|sweatshirt|tee)\b/.test(cat)
     || up.some((x) => ["XS", "S", "M", "L", "XL", "XXL"].includes(x));
   const isBottomwear = /(jeans|trouser|pant|bottomwear|bottom\s?wear)\b/.test(cat);
-  if (isTopwear && !isBottomwear && up.length > 0) return APPAREL_SIZES;
+  if (isTopwear && !isBottomwear && up.length > 0) {
+    // Always show the default S–XXL ladder, but include any non-standard sizes the
+    // product actually carries (e.g. XS, 3XL) so they aren't silently dropped.
+    const show = new Set(APPAREL_SIZES);
+    for (const u of up) if (APPAREL_ORDER.includes(u)) show.add(u);
+    return APPAREL_ORDER.filter((s) => show.has(s));
+  }
   if (up.includes("ONESIZE")) return ONE_SIZE;
   if (isBottomwear) {
     return normalizeJeansSizes(ps);

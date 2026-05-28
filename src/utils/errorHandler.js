@@ -66,11 +66,13 @@ const ErrorMessages = {
 export const classifyError = (error) => {
   if (!error) return ErrorTypes.UNKNOWN;
 
-  // Network errors
+  // Network errors. Only treat a TypeError as a network error when it's actually
+  // fetch-related — a bare TypeError is usually an ordinary JS bug, not a connectivity
+  // problem, and shouldn't surface "check your internet" + a useless Retry.
   if (error instanceof TypeError && error.message.includes('fetch')) {
     return ErrorTypes.NETWORK;
   }
-  if (error.name === 'NetworkError' || error.name === 'TypeError') {
+  if (error.name === 'NetworkError') {
     return ErrorTypes.NETWORK;
   }
   if (error.message?.includes('network') || error.message?.includes('fetch')) {

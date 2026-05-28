@@ -14,7 +14,8 @@ export default {
     }
 
     // Check if it's a bot/crawler (Facebook uses 'facebookexternalhit' and 'Facebot')
-    const userAgent = request.headers.get('User-Agent') || '';
+    // Cap the length before running any regex over this attacker-controlled header.
+    const userAgent = (request.headers.get('User-Agent') || '').slice(0, 512);
     const isBot = /bot|crawler|spider|facebook|facebookexternalhit|facebot|whatsapp|twitter|linkedin|slack|telegram|pinterest|googlebot|bingbot/i.test(userAgent);
     
     // Also check for Facebook's specific crawler headers
@@ -45,6 +46,11 @@ export default {
       }
       
       const products = await productsResponse.json();
+
+      if (!Array.isArray(products)) {
+        console.error('products.json was not an array');
+        return fetch(request);
+      }
 
       // Find product
       const product = products.find(p =>
@@ -378,6 +384,11 @@ export default {
       // Fetch the base HTML from Pages origin (reuse origin from above)
       const htmlUrl = `${origin}/index.html`;
       const htmlResponse = await fetch(htmlUrl);
+      if (!htmlResponse.ok) {
+        // Don't inject meta tags into an origin error page and cache it for 15 min.
+        console.error('Failed to fetch index.html:', htmlResponse.status);
+        return fetch(request);
+      }
       let html = await htmlResponse.text();
 
       // Helper to escape HTML

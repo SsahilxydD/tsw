@@ -15,6 +15,9 @@ export const ShopContext = createContext();
 // Leave empty to use local/origin images
 const CDN_BASE = import.meta.env.VITE_CDN_URL || '';
 
+// Max units of a single item (per size) allowed in the cart
+export const MAX_ITEM_QTY = 10;
+
 const ShopContextProvider = (props) => {
   const currency = '₹';
   const delivery_fee = 10;
@@ -29,6 +32,18 @@ const ShopContextProvider = (props) => {
       return loadCart();
     } catch (error) {
       handleError(error, { operation: 'cart initialization' });
+      return {};
+    }
+  });
+  // Snapshot of each item's unit price, captured at add-to-cart time and refreshed
+  // when products load. Keeps the subtotal correct even before products finish
+  // loading or if a SKU is later removed from the catalog (otherwise it'd be ₹0).
+  const [cartPrices, setCartPrices] = useState(() => {
+    try {
+      const raw = safeLocalStorage.getItem('cart.prices.v1');
+      const parsed = raw ? JSON.parse(raw) : {};
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch {
       return {};
     }
   });
@@ -102,6 +117,10 @@ const ShopContextProvider = (props) => {
       if (!saved) {
         notify('Unable to save address. Please check browser settings.');
       }
+    } else {
+      // Clearing the address should also clear the persisted copy, otherwise it
+      // silently returns on the next refresh.
+      safeLocalStorage.removeItem('addr.v1');
     }
   }, [address]);
 
@@ -414,6 +433,11 @@ const ShopContextProvider = (props) => {
     }
   }, [cartItems]);
 
+  // Persist the price snapshots alongside the cart
+  useEffect(() => {
+    safeLocalStorage.setItem('cart.prices.v1', JSON.stringify(cartPrices));
+  }, [cartPrices]);
+
   // Persist wishlist whenever it changes
   useEffect(() => {
     const saved = saveWishlist(wishlist);
@@ -481,9 +505,35 @@ const ShopContextProvider = (props) => {
     return cleanup;
   }, []); // Empty deps - only setup once
 
-  const MAX_ITEM_QTY = 10;
+  const productLookup = useMemo(() => {
+    const map = new Map();
+    for (const p of products) {
+      if (p._id) map.set(p._id, p);
+      if (p.slug) map.set(p.slug, p);
+    }
+    return map;
+  }, [products]);
 
-  const addToCart = (itemId, size, silent = false) => {
+  // Once products are available, refresh price snapshots for items in the cart so
+  // the subtotal always reflects the current catalog price.
+  useEffect(() => {
+    if (productLookup.size === 0) return;
+    setCartPrices(prev => {
+      let changed = false;
+      const next = { ...prev };
+      for (const itemId of Object.keys(cartItems)) {
+        const info = productLookup.get(itemId);
+        const price = info ? Number(info.price) : NaN;
+        if (Number.isFinite(price) && price > 0 && next[itemId] !== price) {
+          next[itemId] = price;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [productLookup, cartItems]);
+
+  const addToCart = useCallback((itemId, size, silent = false) => {
     if (!size) { notify('Select product size'); return; }
     let cartData = structuredClone(cartItems);
     if (cartData[itemId]) {
@@ -494,13 +544,20 @@ const ShopContextProvider = (props) => {
       cartData[itemId] = { [size]: 1 };
     }
     setCartItems(cartData);
+    // Snapshot the unit price so the subtotal stays correct even before products
+    // (re)load or if this SKU is later removed from the catalog.
+    const info = productLookup.get(itemId);
+    const price = info ? Number(info.price) : NaN;
+    if (Number.isFinite(price) && price > 0) {
+      setCartPrices(prev => (prev[itemId] === price ? prev : { ...prev, [itemId]: price }));
+    }
     if (!silent) {
       setIsCartOpen(true);
       notify('Added to bag');
     }
-  }
+  }, [cartItems, notify, productLookup]);
 
-  const updateQuantity = (itemId, size, quantity) => {
+  const updateQuantity = useCallback((itemId, size, quantity) => {
     let cartData = structuredClone(cartItems);
     if (!cartData[itemId]) cartData[itemId] = {};
     if (quantity <= 0) {
@@ -511,17 +568,18 @@ const ShopContextProvider = (props) => {
     }
     setCartItems(cartData);
     if (quantity === 0) notify('Removed from bag');
-  }
+  }, [cartItems, notify]);
 
   // Clear cart function (for logout, order completion, etc.)
-  const clearCartItems = () => {
+  const clearCartItems = useCallback(() => {
     clearCart();
     setCartItems({});
+    setCartPrices({});
     notify('Cart cleared');
-  }
+  }, [notify]);
 
   // Wishlist functions
-  const addToWishlist = (productId) => {
+  const addToWishlist = useCallback((productId) => {
     const pid = String(productId);
     if (!wishlist.includes(pid)) {
       const newWishlist = [...wishlist, pid];
@@ -530,48 +588,39 @@ const ShopContextProvider = (props) => {
     } else {
       notify('Already in wishlist');
     }
-  }
+  }, [wishlist, notify]);
 
-  const removeFromWishlist = (productId, silent = false) => {
+  const removeFromWishlist = useCallback((productId, silent = false) => {
     const pid = String(productId);
     const newWishlist = wishlist.filter(id => id !== pid);
     setWishlist(newWishlist);
     if (!silent) notify('Removed from wishlist');
-  }
+  }, [wishlist, notify]);
 
-  const toggleWishlist = (productId) => {
+  const toggleWishlist = useCallback((productId) => {
     const pid = String(productId);
     if (wishlist.includes(pid)) {
       removeFromWishlist(pid);
     } else {
       addToWishlist(pid);
     }
-  }
+  }, [wishlist, addToWishlist, removeFromWishlist]);
 
   const isInWishlist = useCallback((productId) => wishlist.includes(String(productId)), [wishlist]);
 
   const getWishlistCount = useCallback(() => wishlist.length, [wishlist]);
 
-  const moveToCart = (productId, size = 'std') => {
+  const moveToCart = useCallback((productId, size = 'std') => {
     removeFromWishlist(productId, true);
     addToCart(productId, size, true);
     notify('Moved to cart');
-  }
+  }, [removeFromWishlist, addToCart, notify]);
 
-  const clearWishlistItems = () => {
+  const clearWishlistItems = useCallback(() => {
     clearWishlist();
     setWishlist([]);
     notify('Wishlist cleared');
-  }
-
-  const productLookup = useMemo(() => {
-    const map = new Map();
-    for (const p of products) {
-      if (p._id) map.set(p._id, p);
-      if (p.slug) map.set(p.slug, p);
-    }
-    return map;
-  }, [products]);
+  }, [notify]);
 
   const cartCount = useMemo(() => {
     let total = 0;
@@ -585,14 +634,17 @@ const ShopContextProvider = (props) => {
     let total = 0;
     Object.entries(cartItems).forEach(([itemId, sizes]) => {
       const itemInfo = productLookup.get(itemId);
+      // Prefer the live catalog price; fall back to the snapshot taken when the
+      // item was added so an unresolved/removed SKU isn't silently priced at ₹0.
+      const unitPrice = itemInfo ? (Number(itemInfo.price) || 0) : (Number(cartPrices[itemId]) || 0);
       Object.entries(sizes).forEach(([, qty]) => {
-        if (qty > 0 && itemInfo) {
-          total += (Number(itemInfo.price) || 0) * qty;
+        if (qty > 0) {
+          total += unitPrice * qty;
         }
       });
     });
     return total;
-  }, [cartItems, productLookup]);
+  }, [cartItems, productLookup, cartPrices]);
 
   const getCartCount = useCallback(() => cartCount, [cartCount]);
   const getCartAmount = useCallback(() => cartAmount, [cartAmount]);
@@ -600,15 +652,30 @@ const ShopContextProvider = (props) => {
 
   const discountAmount = useMemo(() => {
     if (!appliedCoupon) return 0;
+    // Re-check the minimum-order requirement on every change. The coupon is only
+    // validated once at apply time, so without this a user could apply it at a
+    // qualifying total and then remove items to keep an invalid discount.
+    if (appliedCoupon.minOrder && cartAmount < appliedCoupon.minOrder) return 0;
     return calculateDiscount(appliedCoupon, cartAmount);
   }, [appliedCoupon, cartAmount]);
 
   const cartTotal = useMemo(() => Math.max(0, cartAmount - discountAmount), [cartAmount, discountAmount]);
 
+  // If the cart drops below the applied coupon's minimum, drop the coupon entirely
+  // so the invalid discount can't be carried into the WhatsApp order. Gated on
+  // loadingProducts so the transient ₹0 subtotal during load doesn't trigger it.
+  useEffect(() => {
+    if (loadingProducts) return;
+    if (appliedCoupon && appliedCoupon.minOrder && cartAmount > 0 && cartAmount < appliedCoupon.minOrder) {
+      setAppliedCoupon(null);
+      notify(`Coupon "${appliedCoupon.code}" removed — minimum order ${currency}${appliedCoupon.minOrder} not met`);
+    }
+  }, [appliedCoupon, cartAmount, loadingProducts, notify, currency]);
+
   const getDiscountAmount = useCallback(() => discountAmount, [discountAmount]);
   const getCartTotal = useCallback(() => cartTotal, [cartTotal]);
 
-  const applyCoupon = (code) => {
+  const applyCoupon = useCallback((code) => {
     const subtotal = getCartSubtotal();
     // Build cart items array for category checking
     const cartItemsArray = [];
@@ -638,21 +705,28 @@ const ShopContextProvider = (props) => {
       notify(validation.error || 'Invalid coupon code');
       return { success: false, error: validation.error };
     }
-  }
+  }, [getCartSubtotal, cartItems, productLookup, notify]);
 
-  const removeCoupon = () => {
+  const removeCoupon = useCallback(() => {
     if (appliedCoupon) {
       setAppliedCoupon(null);
       notify('Coupon removed');
     }
-  }
+  }, [appliedCoupon, notify]);
 
   // Review functions
-  const submitReview = (reviewData) => {
+  const submitReview = useCallback((reviewData) => {
+    // Coerce and validate the rating up front rather than letting the persistence
+    // layer silently clamp a bad value (which would corrupt the average).
+    const ratingNum = Math.round(Number(reviewData.rating));
+    if (!Number.isFinite(ratingNum) || ratingNum < 1 || ratingNum > 5) {
+      notify('Please select a rating between 1 and 5 stars');
+      return { success: false, error: 'Please select a rating between 1 and 5 stars' };
+    }
     const review = {
       id: generateReviewId(),
       productId: String(reviewData.productId),
-      rating: reviewData.rating,
+      rating: ratingNum,
       title: reviewData.title,
       comment: reviewData.comment,
       authorName: reviewData.authorName,
@@ -673,7 +747,7 @@ const ShopContextProvider = (props) => {
       notify(result.error || 'Failed to submit review');
       return { success: false, error: result.error };
     }
-  }
+  }, [notify]);
 
   const getReviewsForProduct = useCallback((productId) => {
     const pid = String(productId);
@@ -691,7 +765,7 @@ const ShopContextProvider = (props) => {
     };
   }, [reviews]);
 
-  const markHelpful = (reviewId) => {
+  const markHelpful = useCallback((reviewId) => {
     const result = markReviewHelpful(reviewId);
     if (result.success) {
       const updatedReviews = loadReviews();
@@ -699,19 +773,21 @@ const ShopContextProvider = (props) => {
       return { success: true };
     }
     return { success: false, error: result.error };
-  }
+  }, []);
 
   // Recently viewed functions
   const trackProductView = useCallback((productId) => {
     if (!productId) return;
-    const pid = String(productId);
+    // Normalize to the canonical _id so viewing the same product by slug vs _id
+    // doesn't create duplicate "recently viewed" entries.
+    const pid = String(productLookup.get(String(productId))?._id || productId);
     const success = addToRecentlyViewed(pid);
     if (success) {
       // Reload recently viewed to get updated list
       const updated = loadRecentlyViewed();
       setRecentlyViewed(updated);
     }
-  }, []);
+  }, [productLookup]);
 
   const getRecentlyViewedProducts = useCallback(() => {
     const productIds = recentlyViewed.map(item => item.productId);

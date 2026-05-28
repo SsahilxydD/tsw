@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useLocation, useRoutes } from "react-router-dom";
 
 /**
@@ -11,6 +11,21 @@ const routeCache = new Map();
 const routeTimestamps = new Map();
 const MAX_CACHE = 8;
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+// Only keep content/browse pages mounted for back-navigation state preservation.
+// Transactional pages (cart, address, payment, login, orders) must NOT be kept
+// mounted-but-hidden — their effects/timers (e.g. the Address ZIP-lookup debounce)
+// would keep running in the background and they have no scroll/filter state worth
+// preserving across visits.
+const CACHEABLE_PATTERNS = [
+  /^\/$/,
+  /^\/collection(?:\/|$)/,
+  /^\/categories(?:\/|$)/,
+  /^\/category\//,
+  /^\/product\//,
+  /^\/wishlist(?:\/|$)/,
+];
+const shouldCache = (path) => CACHEABLE_PATTERNS.some((re) => re.test(path));
 
 export default function CachedRoutes({ routes }) {
   const location = useLocation();
@@ -37,8 +52,8 @@ export default function CachedRoutes({ routes }) {
       
       // Get the current element from ref
       const element = currentElementRef.current;
-      
-      if (element) {
+
+      if (element && shouldCache(currentPath)) {
         // Only cache if not already cached
         if (!routeCache.has(currentPath)) {
           routeCache.set(currentPath, element);

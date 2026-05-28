@@ -7,6 +7,7 @@ import Loading from "../components/Loading";
 import { safeFetchRaw, handleError } from "../utils/errorHandler";
 import ErrorMessage from "../components/ErrorMessage";
 import { validateName, validateNameRequired, validatePhone, validateEmail, validateAddress, validateCity, validateState, validateZip } from "../utils/validation";
+import { recordCouponUsage } from "../utils/coupons";
 
 const EMPTY = {
   firstName: "",
@@ -32,6 +33,7 @@ export default function Address() {
   const [zipValid, setZipValid] = useState(false);
   const zipDebounceRef = useRef(null);
   const [zipResolvedFor, setZipResolvedFor] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Build cart list
   const cartList = useMemo(() => {
@@ -203,11 +205,13 @@ export default function Address() {
     if (stateError) errs.state = stateError;
     
     // ZIP validation
-    const zipError = validateZip(form.zip);
+    const zipError = validateZip(form.zip, form.country);
     if (zipError) {
       errs.zip = zipError;
-    } else if (!zipValid && form.zip?.trim() && !zipError && !zipLoading) {
-      // Block only if API call succeeded but returned no match (not an API failure/network error)
+    } else if (zipLoading) {
+      // Only block while a lookup is actually in flight. If the lookup already
+      // finished — whether it matched or the API failed/timed out — trust the
+      // manually-entered PIN so an API outage can't permanently block checkout.
       errs.zip = "Please wait for PIN code validation";
     }
     
@@ -225,11 +229,11 @@ export default function Address() {
     }
     
     lines.push("");
-    lines.push(`*Subtotal:* ${currency}${subtotal.toLocaleString('en-IN')}`);
+    lines.push(`*Subtotal:* ${currency}${subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
     if (appliedCoupon && discountAmt > 0) {
-      lines.push(`*Discount (${appliedCoupon.code}):* -${currency}${discountAmt.toLocaleString('en-IN')}`);
+      lines.push(`*Discount (${appliedCoupon.code}):* -${currency}${discountAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
     }
-    lines.push(`*Total:* ${currency}${total.toLocaleString('en-IN')}`);
+    lines.push(`*Total:* ${currency}${total.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
     lines.push("", "*Shipping address:*", "", "*Contact:*");
     
     const name = `${form.firstName || ''} ${form.lastName || ''}`.trim();
@@ -251,8 +255,9 @@ export default function Address() {
 
   const onSubmit = (e) => {
     e?.preventDefault();
+    if (isSubmitting) return; // guard against double-tap opening WhatsApp twice
     const errs = validate();
-    
+
     if (Object.keys(errs).length) {
       setErrors(errs);
       const firstKey = Object.keys(errs)[0];
@@ -260,11 +265,22 @@ export default function Address() {
       refs.current[firstKey]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
-    
+
+    // Never fire an order with nothing in it (e.g. cart emptied in another tab).
+    if (cartList.length === 0) {
+      navigate('/cart');
+      return;
+    }
+
+    setIsSubmitting(true);
     setAddress(form);
     const msg = composeMessage();
     const phoneNumber = import.meta.env.VITE_WHATSAPP_PHONE?.replace(/\D/g, '') || "919933778870";
     window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(msg)}`, '_blank');
+    // Record coupon usage now that the order has actually been placed.
+    if (appliedCoupon?.code) recordCouponUsage(appliedCoupon.code);
+    // Re-enable shortly so the user can retry if WhatsApp didn't open.
+    setTimeout(() => setIsSubmitting(false), 3000);
   };
 
   if (cartList.length === 0) {
@@ -413,7 +429,7 @@ export default function Address() {
                       maxLength={6}
                     />
                     {zipLookupMsg && !errors.zip && (
-                      <p className="text-xs text-green-600 mt-1">{zipLookupMsg}</p>
+                      <p className={`text-xs mt-1 ${zipValid ? 'text-green-600' : 'text-gray-500'}`}>{zipLookupMsg}</p>
                     )}
                     {zipError && <p className="text-red-500 text-sm mt-1">{zipError.message || String(zipError)}</p>}
                   </div>
@@ -425,19 +441,15 @@ export default function Address() {
                     ref={el => refs.current.district = el}
                     name="district"
                     value={form.district}
-                    onChange={zipValid ? undefined : onChange}
-                    readOnly={zipValid}
+                    onChange={onChange}
                     placeholder="District"
-                    className={zipValid ? "bg-gray-50" : ""}
                   />
                   <Input
                     ref={el => refs.current.state = el}
                     name="state"
                     value={form.state}
-                    onChange={zipValid ? undefined : onChange}
-                    readOnly={zipValid}
+                    onChange={onChange}
                     placeholder="State *"
-                    className={zipValid ? "bg-gray-50" : ""}
                     error={!!errors.state}
                     errorMessage={errors.state}
                   />
@@ -456,7 +468,7 @@ export default function Address() {
                 {/* Submit - Desktop */}
                 <Button
                   type="submit"
-                  disabled={zipLoading}
+                  disabled={zipLoading || isSubmitting}
                   size="lg"
                   className="hidden lg:flex w-full h-14 mt-6"
                 >
@@ -464,6 +476,11 @@ export default function Address() {
                     <span className="flex items-center gap-2">
                       <Loading size="sm" variant="white" />
                       Verifying...
+                    </span>
+                  ) : isSubmitting ? (
+                    <span className="flex items-center gap-2">
+                      <Loading size="sm" variant="white" />
+                      Opening WhatsApp...
                     </span>
                   ) : (
                     'Place Order on WhatsApp'
@@ -498,7 +515,7 @@ export default function Address() {
                         {item.size !== 'std' && <span>Size: {String(item.size).replace(/^UK-/, '')}</span>}
                         {item.quantity > 1 && <span>Qty: {item.quantity}</span>}
                       </div>
-                      <p className="text-sm font-semibold mt-1">{currency}{item.price.toLocaleString('en-IN')}</p>
+                      <p className="text-sm font-semibold mt-1">{currency}{item.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                     </div>
                   </div>
                 ))}
@@ -508,12 +525,12 @@ export default function Address() {
               <div className="border-t mt-4 pt-4 space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Subtotal</span>
-                  <span>{currency}{subtotal.toLocaleString('en-IN')}</span>
+                  <span>{currency}{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 {appliedCoupon && discountAmt > 0 && (
                   <div className="flex justify-between text-sm text-green-600">
                     <span>Discount ({appliedCoupon.code})</span>
-                    <span>-{currency}{discountAmt.toLocaleString('en-IN')}</span>
+                    <span>-{currency}{discountAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-sm">
@@ -522,7 +539,7 @@ export default function Address() {
                 </div>
                 <div className="flex justify-between text-lg font-semibold pt-2 border-t">
                   <span>Total</span>
-                  <span>{currency}{total.toLocaleString('en-IN')}</span>
+                  <span>{currency}{total.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
               </div>
 
@@ -541,7 +558,7 @@ export default function Address() {
       >
         <Button
           onClick={onSubmit}
-          disabled={zipLoading}
+          disabled={zipLoading || isSubmitting}
           size="lg"
           className="w-full h-14 flex items-center justify-center gap-2"
         >
@@ -550,11 +567,16 @@ export default function Address() {
               <Loading size="sm" variant="white" />
               <span>Verifying...</span>
             </>
+          ) : isSubmitting ? (
+            <>
+              <Loading size="sm" variant="white" />
+              <span>Opening WhatsApp...</span>
+            </>
           ) : (
             <>
               <span>Place Order</span>
               <span className="text-gray-300">•</span>
-              <span>{currency}{total.toLocaleString('en-IN')}</span>
+              <span>{currency}{total.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </>
           )}
         </Button>

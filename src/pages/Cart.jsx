@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom';
 import Title from '../components/Title'
-import { ShopContext } from '../context/ShopContext'
+import { ShopContext, MAX_ITEM_QTY } from '../context/ShopContext'
 import { assets } from '../assets/assets';
 import CartTotal from '../components/CartTotal';
 import QuantityStepper from '../components/QuantityStepper';
@@ -20,7 +20,7 @@ import Loading from '../components/Loading';
 
 const Cart = () => {
 
-  const { products, productLookup, currency, navigate, cartItems, updateQuantity, loadingProducts, addToWishlist, applyCoupon, removeCoupon, appliedCoupon } = useContext(ShopContext);
+  const { products, productLookup, currency, navigate, cartItems, updateQuantity, loadingProducts, addToWishlist, applyCoupon, removeCoupon, appliedCoupon, getCartCount } = useContext(ShopContext);
   const [couponCode, setCouponCode] = useState('');
   const [couponError, setCouponError] = useState('');
 
@@ -208,6 +208,7 @@ const Cart = () => {
                   <QuantityStepper
                     value={item.quantity}
                     min={1}
+                    max={MAX_ITEM_QTY}
                     onChange={(q) => q <= 0 ? requestRemove(item._id, item.size) : updateQuantity(item._id, item.size, q)}
                   />
                   <button
@@ -291,7 +292,7 @@ const Cart = () => {
       <div className='mt-6 hidden md:flex justify-center'>
         <Button
           type='button'
-          disabled={cartData.length === 0}
+          disabled={getCartCount() === 0}
           onClick={() => navigate('/address')}
         >
           Proceed to checkout
@@ -305,7 +306,7 @@ const Cart = () => {
       <CartStickyBar
         buttonText="CHECKOUT"
         onClick={() => navigate('/address')}
-        disabled={cartData.length === 0}
+        disabled={getCartCount() === 0}
       />
     </div>
   )

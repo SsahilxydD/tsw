@@ -13,7 +13,7 @@ export default {
     // Manual trigger endpoint for testing: https://your-worker.workers.dev/send-now
     if (url.pathname === '/send-now') {
       const secret = request.headers.get('X-Admin-Secret');
-      if (!secret || secret !== env.ADMIN_SECRET) {
+      if (!secret || !timingSafeEqual(secret, env.ADMIN_SECRET)) {
         return new Response('Unauthorized', { status: 401 });
       }
       await sendNewShoesToWhatsApp(env);
@@ -23,7 +23,7 @@ export default {
     // Status endpoint: https://your-worker.workers.dev/status
     if (url.pathname === '/status') {
       const secret = request.headers.get('X-Admin-Secret');
-      if (!secret || secret !== env.ADMIN_SECRET) {
+      if (!secret || !timingSafeEqual(secret, env.ADMIN_SECRET)) {
         return new Response('Unauthorized', { status: 401 });
       }
       const stats = await getStats(env);
@@ -36,13 +36,34 @@ export default {
   }
 };
 
+// Constant-time string comparison so the admin secret can't be recovered via a
+// short-circuit timing side-channel.
+function timingSafeEqual(a, b) {
+  const x = String(a || '');
+  const y = String(b || '');
+  let mismatch = x.length === y.length ? 0 : 1;
+  const len = Math.max(x.length, y.length, 1);
+  for (let i = 0; i < len; i++) {
+    mismatch |= (x.charCodeAt(i) || 0) ^ (y.charCodeAt(i) || 0);
+  }
+  return mismatch === 0;
+}
+
 async function sendNewShoesToWhatsApp(env) {
   try {
     console.log('Checking for new shoe products...');
 
     // Fetch latest products
-    const response = await fetch('https://thesolowardrobe.com/data/products.json');
+    const response = await fetch('https://thesolowardrobe.com/data/products.json', {
+      signal: AbortSignal.timeout(10000)
+    });
+    if (!response.ok) {
+      throw new Error(`products.json fetch failed: ${response.status}`);
+    }
     const products = await response.json();
+    if (!Array.isArray(products)) {
+      throw new Error('products.json was not an array');
+    }
 
     // Filter only shoes
     const shoes = products.filter(product => {
@@ -103,10 +124,12 @@ async function sendNewShoesToWhatsApp(env) {
 async function sendToWhatsApp(product, env) {
   try {
     // Calculate display price (same logic as your Cloudflare worker)
-    const basePrice = Number(product.price || 0);
+    // Guard against non-numeric price/mrp so we never broadcast "₹NaN".
+    const basePrice = Number.isFinite(Number(product.price)) ? Number(product.price) : 0;
     const priceAdj = 550; // Shoe price adjustment
     const displayPrice = Math.max(0, basePrice + priceAdj);
-    const displayMrp = product.mrp ? Math.max(0, Number(product.mrp) + priceAdj) : null;
+    const mrpNum = Number(product.mrp);
+    const displayMrp = Number.isFinite(mrpNum) && mrpNum > 0 ? Math.max(0, mrpNum + priceAdj) : null;
 
     // Format product name
     const productName = product.title || product.slug_name || 'New Shoe';
@@ -147,7 +170,8 @@ async function sendToWhatsApp(product, env) {
         'Authorization': authHeader,
         'Content-Type': 'application/x-www-form-urlencoded'
       },
-      body: formData.toString()
+      body: formData.toString(),
+      signal: AbortSignal.timeout(10000)
     });
 
     if (!response.ok) {

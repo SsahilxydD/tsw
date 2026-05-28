@@ -114,9 +114,8 @@ const SearchBar = () => {
   };
 
   const handleSuggestionClick = (product) => {
-    setSearch(product.name || '');
-    setShowSuggestions(false);
-    // Optionally navigate immediately or wait for Enter
+    // Navigate on click — consistent with pressing Enter on a highlighted suggestion.
+    handleProductClick(product._id || product.slug);
   };
 
   const handleKeyDown = (e) => {

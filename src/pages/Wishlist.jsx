@@ -7,6 +7,7 @@ import ProductItem from '../components/ProductItem';
 import Button from '../components/Button';
 import SafeImg from '../components/SafeImg';
 import SEO from '../components/SEO';
+import { getSelectableSizes } from '../utils/size';
 
 const Wishlist = () => {
   const { wishlist, products, productLookup, currency, removeFromWishlist, moveToCart, clearWishlistItems, navigate } = useContext(ShopContext);
@@ -107,9 +108,11 @@ const Wishlist = () => {
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
           {wishlistProducts.map((product) => {
-            const cover = Array.isArray(product.image) 
-              ? (product.image[0] || '') 
+            const cover = Array.isArray(product.image)
+              ? (product.image[0] || '')
               : (Array.isArray(product.images) ? (product.images[0] || '') : (product.image || ''));
+            // Real, user-selectable sizes (placeholders like "std"/"OS" stripped).
+            const selectableSizes = getSelectableSizes(product);
 
             return (
               <div key={product._id} className="group relative">
@@ -137,15 +140,16 @@ const Wishlist = () => {
                     size="sm"
                     className="flex-1 text-xs"
                     onClick={() => {
-                      const hasSizes = Array.isArray(product.sizes) && product.sizes.length > 0;
-                      if (hasSizes) {
+                      if (selectableSizes.length === 1) {
+                        moveToCart(product._id, selectableSizes[0]);
+                      } else if (selectableSizes.length > 1) {
                         navigate(`/product/${product._id}`);
                       } else {
                         moveToCart(product._id, 'std');
                       }
                     }}
                   >
-                    {Array.isArray(product.sizes) && product.sizes.length > 0 ? 'Select Size' : 'Add to Cart'}
+                    {selectableSizes.length > 1 ? 'Select Size' : 'Add to Cart'}
                   </Button>
                   <button
                     onClick={() => removeFromWishlist(product._id)}

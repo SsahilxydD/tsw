@@ -18,9 +18,11 @@ export const validateEmail = (email) => {
  */
 export const validatePhone = (phone) => {
   if (!phone) return "Phone number is required";
-  const digits = phone.replace(/\D/g, '');
-  if (digits.length < 10) return "Phone number must be at least 10 digits";
-  if (digits.length > 15) return "Phone number is too long";
+  let digits = phone.replace(/\D/g, '');
+  // Tolerate an optional country code / trunk prefix, then require exactly 10 digits.
+  if (digits.length === 12 && digits.startsWith('91')) digits = digits.slice(2);
+  else if (digits.length === 11 && digits.startsWith('0')) digits = digits.slice(1);
+  if (!/^[6-9]\d{9}$/.test(digits)) return "Enter a valid 10-digit mobile number";
   return null;
 };
 
@@ -82,10 +84,15 @@ export const validateNameRequired = (firstName, lastName) => {
 /**
  * Validates PIN/ZIP code (Indian format - 6 digits)
  */
-export const validateZip = (zip) => {
+export const validateZip = (zip, country = 'India') => {
   if (!zip) return "PIN code is required";
   const digits = zip.replace(/\D/g, '');
-  if (digits.length !== 6) return "PIN code must be 6 digits";
+  // India uses 6-digit PIN codes; most other supported countries (e.g. US) use 5.
+  if (/india/i.test(country || 'India')) {
+    if (digits.length !== 6) return "PIN code must be 6 digits";
+  } else if (digits.length !== 5) {
+    return "ZIP code must be 5 digits";
+  }
   return null;
 };
 

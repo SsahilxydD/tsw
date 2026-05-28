@@ -118,7 +118,8 @@ export default function SafeImg({
     loading: loading,
     decoding: loading === "eager" ? "sync" : "async",
     draggable: false,
-    onError: () => setBroken(true),
+    // Guard so a fallback that also fails (e.g. under a strict CSP) can't loop setState.
+    onError: () => { if (!broken) setBroken(true); },
     className: className,
     ...rest
   };

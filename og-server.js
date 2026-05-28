@@ -15,11 +15,14 @@ app.use((req, res, next) => { req.setTimeout(10000, () => res.status(408).send('
 // Helper to fetch URL
 function fetchUrl(url) {
   return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
+    const req = https.get(url, (res) => {
       let data = '';
       res.on('data', (chunk) => { data += chunk; });
       res.on('end', () => res.statusCode === 200 ? resolve(data) : reject(new Error(`HTTP ${res.statusCode}`)));
-    }).on('error', reject);
+    });
+    req.on('error', reject);
+    // Don't let a hung upstream hold the socket open indefinitely.
+    req.setTimeout(8000, () => req.destroy(new Error('fetchUrl timeout')));
   });
 }
 
@@ -52,9 +55,13 @@ app.get('/product/:id', async (req, res) => {
       : (product.image?.[0] || product.image);
 
     const baseUrl = 'https://thesolowardrobe.com';
-    const imageUrl = productImage?.startsWith('http')
-      ? productImage
-      : `${baseUrl}${productImage?.startsWith('/') ? productImage : `/${productImage}`}`;
+    // Only build an image URL when the product has an image, otherwise we'd emit
+    // "https://thesolowardrobe.com/undefined" and break the link preview.
+    const imageUrl = productImage
+      ? (String(productImage).startsWith('http')
+          ? productImage
+          : `${baseUrl}${String(productImage).startsWith('/') ? productImage : `/${productImage}`}`)
+      : null;
 
     const brand = product.brand ? ` by ${product.brand}` : '';
     const category = product.category ? ` in ${product.category}` : '';
@@ -87,20 +94,20 @@ app.get('/product/:id', async (req, res) => {
     <meta property="og:description" content="${escapeHtml(description)}" />
     <meta property="og:url" content="${escapeHtml(productUrl)}" />
     <meta property="og:type" content="product" />
-    <meta property="og:image" content="${escapeHtml(imageUrl)}" />
+    ${imageUrl ? `<meta property="og:image" content="${escapeHtml(imageUrl)}" />
     <meta property="og:image:secure_url" content="${escapeHtml(imageUrl)}" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="1200" />
-    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:type" content="image/jpeg" />` : ''}
     <meta property="og:site_name" content="Solo Wardrobe" />
     <meta property="product:price:amount" content="${product.price || 0}" />
     <meta property="product:price:currency" content="INR" />
 
     <!-- Twitter -->
-    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:card" content="${imageUrl ? 'summary_large_image' : 'summary'}" />
     <meta name="twitter:title" content="${escapeHtml(productName)} – Solo Wardrobe" />
     <meta name="twitter:description" content="${escapeHtml(description)}" />
-    <meta name="twitter:image" content="${escapeHtml(imageUrl)}" />
+    ${imageUrl ? `<meta name="twitter:image" content="${escapeHtml(imageUrl)}" />` : ''}
     `;
 
     let modifiedHtml = html.replace(/<title>.*?<\/title>/i, '');

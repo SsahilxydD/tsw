@@ -139,7 +139,7 @@ export const validateCoupon = (code, cartAmount = 0, cartItems = []) => {
     return {
       valid: false,
       coupon: null,
-      error: `Minimum order amount of ${coupon.minOrder} required for this coupon`
+      error: `Minimum order amount of ₹${coupon.minOrder} required for this coupon`
     };
   }
 
@@ -209,7 +209,9 @@ export const recordCouponUsage = (code) => {
   const key = 'coupon_usage';
   try {
     const raw = localStorage.getItem(key);
-    const usage = raw ? JSON.parse(raw) : {};
+    const parsed = raw ? JSON.parse(raw) : {};
+    // Guard against a corrupted/tampered value that isn't a plain object.
+    const usage = (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : {};
     usage[code.toUpperCase()] = (usage[code.toUpperCase()] || 0) + 1;
     localStorage.setItem(key, JSON.stringify(usage));
   } catch { /* localStorage unavailable */ }
@@ -225,6 +227,7 @@ export const getCouponUsageCount = (code) => {
   try {
     const raw = localStorage.getItem('coupon_usage');
     const usage = raw ? JSON.parse(raw) : {};
+    if (!usage || typeof usage !== 'object' || Array.isArray(usage)) return 0;
     return usage[code.toUpperCase()] || 0;
   } catch { return 0; }
 };

@@ -16,6 +16,10 @@ export default function useInView(options = {}) {
       if (entry.isIntersecting) {
         setInView(true);
         if (options?.once) observer.disconnect();
+      } else if (!options?.once) {
+        // When not in "once" mode, reset so elements can re-trigger on re-entry
+        // (otherwise inView latches true forever and "fade out off-screen" never fires).
+        setInView(false);
       }
     }, {
       threshold: options?.threshold ?? 0,

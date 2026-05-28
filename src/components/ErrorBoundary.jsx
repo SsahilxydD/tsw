@@ -45,9 +45,12 @@ class ErrorBoundary extends React.Component {
     if (this.state.hasError) {
       const errorMessage = getErrorMessage(this.state.error);
       
-      // Use custom fallback if provided
+      // Use custom fallback if provided. Support a render-prop form so a custom
+      // fallback can still trigger recovery (otherwise it's stuck until a reload).
       if (this.props.fallback) {
-        return this.props.fallback;
+        return typeof this.props.fallback === 'function'
+          ? this.props.fallback({ error: this.state.error, resetError: this.handleRetry })
+          : this.props.fallback;
       }
 
       // Default error UI

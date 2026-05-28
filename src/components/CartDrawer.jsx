@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import SafeImg from './SafeImg';
 import ShippingProgressBar from './ShippingProgressBar';
 import PriceDisplay from './PriceDisplay';
+import { lockScroll, unlockScroll } from '../utils/scrollLock';
 
 const CartDrawer = () => {
     const {
@@ -45,6 +46,13 @@ const CartDrawer = () => {
         document.addEventListener('keydown', handleEsc);
         return () => document.removeEventListener('keydown', handleEsc);
     }, [isCartOpen, setIsCartOpen]);
+
+    // Lock body scroll while the drawer is open so the page behind doesn't scroll
+    useEffect(() => {
+        if (!isCartOpen) return;
+        lockScroll();
+        return () => unlockScroll();
+    }, [isCartOpen]);
 
     // Trap focus within drawer when open
     useEffect(() => {

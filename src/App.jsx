@@ -29,7 +29,6 @@ const Collection = lazy(() => import("./pages/Collection"));
 const Product = lazy(() => import("./pages/Product"));
 const Cart = lazy(() => import("./pages/Cart"));
 const Address = lazy(() => import("./pages/Address"));
-const Payment = lazy(() => import("./pages/Payment"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const About = lazy(() => import("./pages/About"));
 const Contact = lazy(() => import("./pages/Contact"));
@@ -50,7 +49,6 @@ const routes = [
   { path: "/cart", element: <Cart /> },
   { path: "/wishlist", element: <Wishlist /> },
   { path: "/address", element: <Address /> },
-  { path: "/payment", element: <Payment /> },
   { path: "/orders", element: <Orders /> },
   { path: "/login", element: <Login /> },
   { path: "*", element: <NotFound /> },

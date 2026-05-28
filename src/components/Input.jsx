@@ -30,7 +30,10 @@ const Input = React.forwardRef(({
     : 'border-gray-200 bg-white focus:ring-2 focus:ring-primary/20';
 
   const disabledStyles = disabled ? 'opacity-50 cursor-not-allowed bg-gray-50' : '';
-  const inputId = id || name || `input-${Math.random().toString(36).substr(2, 9)}`;
+  // Stable id across renders so the <label htmlFor> / aria-describedby associations
+  // don't change on every keystroke (Math.random() regenerated them each render).
+  const reactId = React.useId();
+  const inputId = id || name || reactId;
   const labelId = label ? `${inputId}-label` : undefined;
 
   return (

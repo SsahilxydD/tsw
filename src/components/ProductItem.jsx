@@ -5,10 +5,10 @@ import { ShopContext } from "../context/ShopContext";
 import SafeImg from "./SafeImg";
 import UrgencyBadge from './UrgencyBadge';
 import PriceDisplay from './PriceDisplay';
-import { isFootwearProduct, isJeansProduct, normalizeJeansSizes, uniqueUKLabels } from "../utils/size";
+import { getSelectableSizes } from "../utils/size";
 
 const ProductItem = ({ id, image, name, price, i = 0, showAdd = false }) => {
-  const { currency, addToCart, products, toggleWishlist, isInWishlist } = useContext(ShopContext);
+  const { currency, addToCart, products, toggleWishlist, isInWishlist, navigate } = useContext(ShopContext);
   const cover = Array.isArray(image) ? (image[0] || "") : (image || "");
   const [isHovered, setIsHovered] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -27,22 +27,7 @@ const ProductItem = ({ id, image, name, price, i = 0, showAdd = false }) => {
   const discountPct = hasSale ? Math.round((1 - Number(productObj.price) / Number(productObj.mrp)) * 100) : 0;
   const isBestseller = productObj?.bestseller === true;
 
-  const tileSizes = useMemo(() => {
-    let arr = Array.isArray(productObj?.sizes) ? productObj.sizes : [];
-    const catRaw = String(productObj?.categoryRaw || productObj?.category || '').toLowerCase();
-    if (isFootwearProduct(productObj) && catRaw !== 'womenshoes') arr = uniqueUKLabels(arr);
-    else if (isJeansProduct(productObj)) arr = normalizeJeansSizes(arr);
-    else arr = arr.map((s) => String(s)).filter(Boolean);
-    const bad = /^(one\s?size|onesize|os|std)$/i;
-    const seen = new Set();
-    const out = [];
-    for (const s of arr) {
-      if (bad.test(s)) continue;
-      const key = s.toUpperCase();
-      if (!seen.has(key)) { seen.add(key); out.push(s); }
-    }
-    return out;
-  }, [productObj]);
+  const tileSizes = useMemo(() => getSelectableSizes(productObj), [productObj]);
 
   // Show fewer sizes on mobile (2), more on desktop (3)
   const displaySizes = tileSizes.slice(0, 3);
@@ -51,7 +36,13 @@ const ProductItem = ({ id, image, name, price, i = 0, showAdd = false }) => {
   const handleQuickAdd = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    addToCart(String(id), tileSizes[0] || 'std');
+    // Only add directly when there's exactly one size to choose. With multiple
+    // sizes, don't silently pick the first — send the user to choose on the PDP.
+    if (tileSizes.length === 1) {
+      addToCart(String(id), tileSizes[0]);
+    } else {
+      navigate(`/product/${id}`);
+    }
   };
 
   return (
@@ -126,9 +117,9 @@ const ProductItem = ({ id, image, name, price, i = 0, showAdd = false }) => {
               <button
                 onClick={handleQuickAdd}
                 className="w-full py-2 bg-white text-primary text-xs font-semibold uppercase tracking-wider rounded-lg hover:bg-primary hover:text-white transition-colors shadow-lg min-h-[44px]"
-                aria-label={`Quick add ${name} to cart`}
+                aria-label={tileSizes.length === 1 ? `Quick add ${name} to cart` : `Choose size for ${name}`}
               >
-                Quick Add
+                {tileSizes.length === 1 ? 'Quick Add' : 'Select Size'}
               </button>
             </div>
           )}

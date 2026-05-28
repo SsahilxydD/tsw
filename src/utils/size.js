@@ -1,10 +1,12 @@
 // Size normalization utilities (footwear -> UK sizes)
 
 // Map common EU sizes to UK (men's). Integer mapping for consistency.
+// This is the exact inverse of UK_TO_EU_SHOES in sizeGuideData.js (UK n <-> EU n+33),
+// so EU 39 -> UK 6 and EU 40 -> UK 7 are distinct (previously both collapsed to UK 6).
 const EU_TO_UK = new Map([
-  [36, 3], [37, 4], [38, 5], [39, 6],
-  [40, 6], [41, 7], [42, 8], [43, 9],
-  [44, 10], [45, 11], [46, 12], [47, 13], [48, 14],
+  [36, 3], [37, 4], [38, 5], [39, 6], [40, 7],
+  [41, 8], [42, 9], [43, 10], [44, 11], [45, 12],
+  [46, 13], [47, 14], [48, 15],
 ]);
 
 export function isFootwearProduct(p) {
@@ -166,3 +168,24 @@ export function uniqueUKLabels(sizes = []) {
 }
 
 export const UK_FOOT_RANGE = [5,6,7,8,9,10,11,12].map((n) => `UK-${n}`);
+
+// Canonical list of user-selectable sizes for a product (footwear -> UK labels,
+// jeans -> waist numbers), with one-size / placeholder tokens (std, OS, "one size")
+// stripped out. Shared by ProductItem and Wishlist so the "Select Size vs add
+// directly" decision is consistent everywhere.
+export function getSelectableSizes(product) {
+  let arr = Array.isArray(product?.sizes) ? product.sizes : [];
+  const catRaw = String(product?.categoryRaw || product?.category || "").toLowerCase();
+  if (isFootwearProduct(product) && catRaw !== "womenshoes") arr = uniqueUKLabels(arr);
+  else if (isJeansProduct(product)) arr = normalizeJeansSizes(arr);
+  else arr = arr.map((s) => String(s)).filter(Boolean);
+  const bad = /^(one\s?size|onesize|os|std)$/i;
+  const seen = new Set();
+  const out = [];
+  for (const s of arr) {
+    if (bad.test(s)) continue;
+    const key = String(s).toUpperCase();
+    if (!seen.has(key)) { seen.add(key); out.push(s); }
+  }
+  return out;
+}

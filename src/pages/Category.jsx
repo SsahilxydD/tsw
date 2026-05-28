@@ -307,6 +307,7 @@ const Category = () => {
   useEffect(() => {
     const target = sentinelRef.current;
     if (!target || typeof window === 'undefined' || !('IntersectionObserver' in window)) return;
+    let timer = null;
     const obs = new IntersectionObserver((entries) => {
       for (const e of entries) {
         if (!e.isIntersecting) continue;
@@ -314,15 +315,17 @@ const Category = () => {
         if (visibleCount >= list.length) continue;
         setLoadingMore(true);
         // small delay for a pleasant loading state and to coalesce renders
-        const t = setTimeout(() => {
+        timer = setTimeout(() => {
           setVisibleCount((c) => Math.min(c + PAGE_SIZE, list.length));
           setLoadingMore(false);
         }, 450);
-        return () => clearTimeout(t);
+        return;
       }
     }, { rootMargin: '200px 0px' });
     obs.observe(target);
-    return () => { try { obs.disconnect(); } catch {} };
+    // Clear the pending timer here (the cleanup returned from inside the observer
+    // callback was dead code and never ran).
+    return () => { try { obs.disconnect(); } catch {} if (timer) clearTimeout(timer); };
   }, [list.length, visibleCount, loadingMore]);
 
   const isLoading = Boolean(loadingProducts);
@@ -561,9 +564,9 @@ const Category = () => {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4 lg:gap-6">
             {list.slice(0, visibleCount).map((item, index) => (
               <ProductItem
-                key={item._id || item.id || item.slug || index}
+                key={item._id ?? item.id ?? item.slug}
                 id={item._id ?? item.id ?? item.slug}
-                image={item.image}
+                image={item.image ?? item.images}
                 name={item.name}
                 price={item.price}
                 i={index}

@@ -82,9 +82,12 @@ export function selectRelatedProducts(current, allProducts, opts = {}) {
     score += Math.min(overlap, 4) * 0.75;
 
     // gentle price closeness bonus (optional but helpful)
-    if (Number.isFinite(current?.price) && Number.isFinite(p?.price)) {
-      const diff = Math.abs(current.price - p.price);
-      const rel = diff / Math.max(1, current.price);
+    // Coerce first — prices are frequently strings, and Number.isFinite("1299") is false.
+    const cp = Number(current?.price);
+    const pp = Number(p?.price);
+    if (Number.isFinite(cp) && Number.isFinite(pp)) {
+      const diff = Math.abs(cp - pp);
+      const rel = diff / Math.max(1, cp);
       if (rel < 0.15) score += 0.5;       // within 15%
       else if (rel < 0.30) score += 0.25; // within 30%
     }

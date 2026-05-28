@@ -4,7 +4,7 @@ const https = require('https');
 // Helper to fetch URL content
 function fetchUrl(url) {
   return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
+    const req = https.get(url, (res) => {
       let data = '';
       res.on('data', (chunk) => { data += chunk; });
       res.on('end', () => {
@@ -14,7 +14,10 @@ function fetchUrl(url) {
           reject(new Error(`HTTP ${res.statusCode}`));
         }
       });
-    }).on('error', reject);
+    });
+    req.on('error', reject);
+    // Don't let a hung upstream hold the socket open indefinitely.
+    req.setTimeout(8000, () => req.destroy(new Error('fetchUrl timeout')));
   });
 }
 
@@ -52,11 +55,15 @@ module.exports = async (req, res) => {
       ? product.images[0]
       : (Array.isArray(product.image) ? product.image[0] : product.image);
 
-    // Build absolute image URL
+    // Build absolute image URL. Only when the product actually has an image —
+    // otherwise this would produce "https://thesolowardrobe.com/undefined" and
+    // break the link preview on Facebook/WhatsApp/Twitter.
     const baseUrl = 'https://thesolowardrobe.com';
-    const imageUrl = productImage?.startsWith('http')
-      ? productImage
-      : `${baseUrl}${productImage?.startsWith('/') ? productImage : `/${productImage}`}`;
+    const imageUrl = productImage
+      ? (String(productImage).startsWith('http')
+          ? productImage
+          : `${baseUrl}${String(productImage).startsWith('/') ? productImage : `/${productImage}`}`)
+      : null;
 
     // Generate description
     const brand = product.brand ? ` by ${product.brand}` : '';
@@ -101,20 +108,20 @@ module.exports = async (req, res) => {
     <meta property="og:description" content="${escapeHtml(description)}" />
     <meta property="og:url" content="${escapeHtml(productUrl)}" />
     <meta property="og:type" content="product" />
-    <meta property="og:image" content="${escapeHtml(imageUrl)}" />
+    ${imageUrl ? `<meta property="og:image" content="${escapeHtml(imageUrl)}" />
     <meta property="og:image:secure_url" content="${escapeHtml(imageUrl)}" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="1200" />
-    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:type" content="image/jpeg" />` : ''}
     <meta property="og:site_name" content="Solo Wardrobe" />
     <meta property="product:price:amount" content="${product.price || 0}" />
     <meta property="product:price:currency" content="INR" />
 
     <!-- Twitter -->
-    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:card" content="${imageUrl ? 'summary_large_image' : 'summary'}" />
     <meta name="twitter:title" content="${escapeHtml(productName)} – Solo Wardrobe" />
     <meta name="twitter:description" content="${escapeHtml(description)}" />
-    <meta name="twitter:image" content="${escapeHtml(imageUrl)}" />
+    ${imageUrl ? `<meta name="twitter:image" content="${escapeHtml(imageUrl)}" />` : ''}
     `;
 
     // Remove existing title and description tags, then inject new meta tags

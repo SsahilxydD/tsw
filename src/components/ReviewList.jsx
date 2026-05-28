@@ -30,6 +30,8 @@ const StarDisplay = ({ rating, size = 'md' }) => {
 
 const ReviewCard = ({ review, onHelpful }) => {
   const [helpfulClicked, setHelpfulClicked] = useState(false);
+  // Optimistically include the user's own click so the count visibly increments.
+  const displayHelpful = (review.helpfulCount || 0) + (helpfulClicked ? 1 : 0);
   const date = review.date ? new Date(review.date) : null;
   const formattedDate = date && !isNaN(date) ? date.toLocaleDateString('en-IN', {
     year: 'numeric',
@@ -77,9 +79,9 @@ const ReviewCard = ({ review, onHelpful }) => {
           }`}
           aria-label={helpfulClicked ? 'Marked as helpful' : 'Mark as helpful'}
         >
-          {helpfulClicked ? '✓ Helpful' : 'Helpful'} 
-          {review.helpfulCount > 0 && (
-            <span className="ml-1">({review.helpfulCount})</span>
+          {helpfulClicked ? '✓ Helpful' : 'Helpful'}
+          {displayHelpful > 0 && (
+            <span className="ml-1">({displayHelpful})</span>
           )}
         </button>
       </div>
@@ -96,10 +98,10 @@ const ReviewList = ({ reviews, onHelpful, sortBy = 'newest' }) => {
     
     switch (currentSort) {
       case 'newest':
-        sorted.sort((a, b) => new Date(b.date) - new Date(a.date));
+        sorted.sort((a, b) => (Date.parse(b.date) || 0) - (Date.parse(a.date) || 0));
         break;
       case 'oldest':
-        sorted.sort((a, b) => new Date(a.date) - new Date(b.date));
+        sorted.sort((a, b) => (Date.parse(a.date) || 0) - (Date.parse(b.date) || 0));
         break;
       case 'highest':
         sorted.sort((a, b) => b.rating - a.rating);
@@ -111,7 +113,7 @@ const ReviewList = ({ reviews, onHelpful, sortBy = 'newest' }) => {
         sorted.sort((a, b) => (b.helpfulCount || 0) - (a.helpfulCount || 0));
         break;
       default:
-        sorted.sort((a, b) => new Date(b.date) - new Date(a.date));
+        sorted.sort((a, b) => (Date.parse(b.date) || 0) - (Date.parse(a.date) || 0));
     }
     
     return sorted;

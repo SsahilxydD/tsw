@@ -80,6 +80,10 @@ export default function Carousel({
   const [isResetting, setIsResetting] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef(null);
+  const resetTimerRef = useRef(null);
+
+  // Clear the loop-reset timer on unmount to avoid setState-after-unmount
+  useEffect(() => () => { if (resetTimerRef.current) clearTimeout(resetTimerRef.current); }, []);
 
   useEffect(() => {
     if (pauseOnHover && containerRef.current) {
@@ -134,7 +138,8 @@ export default function Carousel({
       setIsResetting(true);
       x.set(0);
       setCurrentIndex(0);
-      setTimeout(() => setIsResetting(false), 50);
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+      resetTimerRef.current = setTimeout(() => setIsResetting(false), 50);
     }
   };
 
