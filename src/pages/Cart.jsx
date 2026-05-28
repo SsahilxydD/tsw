@@ -113,7 +113,7 @@ const Cart = () => {
   // No checkout on My Bag; proceed to Address.
 
   return (
-    <div className='border-t pt-14 pb-20 md:pb-0'>
+    <div className='border-t pt-14 pb-28 lg:pb-12'>
 
       <div className='mb-5'>
         <CartSteps active="bag" />
@@ -132,6 +132,10 @@ const Cart = () => {
             )}
           </div>
         </div>
+
+        {/* Desktop: items on the left, coupon + checkout in a sticky sidebar on the right */}
+        <div className='lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-8 lg:items-start'>
+          <div className='min-w-0'>
         {loadingProducts && cartData.length === 0 ? (
           <>
             <CartItemSkeleton />
@@ -224,12 +228,13 @@ const Cart = () => {
             );
           })
         )}
-      </div>
+            <ShippingProgressBar />
+          </div>
 
-      <ShippingProgressBar />
-
-      <div className='mt-8 grid sm:grid-cols-2 gap-4'>
-        <Accordion title="Apply Coupon">
+          {/* Right column: coupon + checkout (sticky on desktop) */}
+          <aside className='mt-6 lg:mt-0 lg:sticky lg:top-24'>
+            <div className='rounded-lg border border-gray-200 bg-white p-4 sm:p-5'>
+              <Accordion title="Apply Coupon">
           {appliedCoupon ? (
             <div className='space-y-3'>
               <div className='flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-md'>
@@ -285,23 +290,23 @@ const Cart = () => {
               </div>
             </div>
           )}
-        </Accordion>
+              </Accordion>
+
+              {/* Desktop checkout button — mobile/tablet use the sticky bar */}
+              <Button
+                type='button'
+                disabled={getCartCount() === 0}
+                onClick={() => navigate('/address')}
+                className='w-full mt-4 hidden lg:flex justify-center'
+              >
+                Proceed to checkout
+              </Button>
+            </div>
+          </aside>
+        </div>
+
+        <CartRecommendations />
       </div>
-
-      {/* Primary checkout action is the CartStickyBar on mobile, this button for desktop */}
-      <div className='mt-6 hidden md:flex justify-center'>
-        <Button
-          type='button'
-          disabled={getCartCount() === 0}
-          onClick={() => navigate('/address')}
-        >
-          Proceed to checkout
-        </Button>
-      </div>
-
-      {/* Totals removed from My Bag (shown on Payment step) */}
-
-      <CartRecommendations />
 
       <CartStickyBar
         buttonText="CHECKOUT"
