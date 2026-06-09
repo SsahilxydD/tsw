@@ -165,7 +165,7 @@ const Cart = () => {
                 <Link to={`/product/${item._id}`} className="shrink-0">
                   <SafeImg
                     className='w-16 h-16 sm:w-20 sm:h-20 rounded-md object-cover border hover:opacity-80 transition-opacity'
-                    src={cover || '/placeholder-image.png'}
+                    src={cover || '/assets/no-image.svg'}
                     alt={productData?.name || 'Product'}
                     width={64}
                     height={64}

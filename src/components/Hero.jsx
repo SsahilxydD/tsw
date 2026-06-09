@@ -6,20 +6,20 @@ const Hero = () => {
       {/* Mobile hero image */}
       <img
         className="w-full h-full object-cover sm:hidden"
-        src="/mobile.png"
+        src="/mobile.webp"
         alt="Solo Wardrobe"
-        width={750}
-        height={1000}
+        width={1080}
+        height={1935}
         loading="eager"
         fetchPriority="high"
       />
       {/* Desktop hero image */}
       <img
         className="w-full h-full object-cover hidden sm:block"
-        src="/pc.png"
+        src="/pc.webp"
         alt="Solo Wardrobe"
-        width={1600}
-        height={900}
+        width={1920}
+        height={1072}
         loading="eager"
         fetchPriority="high"
       />

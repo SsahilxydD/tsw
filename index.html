@@ -11,11 +11,11 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="theme-color" content="#000000" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <!-- Preload LCP hero image (Cloudflare Images, resized) -->
+    <!-- Preload LCP hero image (optimized WebP) -->
     <!-- NOTE: Preloading must match the final <img src> to avoid double-downloads -->
     <link rel="preconnect" href="https://imagedelivery.net" crossorigin />
-    <link rel="preload" href="/mobile.png" as="image" fetchpriority="high" media="(max-width: 639px)" />
-    <link rel="preload" href="/pc.png" as="image" fetchpriority="high" media="(min-width: 640px)" />
+    <link rel="preload" href="/mobile.webp" as="image" fetchpriority="high" media="(max-width: 639px)" />
+    <link rel="preload" href="/pc.webp" as="image" fetchpriority="high" media="(min-width: 640px)" />
     
     <!-- DNS prefetch for faster subsequent requests -->
     <link rel="dns-prefetch" href="https://thesolowardrobe.com" />
