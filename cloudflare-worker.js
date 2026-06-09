@@ -1,5 +1,8 @@
 // Cloudflare Worker for OG Meta Tags
 // 100% free, no servers needed, deploy in 2 minutes
+//
+// Bundled by wrangler/esbuild, so this import is inlined at deploy time.
+import { computeDisplayPrice } from './src/utils/pricing.js';
 
 export default {
   async fetch(request, env) {
@@ -155,8 +158,7 @@ export default {
         console.log('Product image URL (optimized for OG):', imageUrl);
       }
 
-      // Apply same price adjustments as ShopContext
-      const basePrice = Number(product.price || 0);
+      // Category hints for the description opening + size processing below.
       const originalCategory = product.category || '';
       const title = product.title || product.slug_name || '';
       const normalize = (s) => String(s || '')
@@ -203,52 +205,11 @@ export default {
       const isJeans = any([/\bjeans?\b/i, /\bdenim\b/i]);
       const isShoe = any([/\bshoes?\b/i, /\bsneakers?\b/i, /\bfootwear\b/i, /\bboots?\b/i, /\bsandals?\b/i]);
 
-      // Calculate price adjustment (same logic as ShopContext)
-      let priceAdj = 0;
-      if (isDiscounted) {
-        priceAdj = 0;
-      } else if (isBelt) {
-        priceAdj = 200;
-      } else if (isCap) {
-        priceAdj = 200;
-      } else if (isFlipFlop) {
-        priceAdj = 150;
-      } else if (isHoodie) {
-        priceAdj = 150;
-      } else if (isHandbag) {
-        priceAdj = 100;
-      } else if (isJacket) {
-        priceAdj = 150;
-      } else if (isJeans) {
-        priceAdj = 100;
-      } else if (isWomensWatch) {
-        priceAdj = 150;
-      } else if (isMensPerfume) {
-        priceAdj = 150;
-      } else if (isShirt) {
-        priceAdj = 200;
-      } else if (isSunglasses) {
-        priceAdj = 250;
-      } else if (isSweatshirt) {
-        priceAdj = 200;
-      } else if (isTShirt) {
-        priceAdj = 150;
-      } else if (isTrackPant) {
-        priceAdj = 200;
-      } else if (isTracksuit) {
-        priceAdj = 150;
-      } else if (isWallet) {
-        priceAdj = 150;
-      } else if (isMensWatch) {
-        priceAdj = 150;
-      } else if (isWomensPerfume) {
-        priceAdj = 150;
-      } else if (isShoe) {
-        priceAdj = 550;
-      }
-
-      const displayPrice = Math.max(0, basePrice + priceAdj);
-      const displayMrp = product.mrp ? Math.max(0, Number(product.mrp) + priceAdj) : null;
+      // Display price/mrp from the shared pricing module (src/utils/pricing.js) so
+      // social-preview prices stay identical to what the storefront shows. mrp is
+      // kept raw (no markup) to match ShopContext's discount math.
+      const displayPrice = computeDisplayPrice(product);
+      const displayMrp = product.mrp ? Math.max(0, Number(product.mrp)) : null;
 
       // Process sizes (same logic as ProductItem.jsx)
       const processSizes = (product) => {

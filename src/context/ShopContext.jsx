@@ -1,5 +1,6 @@
 import { createContext, useEffect, useRef, useState, useCallback, useMemo } from "react";
-import { isJeansProduct, isFootwearProduct, normalizeJeansSizes, uniqueUKLabels } from "../utils/size";
+import { isJeansProduct, normalizeJeansSizes, uniqueUKLabels } from "../utils/size";
+import { computeProductPricing } from "../utils/pricing";
 import { useNavigate } from "react-router-dom";
 import { safeFetch, safeLocalStorage, handleError } from "../utils/errorHandler";
 import { loadCart, saveCart, setupCartSync, clearCart } from "../utils/cartPersistence";
@@ -175,99 +176,8 @@ const ShopContextProvider = (props) => {
           return;
         }
 
-        // Fast-path mappings: products.json already has normalized categories (e.g. "belts", "shoes").
-        // Avoid expensive keyword inference on every item (this was a major Lighthouse main-thread cost).
-        const normalizeKey = (s) => String(s || "")
-          .toLowerCase()
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .replace(/[^a-z0-9]+/g, "");
-
-        const CATEGORY_ALIASES = {
-          discounted: "Discounted",
-          sale: "Discounted",
-          ladieswatch: "ladieswatches",
-          ladieswatches: "ladieswatches",
-          womenswatch: "ladieswatches",
-          womenswatches: "ladieswatches",
-          womensperfume: "womensperfume",
-          womenperfume: "womensperfume",
-          perfumeforwomen: "womensperfume",
-          menperfume: "menperfume",
-          mensperfume: "menperfume",
-          tshirt: "t-shirts",
-          tshirts: "t-shirts",
-          tshirtsclothstopwear: "t-shirts",
-          tshirtsclothstopwearmen: "t-shirts",
-          shirts: "shirts",
-          shirt: "shirts",
-          sunglasses: "sunglasses",
-          shades: "sunglasses",
-          watches: "watches",
-          watch: "watches",
-          flipflop: "flipflops",
-          flipflops: "flipflops",
-          handbags: "handbags",
-          handbag: "handbags",
-          caps: "caps",
-          cap: "caps",
-          hats: "caps",
-          hat: "caps",
-          belts: "belts",
-          belt: "belts",
-          wallets: "wallets",
-          wallet: "wallets",
-          cardholder: "wallets",
-          cardholders: "wallets",
-          jeans: "jeans",
-          jean: "jeans",
-          denim: "jeans",
-          jackets: "jackets",
-          jacket: "jackets",
-          windcheaters: "jackets",
-          blazers: "jackets",
-          sweatshirt: "sweatshirts",
-          sweatshirts: "sweatshirts",
-          tracksuit: "tracksuits",
-          tracksuits: "tracksuits",
-          hoodie: "hoodies",
-          hoodies: "hoodies",
-          trackpant: "trackpants",
-          trackpants: "trackpants",
-          jogger: "trackpants",
-          joggers: "trackpants",
-          womenshoes: "womenshoes",
-          womenshoe: "womenshoes",
-          ladieshoes: "womenshoes",
-          shoes: "shoes",
-          shoe: "shoes",
-          sneaker: "shoes",
-          sneakers: "shoes",
-          footwear: "shoes",
-        };
-
-        const PRICE_ADJ = {
-          belts: 200,
-          caps: 200,
-          flipflops: 150,
-          hoodies: 150,
-          handbags: 100,
-          jackets: 150,
-          jeans: 100,
-          ladieswatches: 150,
-          menperfume: 150,
-          shirts: 200,
-          sunglasses: 250,
-          sweatshirts: 200,
-          "t-shirts": 150,
-          trackpants: 200,
-          tracksuits: 150,
-          wallets: 150,
-          watches: 150,
-          womensperfume: 150,
-          womenshoes: 550,
-          shoes: 550,
-        };
+        // Category normalization + per-category markup live in utils/pricing.js
+        // (single source of truth shared with cloudflare-worker.js). See computeProductPricing.
 
         const mapped = Array.isArray(raw) ? raw.map((item) => {
           const images = Array.isArray(item.images)
@@ -295,58 +205,16 @@ const ShopContextProvider = (props) => {
             : [];
 
           // --- FAST PATH ---
-          // Trust products.json "category" and apply a small normalization map.
+          // Category normalization + markup + Discounted flat-pricing all live in
+          // utils/pricing.js so the storefront and the OG worker price identically.
           const originalCategory = String(item.category ?? "");
-          const key = normalizeKey(originalCategory);
-          const finalCategoryRaw = CATEGORY_ALIASES[key] || originalCategory;
+          const { finalCategoryRaw, derivedSub, price } = computeProductPricing(item);
 
           let category = originalCategory;
           const lc = String(category).toLowerCase();
           if (lc.includes("men")) category = "Men";
           else if (lc.includes("women") || lc.includes("lady")) category = "Women";
           else if (lc.includes("kid")) category = "Kids";
-
-          const basePrice = Number(item.price ?? 0) || 0;
-          const isDiscounted = String(finalCategoryRaw).toLowerCase() === "discounted";
-
-          // Discounted subCategory (simple + fast)
-          let derivedSub = item.subCategory ?? "";
-          if (isDiscounted) {
-            const looksFootwear = isFootwearProduct({
-              category: originalCategory,
-              categoryRaw: originalCategory,
-              sizes: item?.sizes,
-            });
-            derivedSub = looksFootwear ? "Footwear" : "Topwear";
-          }
-
-          let price = Math.max(0, basePrice + (isDiscounted ? 0 : (PRICE_ADJ[String(finalCategoryRaw)] || 0)));
-
-          // Flat pricing for Discounted products (apply to all footwear-like products, not just those with detected sizes)
-          if (isDiscounted) {
-            const titleForCheck = String(item?.title ?? item?.slug_name ?? "").toLowerCase();
-            // Keywords for ₹1399 pricing (slides, clogs, sandals)
-            const keywords1399 = [
-              "brikenstock",
-              "birkenstock",
-              "croccs",
-              "crocs",
-              "slide",
-              "slider",
-              "clog",
-              "slipper",
-              "sandal",
-              "nike offcourt adjust slide",
-              "nikee air uptempo slider",
-            ];
-            const hasKeyword1399 = keywords1399.some((k) => titleForCheck.includes(k));
-            
-            // If base price is 0 or derivedSub is footwear, apply flat pricing
-            // This catches products with missing price data
-            if (basePrice === 0 || String(derivedSub || "").toLowerCase() === "footwear") {
-              price = hasKeyword1399 ? 1399 : 1999;
-            }
-          }
 
           const mappedItem = {
             _id: (item._id ?? item.slug ?? item.slug_name ?? item.title)?.toString(),
