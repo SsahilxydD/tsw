@@ -304,6 +304,10 @@ const Category = () => {
   }, [catKeyLower]);
 
   // Auto-load more when the sentinel becomes visible
+  // Guard via ref, not loadingMore state: this effect must not depend on
+  // loadingMore — re-running on that flip would run the cleanup, cancel the
+  // pending timer, and strand the spinner with no way to recover.
+  const loadingMoreRef = React.useRef(false);
   useEffect(() => {
     const target = sentinelRef.current;
     if (!target || typeof window === 'undefined' || !('IntersectionObserver' in window)) return;
@@ -311,22 +315,32 @@ const Category = () => {
     const obs = new IntersectionObserver((entries) => {
       for (const e of entries) {
         if (!e.isIntersecting) continue;
-        if (loadingMore) continue;
+        if (loadingMoreRef.current) continue;
         if (visibleCount >= list.length) continue;
+        loadingMoreRef.current = true;
         setLoadingMore(true);
         // small delay for a pleasant loading state and to coalesce renders
         timer = setTimeout(() => {
+          timer = null;
           setVisibleCount((c) => Math.min(c + PAGE_SIZE, list.length));
+          loadingMoreRef.current = false;
           setLoadingMore(false);
         }, 450);
         return;
       }
     }, { rootMargin: '200px 0px' });
     obs.observe(target);
-    // Clear the pending timer here (the cleanup returned from inside the observer
-    // callback was dead code and never ran).
-    return () => { try { obs.disconnect(); } catch {} if (timer) clearTimeout(timer); };
-  }, [list.length, visibleCount, loadingMore]);
+    return () => {
+      try { obs.disconnect(); } catch {}
+      if (timer) {
+        // Load cancelled mid-flight (list changed) — release the guard so the
+        // next observation can start fresh.
+        clearTimeout(timer);
+        loadingMoreRef.current = false;
+        setLoadingMore(false);
+      }
+    };
+  }, [list.length, visibleCount]);
 
   const isLoading = Boolean(loadingProducts);
   const isEmpty = !isLoading && list.length === 0;
