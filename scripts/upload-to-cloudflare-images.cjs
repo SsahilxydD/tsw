@@ -36,7 +36,7 @@ const CONFIG = {
   
   // Number of parallel uploads (5-10 is optimal for API rate limits)
   // For 10000+ images, 8-10 is a good balance
-  concurrency: 3,
+  concurrency: 8,
   
   // Maximum file size to upload (10MB default for Cloudflare Images)
   maxFileSizeMB: 10,
@@ -118,24 +118,37 @@ async function uploadImage(fileInfo) {
   const ext = path.extname(fileInfo.localPath).toLowerCase();
   const contentType = MIME_TYPES[ext] || 'image/jpeg';
   
-  // Create form data using native FormData + Blob (Node 18+)
-  const formData = new FormData();
-  const blob = new Blob([fileContent], { type: contentType });
-  formData.append('file', blob, path.basename(fileInfo.localPath));
+  // Upload with retry/backoff on rate limits (429), server errors (5xx) and network blips.
+  // FormData/Blob are rebuilt each attempt because fetch consumes the body stream.
+  let response;
+  for (let attempt = 0; ; attempt++) {
+    const formData = new FormData();
+    const blob = new Blob([fileContent], { type: contentType });
+    formData.append('file', blob, path.basename(fileInfo.localPath));
+    try {
+      response = await fetch(`${API_BASE}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${CONFIG.apiToken}` },
+        body: formData,
+      });
+    } catch (netErr) {
+      if (attempt >= 6) throw netErr;
+      await new Promise((r) => setTimeout(r, 500 * 2 ** attempt));
+      continue;
+    }
+    if ((response.status === 429 || response.status >= 500) && attempt < 6) {
+      const ra = parseInt(response.headers.get('retry-after') || '0', 10);
+      await new Promise((r) => setTimeout(r, ra ? ra * 1000 : 500 * 2 ** attempt));
+      continue;
+    }
+    break;
+  }
 
-  const response = await fetch(`${API_BASE}`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${CONFIG.apiToken}`,
-    },
-    body: formData,
-  });
-  
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(`HTTP ${response.status}: ${errorText}`);
   }
-  
+
   const result = await response.json();
   
   if (!result.success || !result.result) {
